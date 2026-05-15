@@ -7,6 +7,10 @@ and this project versions by BUILD_GUIDE.md phase (`v0.PHASE-name`).
 
 ## [Unreleased]
 
+### Changed
+
+- TypeScript bumped from 5.6 to 6.x. Dropped `baseUrl` from `tsconfig.app.json` (TS 6 raises TS5101). `paths` alias resolves the same way without it. ADR-0013.
+
 ## [v0.2-data-and-auth] — 2026-05-15
 
 ### Added
