@@ -7,14 +7,34 @@ and this project versions by BUILD_GUIDE.md phase (`v0.PHASE-name`).
 
 ## [Unreleased]
 
+## [v0.2-data-and-auth] — 2026-05-15
+
+### Added
+
+- Dexie 4 database with `users`, `balances`, and `rounds` tables
+- Unique `usernameLower` index on users; compound `[userId+playedAt]` on rounds
+- PBKDF2-HMAC-SHA-256 with 600,000 iterations for password hashing (per-user iteration count)
+- Avatar curated palette (10 retro-Vegas colors)
+- Zod schemas for username/password validation, reused by forms and auth
+- `register` (transactionally creates user + 1,000-chip balance row), `login`, `logout`, `restoreSession`
+- Discriminated-union result types for system functions (ADR-0008)
+- Zustand `sessionStore` wrapping the auth API
+- `<RequireAuth>` route wrapper protecting `/lobby`, `/stats`, `/leaderboard`
+- Login and Register forms via React Hook Form + Zod
+- Lobby page showing username, avatar swatch, and Log out button
+- 5 new ADRs (0008–0012)
+- 8 new risk register entries (R-16 to R-23)
+
 ## [v0.1-scaffold] — 2026-05-15
+
+(See previous CHANGELOG entry for the Phase 0 release.)
 
 ### Added
 
 - Repo infrastructure: CLAUDE.md, CONTRIBUTING.md, conventions, ADRs (0001-0007), risks, dev-setup
 - GitHub: PR + issue templates, 9 phase milestones, 18 labels, Dependabot
 - CI: actionlint + markdownlint + commitlint → install + typecheck + build → lint + test + coverage
-- Vite + React 18 + TypeScript scaffold with React Router (5 placeholder pages)
+- Vite + React 18 + TypeScript scaffold with React Router
 - Folder skeleton per BUILD_GUIDE §3 (theme, db, store, systems, components, pages, games)
 - Tailwind v3 with retro Vegas color tokens
 - ESLint flat config with Math.random ban and games-import sandboxing
