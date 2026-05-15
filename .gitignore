@@ -13,3 +13,4 @@ coverage
 !.vscode/extensions.json
 *.log
 pnpm-debug.log*
+*.tsbuildinfo
