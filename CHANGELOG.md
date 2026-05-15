@@ -25,4 +25,4 @@ and this project versions by BUILD_GUIDE.md phase (`v0.PHASE-name`).
 
 ### Verified
 
-- Deliberate-failure CI run for Math.random ban: https://github.com/A1PC/localGamble/actions/runs/25914026044/job/76166109022
+- Deliberate-failure CI run for Math.random ban: <https://github.com/A1PC/localGamble/actions/runs/25914026044/job/76166109022>
