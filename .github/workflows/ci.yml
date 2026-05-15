@@ -63,7 +63,7 @@ jobs:
       - run: pnpm test:run
       - name: Upload coverage
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-${{ github.sha }}
           path: coverage
@@ -82,7 +82,7 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm build
       - name: Upload dist
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: dist-${{ github.sha }}
           path: dist
