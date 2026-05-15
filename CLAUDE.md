@@ -20,7 +20,7 @@ in the repo root. Read it before doing anything.
 6. **Money is integers.** All chip amounts are integers. No floats. No
    `parseFloat`. Rounding bugs at this layer are unacceptable.
 7. **Every round is recorded.** Every completed game round writes exactly
-   one row to the `rounds` table via `systems/history.ts`. No exceptions.
+   one row to the `rounds` table via `src/systems/history.ts`. No exceptions.
 8. **Definition of done.** Before saying a task is complete, run:
    `pnpm lint && pnpm typecheck && pnpm test && pnpm build`. All four must
    pass. Then click through the affected feature in `pnpm dev`.

@@ -27,8 +27,10 @@ pnpm dev           # http://localhost:5173
 
 Types: `feat`, `fix`, `test`, `chore`, `docs`, `refactor`, `perf`, `build`, `ci`.
 
-Scopes: `blackjack`, `roulette`, `slots`, `baccarat`, `wallet`, `auth`, `rng`,
-`history`, `stats`, `leaderboard`, `theme`, `db`, `ci`, `build-guide`, etc.
+Scopes (the canonical list lives in `commitlint.config.js`):
+`blackjack`, `roulette`, `slots`, `baccarat`, `wallet`, `auth`, `rng`,
+`history`, `stats`, `leaderboard`, `theme`, `db`, `session`, `lobby`,
+`ci`, `build-guide`, `deps`, `release`, `repo`.
 
 Examples:
 - `feat(blackjack): add dealer soft-17 logic`
