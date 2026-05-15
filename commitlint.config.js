@@ -1,12 +1,32 @@
 export default {
   extends: ['@commitlint/config-conventional'],
   rules: {
-    'scope-enum': [2, 'always', [
-      'blackjack', 'roulette', 'slots', 'baccarat',
-      'wallet', 'auth', 'rng', 'history', 'stats', 'leaderboard',
-      'theme', 'db', 'session', 'lobby',
-      'ci', 'build-guide', 'deps', 'release', 'repo', 'adr'
-    ]],
+    'scope-enum': [
+      2,
+      'always',
+      [
+        'blackjack',
+        'roulette',
+        'slots',
+        'baccarat',
+        'wallet',
+        'auth',
+        'rng',
+        'history',
+        'stats',
+        'leaderboard',
+        'theme',
+        'db',
+        'session',
+        'lobby',
+        'ci',
+        'build-guide',
+        'deps',
+        'release',
+        'repo',
+        'adr',
+      ],
+    ],
     'subject-case': [0],
   },
 };

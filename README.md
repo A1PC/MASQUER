@@ -14,16 +14,16 @@ pnpm dev
 
 ## Scripts
 
-| Command | Purpose |
-|---|---|
-| `pnpm dev` | Start Vite dev server |
-| `pnpm build` | Production build |
-| `pnpm preview` | Serve the production build locally |
-| `pnpm lint` | ESLint check |
-| `pnpm typecheck` | `tsc --noEmit` |
-| `pnpm test` | Vitest in watch mode |
-| `pnpm test:run` | Vitest single run with coverage |
-| `pnpm format` | Prettier write |
+| Command          | Purpose                            |
+| ---------------- | ---------------------------------- |
+| `pnpm dev`       | Start Vite dev server              |
+| `pnpm build`     | Production build                   |
+| `pnpm preview`   | Serve the production build locally |
+| `pnpm lint`      | ESLint check                       |
+| `pnpm typecheck` | `tsc --noEmit`                     |
+| `pnpm test`      | Vitest in watch mode               |
+| `pnpm test:run`  | Vitest single run with coverage    |
+| `pnpm format`    | Prettier write                     |
 
 ## Documentation map
 

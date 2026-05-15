@@ -109,6 +109,7 @@ git checkout main
 git pull --ff-only
 git status
 ```
+
 Expected: `On branch main`, `Your branch is up to date with 'origin/main'.`, `nothing to commit, working tree clean`.
 
 - [ ] **Step 2: Verify Node and pnpm are available**
@@ -118,6 +119,7 @@ node --version
 corepack enable
 which pnpm
 ```
+
 Expected: Node v20.x. `pnpm` resolves via Corepack. If `node --version` shows < 20, run `nvm install 20 && nvm use 20`.
 
 - [ ] **Step 3: Verify gh CLI is authenticated**
@@ -125,6 +127,7 @@ Expected: Node v20.x. `pnpm` resolves via Corepack. If `node --version` shows < 
 ```bash
 gh auth status
 ```
+
 Expected: "Logged in to github.com account ..." with at least `repo` and `workflow` scopes. If not: `gh auth login`.
 
 ---
@@ -142,11 +145,13 @@ git checkout main
 git pull --ff-only
 git checkout -b phase-0-meta
 ```
+
 Expected: `Switched to a new branch 'phase-0-meta'`.
 
 ## Task 2: Add CLAUDE.md
 
 **Files:**
+
 - Create: `CLAUDE.md`
 
 - [ ] **Step 1: Write CLAUDE.md with hard rules**
@@ -217,18 +222,20 @@ ambiguous, raise it — don't pick silently.
 git add CLAUDE.md
 git commit -m "docs(repo): add CLAUDE.md with agent hard rules"
 ```
+
 Expected: 1 file changed, ~50 insertions.
 
 ## Task 3: Add CONTRIBUTING.md
 
 **Files:**
+
 - Create: `CONTRIBUTING.md`
 
 - [ ] **Step 1: Write CONTRIBUTING.md**
 
 Create `CONTRIBUTING.md`. Note that the inner `bash` blocks use triple-backticks and the file itself uses normal markdown — copy the content between the leading and trailing markers verbatim.
 
-```markdown
+````markdown
 # Contributing to localGamble
 
 ## Local setup
@@ -241,6 +248,7 @@ corepack enable    # enables pnpm via Node's bundled corepack
 pnpm install
 pnpm dev           # http://localhost:5173
 ```
+````
 
 ## Branch model
 
@@ -262,6 +270,7 @@ Scopes: `blackjack`, `roulette`, `slots`, `baccarat`, `wallet`, `auth`, `rng`,
 `history`, `stats`, `leaderboard`, `theme`, `db`, `ci`, `build-guide`, etc.
 
 Examples:
+
 - `feat(blackjack): add dealer soft-17 logic`
 - `fix(wallet): reject bets above balance`
 - `test(roulette): cover corner bet payout`
@@ -282,18 +291,20 @@ Examples:
 
 You may self-merge once CI is green. Use the PR description checklist as a
 self-review prompt before merging.
-```
+
+````
 
 - [ ] **Step 2: Commit**
 
 ```bash
 git add CONTRIBUTING.md
 git commit -m "docs(repo): add CONTRIBUTING.md with branch and commit conventions"
-```
+````
 
 ## Task 4: Replace README.md and add CHANGELOG.md
 
 **Files:**
+
 - Modify: `README.md` (replaces stub)
 - Create: `CHANGELOG.md`
 
@@ -301,7 +312,7 @@ git commit -m "docs(repo): add CONTRIBUTING.md with branch and commit convention
 
 Overwrite `README.md` with:
 
-```markdown
+````markdown
 # localGamble
 
 A local, offline, play-money casino app. Single-machine, no real money,
@@ -315,19 +326,20 @@ See [`BUILD_GUIDE.md`](./BUILD_GUIDE.md) for the full project specification.
 nvm use && corepack enable && pnpm install
 pnpm dev
 ```
+````
 
 ## Scripts
 
-| Command | Purpose |
-|---|---|
-| `pnpm dev` | Start Vite dev server |
-| `pnpm build` | Production build |
-| `pnpm preview` | Serve the production build locally |
-| `pnpm lint` | ESLint check |
-| `pnpm typecheck` | `tsc --noEmit` |
-| `pnpm test` | Vitest in watch mode |
-| `pnpm test:run` | Vitest single run with coverage |
-| `pnpm format` | Prettier write |
+| Command          | Purpose                            |
+| ---------------- | ---------------------------------- |
+| `pnpm dev`       | Start Vite dev server              |
+| `pnpm build`     | Production build                   |
+| `pnpm preview`   | Serve the production build locally |
+| `pnpm lint`      | ESLint check                       |
+| `pnpm typecheck` | `tsc --noEmit`                     |
+| `pnpm test`      | Vitest in watch mode               |
+| `pnpm test:run`  | Vitest single run with coverage    |
+| `pnpm format`    | Prettier write                     |
 
 ## Documentation map
 
@@ -344,7 +356,8 @@ pnpm dev
 ## Project status
 
 Tracked via [Milestones](../../milestones). One milestone per BUILD_GUIDE phase.
-```
+
+````
 
 - [ ] **Step 2: Create CHANGELOG.md**
 
@@ -362,7 +375,7 @@ and this project versions by BUILD_GUIDE.md phase (`v0.PHASE-name`).
 - Repo infrastructure: CLAUDE.md, CONTRIBUTING.md, conventions, ADRs, risks
 - GitHub: PR + issue templates, 9 phase milestones, labels, Dependabot
 - CI v1: actionlint, markdownlint, commitlint
-```
+````
 
 - [ ] **Step 3: Commit**
 
@@ -374,6 +387,7 @@ git commit -m "docs(repo): replace README stub and add CHANGELOG"
 ## Task 5: Add .gitignore and .nvmrc
 
 **Files:**
+
 - Create: `.gitignore`
 - Create: `.nvmrc`
 
@@ -415,6 +429,7 @@ git commit -m "chore(repo): add .gitignore and .nvmrc (Node 20)"
 ## Task 6: Add markdownlint config
 
 **Files:**
+
 - Create: `.markdownlint.json`
 
 - [ ] **Step 1: Create .markdownlint.json**
@@ -438,6 +453,7 @@ git commit -m "chore(ci): add markdownlint config (disable line-length, inline H
 ## Task 7: Add commitlint config
 
 **Files:**
+
 - Create: `commitlint.config.js`
 
 - [ ] **Step 1: Create commitlint.config.js**
@@ -446,12 +462,31 @@ git commit -m "chore(ci): add markdownlint config (disable line-length, inline H
 export default {
   extends: ['@commitlint/config-conventional'],
   rules: {
-    'scope-enum': [2, 'always', [
-      'blackjack', 'roulette', 'slots', 'baccarat',
-      'wallet', 'auth', 'rng', 'history', 'stats', 'leaderboard',
-      'theme', 'db', 'session', 'lobby',
-      'ci', 'build-guide', 'deps', 'release', 'repo'
-    ]],
+    'scope-enum': [
+      2,
+      'always',
+      [
+        'blackjack',
+        'roulette',
+        'slots',
+        'baccarat',
+        'wallet',
+        'auth',
+        'rng',
+        'history',
+        'stats',
+        'leaderboard',
+        'theme',
+        'db',
+        'session',
+        'lobby',
+        'ci',
+        'build-guide',
+        'deps',
+        'release',
+        'repo',
+      ],
+    ],
     'subject-case': [0],
   },
 };
@@ -467,6 +502,7 @@ git commit -m "chore(ci): add commitlint config with scope enum"
 ## Task 8: Add PR template
 
 **Files:**
+
 - Create: `.github/PULL_REQUEST_TEMPLATE.md`
 
 - [ ] **Step 1: Create the directory and file**
@@ -517,6 +553,7 @@ git commit -m "chore(repo): add pull request template"
 ## Task 9: Add issue templates
 
 **Files:**
+
 - Create: `.github/ISSUE_TEMPLATE/phase-task.md`
 - Create: `.github/ISSUE_TEMPLATE/bug.md`
 - Create: `.github/ISSUE_TEMPLATE/design-question.md`
@@ -534,18 +571,21 @@ mkdir -p .github/ISSUE_TEMPLATE
 ---
 name: Phase task
 about: A unit of work within a BUILD_GUIDE phase
-title: "[Phase N] <short title>"
-labels: ["phase-N"]
+title: '[Phase N] <short title>'
+labels: ['phase-N']
 ---
 
 ## What
+
 <!-- Concrete deliverable -->
 
 ## BUILD_GUIDE reference
+
 - Phase:
 - Sections:
 
 ## Acceptance criteria
+
 - [ ]
 - [ ]
 
@@ -558,16 +598,21 @@ labels: ["phase-N"]
 ---
 name: Bug
 about: Something is wrong
-title: "bug: <short title>"
-labels: ["bug"]
+title: 'bug: <short title>'
+labels: ['bug']
 ---
 
 ## What's broken
+
 ## Steps to reproduce
+
 1.
 2.
+
 ## Expected
+
 ## Actual
+
 ## Environment (browser, profile)
 ```
 
@@ -577,13 +622,16 @@ labels: ["bug"]
 ---
 name: Design question
 about: Open question that needs a decision before implementation
-title: "design: <short title>"
-labels: ["design"]
+title: 'design: <short title>'
+labels: ['design']
 ---
 
 ## The question
+
 ## Options considered
+
 ## Constraints from BUILD_GUIDE
+
 ## Recommendation (if any)
 ```
 
@@ -603,6 +651,7 @@ git commit -m "chore(repo): add 3 issue templates and disable blank issues"
 ## Task 10: Add Dependabot config
 
 **Files:**
+
 - Create: `.github/dependabot.yml`
 
 - [ ] **Step 1: Create .github/dependabot.yml**
@@ -622,7 +671,7 @@ updates:
       dev-dependencies:
         dependency-type: development
       react-stack:
-        patterns: ["react", "react-dom", "react-router-dom"]
+        patterns: ['react', 'react-dom', 'react-router-dom']
 ```
 
 - [ ] **Step 2: Commit**
@@ -635,6 +684,7 @@ git commit -m "chore(deps): enable Dependabot for npm and github-actions"
 ## Task 11: Add docs/conventions.md
 
 **Files:**
+
 - Create: `docs/conventions.md`
 
 - [ ] **Step 1: Create the directory and file**
@@ -649,6 +699,7 @@ Then create `docs/conventions.md`:
 # Code conventions
 
 ## Imports
+
 - Use the `@/` alias for everything under `src/`. No deep relative paths
   (`../../../`).
 - Type-only imports MUST use `import type`. Enforced by ESLint.
@@ -656,6 +707,7 @@ Then create `docs/conventions.md`:
   `src/systems/*` only. Enforced by ESLint.
 
 ## File naming
+
 - React components: `PascalCase.tsx` (e.g. `BettingPanel.tsx`)
 - Hooks: `useThing.ts` in the consuming feature folder or `src/components/`
 - Stores: `<area>Store.ts` (e.g. `walletStore.ts`)
@@ -664,6 +716,7 @@ Then create `docs/conventions.md`:
 - Game UI entry: `<Game>Page.tsx` (e.g. `BlackjackPage.tsx`)
 
 ## React patterns
+
 - Function components only. No class components.
 - Default-export the page-level component; named-export everything else.
 - Co-locate component-specific subcomponents in the same file unless they
@@ -672,6 +725,7 @@ Then create `docs/conventions.md`:
   `src/components/` or `src/systems/`.
 
 ## State
+
 - Server-of-truth state (balances, rounds): IndexedDB via Dexie.
 - Cross-page UI state (current user, current balance display): Zustand.
 - Component-local state: `useState` / `useReducer`.
@@ -679,6 +733,7 @@ Then create `docs/conventions.md`:
   which read from Dexie.
 
 ## Pure game logic
+
 - `logic.ts` exports pure functions only. No React. No `Date.now()` (pass
   in if needed). No `Math.random()` (use rng).
 - Inputs and outputs are plain TS types. Returns `RoundResult` for the
@@ -687,6 +742,7 @@ Then create `docs/conventions.md`:
   `logic.ts` files is required and enforced by Vitest.
 
 ## Tests
+
 - Vitest. File pattern: `*.test.ts`, `*.test.tsx`. Co-located with source.
 - Use the seeded RNG (`rng.seed(...)`) in any test that consumes
   randomness.
@@ -695,16 +751,19 @@ Then create `docs/conventions.md`:
 - One assertion concept per test. Use `describe` to group.
 
 ## Styling
+
 - Tailwind utilities only. No `style={{...}}` for colors/spacing.
 - Theme colors must reference Tailwind tokens (`bg-felt`, `text-gold`),
   never hex literals.
 - Animations: prefer Framer Motion for anything beyond a CSS transition.
 
 ## Money
+
 - All chip amounts are `number` type but always integers. Never floats.
 - A wallet function MUST validate non-negative integers at boundaries.
 
 ## Commits and branches
+
 - Conventional Commits. Enforced by commitlint in CI.
 - One topic per commit. Squash-merge on PR.
 - Branch names: `phase-N-short-name`, `fix/area-x`, `chore/x`, `docs/x`.
@@ -720,6 +779,7 @@ git commit -m "docs(repo): add code conventions"
 ## Task 12: Add docs/dev-setup.md
 
 **Files:**
+
 - Create: `docs/dev-setup.md`
 
 - [ ] **Step 1: Create docs/dev-setup.md**
@@ -757,6 +817,7 @@ Note: contains nested triple-backtick code blocks. Copy verbatim.
 
 Install the workspace-recommended extensions when prompted (see
 `.vscode/extensions.json`):
+
 - `dbaeumer.vscode-eslint` — ESLint
 - `esbenp.prettier-vscode` — Prettier
 - `bradlc.vscode-tailwindcss` — Tailwind IntelliSense
@@ -764,14 +825,14 @@ Install the workspace-recommended extensions when prompted (see
 
 ## Common issues
 
-| Symptom | Cause | Fix |
-|---|---|---|
-| `corepack: command not found` | Old Node | Upgrade to Node 20+ |
-| `pnpm install` hangs at registry | Network / proxy | `pnpm config get registry`; reset to `https://registry.npmjs.org/` |
-| Dev server port 5173 busy | Another Vite running | `lsof -i :5173`; kill or change `vite.config.ts` port |
-| ESLint complains about every file | Wrong Node / pnpm version | `nvm use && corepack enable && pnpm install` |
-| Husky hook didn't fire on commit | `prepare` script didn't run | `pnpm install` re-runs it; or `pnpm exec husky` manually |
-| IndexedDB shows stale data after schema change | Old DB version | DevTools → Application → IndexedDB → delete `localGamble` |
+| Symptom                                        | Cause                       | Fix                                                                |
+| ---------------------------------------------- | --------------------------- | ------------------------------------------------------------------ |
+| `corepack: command not found`                  | Old Node                    | Upgrade to Node 20+                                                |
+| `pnpm install` hangs at registry               | Network / proxy             | `pnpm config get registry`; reset to `https://registry.npmjs.org/` |
+| Dev server port 5173 busy                      | Another Vite running        | `lsof -i :5173`; kill or change `vite.config.ts` port              |
+| ESLint complains about every file              | Wrong Node / pnpm version   | `nvm use && corepack enable && pnpm install`                       |
+| Husky hook didn't fire on commit               | `prepare` script didn't run | `pnpm install` re-runs it; or `pnpm exec husky` manually           |
+| IndexedDB shows stale data after schema change | Old DB version              | DevTools → Application → IndexedDB → delete `localGamble`          |
 
 ## Browser support matrix
 
@@ -793,6 +854,7 @@ git commit -m "docs(repo): add dev environment setup guide"
 ## Task 13: Add docs/risks.md
 
 **Files:**
+
 - Create: `docs/risks.md`
 
 - [ ] **Step 1: Create docs/risks.md**
@@ -803,23 +865,23 @@ git commit -m "docs(repo): add dev environment setup guide"
 Reviewed at the start of each BUILD_GUIDE phase. Add or update entries as
 new risks emerge.
 
-| ID | Risk | Phase | L | I | Mitigation |
-|---|---|---|---|---|---|
-| R-01 | IndexedDB schema migration breaks existing balances | 1+ | M | H | Dexie `version().upgrade()` from day one; smoke test before merge |
-| R-02 | RNG bias in payouts | 2+ | L | H | Centralized `systems/rng.ts` w/ rejection sampling; ESLint bans Math.random; chi-squared test added in Phase 2 |
-| R-03 | Float chip math causes balance bugs | 2+ | M | H | Integer-only at boundaries; ESLint forbids `parseFloat` in wallet/logic; tests assert `Number.isInteger` |
-| R-04 | Game directly mutates balance/store | 3–6 | M | H | ESLint blocks `@/db` and `@/store` imports under `src/games/**` |
-| R-05 | Animation outpaces logic outcome | 3–6 | M | M | Outcome decided first; animation reads outcome (documented in `_shared/useGameRound`) |
-| R-06 | Baccarat third-card tableau wrong | 6 | M | M | Implement verbatim from cited source; exhaustive truth-table test |
-| R-07 | Roulette payout off-by-one | 4 | M | M | Document "X to 1" convention in `payouts.ts`; tests assert payout AND netChange |
-| R-08 | Slots paytable un-fun (wrong RTP) | 5, 8 | H | L | Paytable in single config; "expected RTP simulator" test (10M spins) |
-| R-09 | Hex literals leak into components | 8+ | M | L | ESLint rule (Phase 8) flagging hex in `*.tsx` outside `theme/`; review checklist |
-| R-10 | Tests pass, prod build broken | All | L | M | `pnpm build` is required CI check |
-| R-11 | Lockfile drift | All | L | M | `--frozen-lockfile` in CI; `packageManager` pinned |
-| R-12 | Husky bypassed via `--no-verify` | All | M | L | CI is the enforcing layer; PR template asks |
-| R-13 | Dependency vulnerabilities accumulate | Ongoing | M | L | Dependabot weekly (PR #1) |
-| R-14 | Phase creep — future-phase features in early PRs | All | H | M | CLAUDE.md rule #1; PR template phase ref; reviewer rejects |
-| R-15 | Solo-dev rubber-stamps own PRs | All | H | L | PR self-review checklist; CI must be green; squash-merge |
+| ID   | Risk                                                | Phase   | L   | I   | Mitigation                                                                                                     |
+| ---- | --------------------------------------------------- | ------- | --- | --- | -------------------------------------------------------------------------------------------------------------- |
+| R-01 | IndexedDB schema migration breaks existing balances | 1+      | M   | H   | Dexie `version().upgrade()` from day one; smoke test before merge                                              |
+| R-02 | RNG bias in payouts                                 | 2+      | L   | H   | Centralized `systems/rng.ts` w/ rejection sampling; ESLint bans Math.random; chi-squared test added in Phase 2 |
+| R-03 | Float chip math causes balance bugs                 | 2+      | M   | H   | Integer-only at boundaries; ESLint forbids `parseFloat` in wallet/logic; tests assert `Number.isInteger`       |
+| R-04 | Game directly mutates balance/store                 | 3–6     | M   | H   | ESLint blocks `@/db` and `@/store` imports under `src/games/**`                                                |
+| R-05 | Animation outpaces logic outcome                    | 3–6     | M   | M   | Outcome decided first; animation reads outcome (documented in `_shared/useGameRound`)                          |
+| R-06 | Baccarat third-card tableau wrong                   | 6       | M   | M   | Implement verbatim from cited source; exhaustive truth-table test                                              |
+| R-07 | Roulette payout off-by-one                          | 4       | M   | M   | Document "X to 1" convention in `payouts.ts`; tests assert payout AND netChange                                |
+| R-08 | Slots paytable un-fun (wrong RTP)                   | 5, 8    | H   | L   | Paytable in single config; "expected RTP simulator" test (10M spins)                                           |
+| R-09 | Hex literals leak into components                   | 8+      | M   | L   | ESLint rule (Phase 8) flagging hex in `*.tsx` outside `theme/`; review checklist                               |
+| R-10 | Tests pass, prod build broken                       | All     | L   | M   | `pnpm build` is required CI check                                                                              |
+| R-11 | Lockfile drift                                      | All     | L   | M   | `--frozen-lockfile` in CI; `packageManager` pinned                                                             |
+| R-12 | Husky bypassed via `--no-verify`                    | All     | M   | L   | CI is the enforcing layer; PR template asks                                                                    |
+| R-13 | Dependency vulnerabilities accumulate               | Ongoing | M   | L   | Dependabot weekly (PR #1)                                                                                      |
+| R-14 | Phase creep — future-phase features in early PRs    | All     | H   | M   | CLAUDE.md rule #1; PR template phase ref; reviewer rejects                                                     |
+| R-15 | Solo-dev rubber-stamps own PRs                      | All     | H   | L   | PR self-review checklist; CI must be green; squash-merge                                                       |
 
 L = Likelihood (L/M/H), I = Impact (L/M/H).
 ```
@@ -834,6 +896,7 @@ git commit -m "docs(repo): add initial risk register"
 ## Task 14: Add ADR template
 
 **Files:**
+
 - Create: `docs/adr/_template.md`
 
 - [ ] **Step 1: Create the directory and template**
@@ -852,19 +915,24 @@ Create `docs/adr/_template.md`:
 - Deciders: @<github-handle>
 
 ## Context
+
 What is the situation forcing this decision? What constraints apply?
 
 ## Decision
+
 What did we decide?
 
 ## Alternatives considered
+
 - **Option A** — pros / cons
 - **Option B** — pros / cons
 
 ## Consequences
+
 What becomes easier? What becomes harder? What did we lock ourselves into?
 
 ## References
+
 - Links to BUILD_GUIDE sections, issues, prior ADRs.
 ```
 
@@ -878,6 +946,7 @@ git commit -m "docs(adr): add ADR template"
 ## Task 15: Add ADR-0001 (Tech Stack)
 
 **Files:**
+
 - Create: `docs/adr/0001-tech-stack.md`
 
 - [ ] **Step 1: Create ADR-0001**
@@ -890,17 +959,20 @@ git commit -m "docs(adr): add ADR template"
 - Deciders: @adamzspare
 
 ## Context
+
 We need a stack for a single-machine, browser-based, play-money casino app
 with four games. The app does almost no performance-critical computation
 but needs robust client-side persistence, smooth animation, and a
 component model that suits card/wheel/reel UIs.
 
 ## Decision
+
 Adopt the stack documented in BUILD_GUIDE.md §2: TypeScript + React 18 +
 Vite + Tailwind CSS + Framer Motion + Zustand + Dexie + Web Crypto API +
 React Router + Vitest + ESLint + Prettier.
 
 ## Alternatives considered
+
 - **Native (C/C++ + game framework)** — manual memory management, compile
   cycle, hand-wired graphics for no gameplay benefit.
 - **Vanilla JS + plain DOM** — would slow iteration and forfeit type
@@ -909,6 +981,7 @@ React Router + Vitest + ESLint + Prettier.
   overhead with no gameplay benefit during build.
 
 ## Consequences
+
 - TypeScript strictness catches money/payout bugs at compile time.
 - React + Vite gives instant hot-reload.
 - IndexedDB via Dexie is durable through refreshes/crashes.
@@ -917,6 +990,7 @@ React Router + Vitest + ESLint + Prettier.
   Phase 9 if ever.
 
 ## References
+
 - BUILD_GUIDE.md §2 (Tech Stack)
 ```
 
@@ -930,6 +1004,7 @@ git commit -m "docs(adr): ADR-0001 tech stack"
 ## Task 16: Add ADR-0002 (Package manager and Node)
 
 **Files:**
+
 - Create: `docs/adr/0002-package-manager-and-node.md`
 
 - [ ] **Step 1: Create ADR-0002**
@@ -942,17 +1017,20 @@ git commit -m "docs(adr): ADR-0001 tech stack"
 - Deciders: @adamzspare
 
 ## Context
+
 A large-scale TypeScript project needs a deterministic, fast, well-supported
 package manager and a stable Node runtime. The choice affects the lockfile
 format, CI cache strategy, contributor onboarding, and how strictly
 transitive dependencies are isolated.
 
 ## Decision
+
 Use **pnpm 9** as the package manager and **Node 20 LTS** as the runtime.
 Pin both: `packageManager: "pnpm@9.12.0"` in `package.json`; `20` in
 `.nvmrc`. CI installs with `pnpm install --frozen-lockfile`.
 
 ## Alternatives considered
+
 - **npm + Node 20 LTS** — simplest, ships with Node, no learning curve.
   Trade-off: slower installs, looser dependency hoisting that can hide bugs.
 - **Bun** — fastest installs, all-in-one. Trade-off: ecosystem still
@@ -961,6 +1039,7 @@ Pin both: `packageManager: "pnpm@9.12.0"` in `package.json`; `20` in
   configuration complexity that this single-package repo doesn't need.
 
 ## Consequences
+
 - Faster, smaller `node_modules` (pnpm content-addressable store).
 - Stricter dependency boundaries — accidentally importing a transitive dep
   fails immediately rather than working by coincidence.
@@ -969,6 +1048,7 @@ Pin both: `packageManager: "pnpm@9.12.0"` in `package.json`; `20` in
   cushion before a planned upgrade.
 
 ## References
+
 - BUILD_GUIDE.md §2 (Tech Stack)
 - ADR-0001 (broader stack)
 ```
@@ -983,6 +1063,7 @@ git commit -m "docs(adr): ADR-0002 pnpm + Node 20 LTS"
 ## Task 17: Add ADR-0003 (CI strictness)
 
 **Files:**
+
 - Create: `docs/adr/0003-ci-strictness.md`
 
 - [ ] **Step 1: Create ADR-0003**
@@ -995,18 +1076,22 @@ git commit -m "docs(adr): ADR-0002 pnpm + Node 20 LTS"
 - Deciders: @adamzspare
 
 ## Context
+
 A play-money casino is unforgiving about money math. BUILD_GUIDE §14 calls
 out that we should be "thorough on money math and odds." We need a CI gate
 that prevents money-related bugs from landing.
 
 ## Decision
+
 Every PR must pass: `pnpm lint`, `pnpm typecheck`, `pnpm test:run`
 (including coverage thresholds), and `pnpm build`. Coverage thresholds:
+
 - `src/games/**/logic.ts`: 90% lines/functions/statements, 85% branches.
 - `src/systems/**/*.ts`: 80% lines/functions/statements, 75% branches.
-Other code unthresholded for now (UI tests light per BUILD_GUIDE §14).
+  Other code unthresholded for now (UI tests light per BUILD_GUIDE §14).
 
 ## Alternatives considered
+
 - **Lint + test only** — fast but allows TS-only and build-only failures
   through.
 - **Add bundle-size budget + Lighthouse** — overkill for a local app with
@@ -1015,6 +1100,7 @@ Other code unthresholded for now (UI tests light per BUILD_GUIDE §14).
   game-logic regressions are high-impact.
 
 ## Consequences
+
 - Slower CI (~3-5 min per PR vs ~1 min minimal).
 - Catches almost every regression before merge.
 - Tests must accompany every game-logic change (otherwise threshold drops).
@@ -1022,6 +1108,7 @@ Other code unthresholded for now (UI tests light per BUILD_GUIDE §14).
   practical, monitored via Dependabot.
 
 ## References
+
 - BUILD_GUIDE.md §14 (Testing Strategy)
 - ADR-0001 (Vitest is part of the stack)
 ```
@@ -1036,6 +1123,7 @@ git commit -m "docs(adr): ADR-0003 strict CI with coverage gate"
 ## Task 18: Add ADR-0004 (PR strategy for Phase 0)
 
 **Files:**
+
 - Create: `docs/adr/0004-pr-strategy-phase-0.md`
 
 - [ ] **Step 1: Create ADR-0004**
@@ -1048,12 +1136,15 @@ git commit -m "docs(adr): ADR-0003 strict CI with coverage gate"
 - Deciders: @adamzspare
 
 ## Context
+
 Phase 0 produces no user-facing features but sets up a lot of
 configuration. A single mega-PR is hard to review; over-fragmenting wastes
 cycles. The CI workflow itself evolves alongside the code.
 
 ## Decision
+
 Three sequential PRs:
+
 1. **Meta infrastructure** (this PR) — CLAUDE.md, CONTRIBUTING, templates,
    conventions, ADRs, risks, CI v1 (file-only checks), Dependabot.
 2. **Vite scaffold** — package.json, Vite/TS/Router setup, folder
@@ -1065,11 +1156,13 @@ After PR #3 merges, a separate `chore(release):` PR adds CHANGELOG entry
 and tags `v0.1-scaffold`.
 
 ## Alternatives considered
+
 - **Single mega-PR** — faster but harder to review and bisect.
 - **Three PRs split differently (e.g., bare scaffold, tooling, polish)**
   — leaves the bare scaffold PR in a half-broken intermediate state.
 
 ## Consequences
+
 - Each PR's CI tests against its own additions.
 - Reviewer cognitive load stays low.
 - Slightly more overhead (3 PR descriptions, 3 merges).
@@ -1077,6 +1170,7 @@ and tags `v0.1-scaffold`.
   redo — accepted as a low-frequency event.
 
 ## References
+
 - BUILD_GUIDE.md §12 (Build Order — Phased Roadmap)
 - BUILD_GUIDE.md §13 (Git & GitHub Workflow)
 ```
@@ -1091,6 +1185,7 @@ git commit -m "docs(adr): ADR-0004 three-PR sequence for Phase 0"
 ## Task 19: Add ADR-0005 (No branch protection)
 
 **Files:**
+
 - Create: `docs/adr/0005-no-branch-protection.md`
 
 - [ ] **Step 1: Create ADR-0005**
@@ -1103,19 +1198,23 @@ git commit -m "docs(adr): ADR-0004 three-PR sequence for Phase 0"
 - Deciders: @adamzspare
 
 ## Context
+
 This is a solo project. BUILD_GUIDE.md §13 already states "never commit
 directly to main." Adding GitHub branch protection would enforce that, but
 also introduces friction (signing requirements, required reviewers,
 required-checks plumbing) and would block emergency direct pushes.
 
 ## Decision
+
 Do **not** enable branch protection on `main`. Rely on convention:
+
 - CLAUDE.md hard rules forbid direct main commits.
 - CONTRIBUTING.md restates the rule.
 - PR template self-review keeps the gate honest.
 - A slip past convention is recoverable via `git revert` (PR-based).
 
 ## Alternatives considered
+
 - **Require PR + CI pass, allow self-merge** — better hygiene but more
   setup; revisit if collaborators join.
 - **Require PR + CI + 1 review** — blocks self-merge entirely; impractical
@@ -1124,12 +1223,14 @@ Do **not** enable branch protection on `main`. Rely on convention:
   friction.
 
 ## Consequences
+
 - Possible to bypass the rule under stress; mitigated by squash-merge
   history clarity and the ability to revert.
 - Easier to recover if I'm ever locked out of the GitHub UI mid-incident.
 - Revisit when a second contributor joins.
 
 ## References
+
 - BUILD_GUIDE.md §13 (Git & GitHub Workflow)
 - ADR-0007 (tracking via milestones — same lightweight philosophy)
 ```
@@ -1144,6 +1245,7 @@ git commit -m "docs(adr): ADR-0005 no branch protection (convention only)"
 ## Task 20: Add ADR-0006 (Pre-commit hooks)
 
 **Files:**
+
 - Create: `docs/adr/0006-pre-commit-hooks.md`
 
 - [ ] **Step 1: Create ADR-0006**
@@ -1156,25 +1258,30 @@ git commit -m "docs(adr): ADR-0005 no branch protection (convention only)"
 - Deciders: @adamzspare
 
 ## Context
+
 We want fast feedback on lint/format mistakes without slowing every commit.
 Running tests on every commit is too slow; running nothing means CI is the
 only feedback loop, and a CI failure costs minutes.
 
 ## Decision
+
 Use Husky (Git hooks manager) + lint-staged (run linters only on staged
 files). The pre-commit hook runs:
+
 - `eslint --fix --max-warnings=0` on staged `*.{ts,tsx,js,jsx}`
 - `prettier --write` on staged `*.{ts,tsx,js,jsx,json,md,css,yml,yaml}`
 
 No tests in pre-commit. Tests run in CI.
 
 ## Alternatives considered
+
 - **No hooks** — every formatting slip becomes a CI failure.
 - **Run tests too** — slow, encourages `--no-verify` bypass habit.
 - **Pre-push instead of pre-commit** — useful, but pre-commit catches it
   earlier without much added cost.
 
 ## Consequences
+
 - ~1-2 second pre-commit overhead, mostly on first commit after touching
   many files.
 - ESLint auto-fix means most violations get corrected silently.
@@ -1183,6 +1290,7 @@ No tests in pre-commit. Tests run in CI.
   hook — included in `package.json` scripts.
 
 ## References
+
 - BUILD_GUIDE.md §13 (Git & GitHub Workflow)
 - ADR-0003 (CI strictness — the actual gate)
 ```
@@ -1197,6 +1305,7 @@ git commit -m "docs(adr): ADR-0006 pre-commit hooks via Husky + lint-staged"
 ## Task 21: Add ADR-0007 (Tracking via milestones)
 
 **Files:**
+
 - Create: `docs/adr/0007-tracking-via-milestones.md`
 
 - [ ] **Step 1: Create ADR-0007**
@@ -1209,11 +1318,13 @@ git commit -m "docs(adr): ADR-0006 pre-commit hooks via Husky + lint-staged"
 - Deciders: @adamzspare
 
 ## Context
+
 BUILD_GUIDE.md has 9 phases with multiple sub-tasks each. We need
 visibility into what's done, in flight, and next. Options range from
 "nothing" to a full GitHub Projects board with Kanban columns.
 
 ## Decision
+
 Use GitHub **Milestones** (one per BUILD_GUIDE phase) and **Issues** (one
 per sub-task), with phase labels (`phase-0` … `phase-9`) and category
 labels (`bug`, `design`, `chore`, etc.). PRs reference issues to close
@@ -1222,6 +1333,7 @@ them.
 Do **not** set up a GitHub Projects board.
 
 ## Alternatives considered
+
 - **GitHub Projects (v2) board + Issues** — visual Kanban, but more clicks
   per task. Worth it only if we'd actually look at the board daily.
 - **Issues only, no milestones** — loses the "what's the goal of this
@@ -1230,12 +1342,14 @@ Do **not** set up a GitHub Projects board.
   per-task visibility, no link from PR → acceptance criteria.
 
 ## Consequences
+
 - Milestones page becomes the macro view; issues page becomes the micro.
 - PRs can `Closes #N` to auto-close issues.
 - One-time scripted setup creates milestones/labels/issues via `gh`.
 - Easy to upgrade to Projects board later if we want it.
 
 ## References
+
 - BUILD_GUIDE.md §12 (Build Order)
 - ADR-0005 (same lightweight philosophy)
 ```
@@ -1250,6 +1364,7 @@ git commit -m "docs(adr): ADR-0007 tracking via Milestones + Issues"
 ## Task 22: Add CI workflow v1 (meta job only)
 
 **Files:**
+
 - Create: `.github/workflows/ci.yml`
 
 - [ ] **Step 1: Create the workflow file**
@@ -1359,6 +1474,7 @@ Expected: returns the PR URL.
 ```bash
 gh pr checks --watch
 ```
+
 Expected: `meta` job passes (actionlint, markdownlint, commitlint all green).
 
 If `commitlint` fails on any commit message, fix the offending commit (`git rebase -i origin/main` to reword) and force-push the branch (`git push --force-with-lease`).
@@ -1415,6 +1531,7 @@ gh api repos/A1PC/localGamble/milestones -f title="Phase 9 — Optional" \
 ```bash
 gh api repos/A1PC/localGamble/milestones --jq '.[].title' | wc -l
 ```
+
 Expected: `10` if you also count the default `v1.0` milestone (if any), otherwise `9`. Use `gh api repos/A1PC/localGamble/milestones --jq '.[].title'` to list and confirm by eye.
 
 ## Task 25: Create labels via gh
@@ -1457,6 +1574,7 @@ gh label create "ready-for-review" --color "0E8A16" --description "Awaiting revi
 ```bash
 gh label list --limit 30
 ```
+
 Expected: All 19 labels visible.
 
 ## Task 26: File the 15 Phase 0 issues
@@ -1527,6 +1645,7 @@ gh issue create --milestone "$PHASE_0_MS" --label "phase-0,chore" \
 ```bash
 gh issue list --milestone "Phase 0 — Scaffold" --limit 20
 ```
+
 Expected: 15 issues listed.
 
 ---
@@ -1548,6 +1667,7 @@ git checkout -b phase-0-scaffold
 ## Task 28: Create package.json
 
 **Files:**
+
 - Create: `package.json`
 
 - [ ] **Step 1: Create package.json**
@@ -1587,11 +1707,13 @@ git checkout -b phase-0-scaffold
 corepack enable
 pnpm install
 ```
+
 Expected: creates `pnpm-lock.yaml` and `node_modules/`.
 
 ## Task 29: Create tsconfig files
 
 **Files:**
+
 - Create: `tsconfig.json`
 - Create: `tsconfig.app.json`
 - Create: `tsconfig.node.json`
@@ -1601,10 +1723,7 @@ Expected: creates `pnpm-lock.yaml` and `node_modules/`.
 ```json
 {
   "files": [],
-  "references": [
-    { "path": "./tsconfig.app.json" },
-    { "path": "./tsconfig.node.json" }
-  ]
+  "references": [{ "path": "./tsconfig.app.json" }, { "path": "./tsconfig.node.json" }]
 }
 ```
 
@@ -1659,6 +1778,7 @@ Expected: creates `pnpm-lock.yaml` and `node_modules/`.
 ## Task 30: Create vite.config.ts and index.html
 
 **Files:**
+
 - Create: `vite.config.ts`
 - Create: `index.html`
 
@@ -1700,6 +1820,7 @@ export default defineConfig({
 ## Task 31: Create the source folder skeleton
 
 **Files:**
+
 - Create: `src/components/.gitkeep`
 - Create: `src/db/.gitkeep`
 - Create: `src/games/_shared/.gitkeep`
@@ -1727,6 +1848,7 @@ touch src/components/.gitkeep src/db/.gitkeep src/store/.gitkeep \
 ## Task 32: Create the page placeholders
 
 **Files:**
+
 - Create: `src/pages/LoginPage.tsx`
 - Create: `src/pages/RegisterPage.tsx`
 - Create: `src/pages/LobbyPage.tsx`
@@ -1807,6 +1929,7 @@ export default function LeaderboardPage() {
 ## Task 33: Create main.tsx and App.tsx
 
 **Files:**
+
 - Create: `src/main.tsx`
 - Create: `src/App.tsx`
 
@@ -1863,6 +1986,7 @@ createRoot(document.getElementById('root')!).render(
 ```bash
 pnpm typecheck
 ```
+
 Expected: no errors.
 
 - [ ] **Step 2: Run dev server (briefly)**
@@ -1870,6 +1994,7 @@ Expected: no errors.
 ```bash
 pnpm dev
 ```
+
 Expected: prints `VITE v5.4.x  ready in NNN ms` and serves on port 5173. Open `http://localhost:5173` in a browser, see "Lobby" heading. Press Ctrl+C to stop.
 
 - [ ] **Step 3: Run build**
@@ -1877,6 +2002,7 @@ Expected: prints `VITE v5.4.x  ready in NNN ms` and serves on port 5173. Open `h
 ```bash
 pnpm build
 ```
+
 Expected: produces `dist/` directory. **Note the bundle size from the Vite output (e.g., `dist/assets/index-NNNN.js     XXX.XX kB`) — record this in the PR description as the Phase 0 baseline.**
 
 - [ ] **Step 4: Run preview**
@@ -1884,11 +2010,13 @@ Expected: produces `dist/` directory. **Note the bundle size from the Vite outpu
 ```bash
 pnpm preview
 ```
+
 Expected: serves the built bundle on port 4173. Open in browser, verify lobby renders. Stop with Ctrl+C.
 
 ## Task 35: Extend CI to v2 (add build job)
 
 **Files:**
+
 - Modify: `.github/workflows/ci.yml`
 
 - [ ] **Step 1: Update ci.yml to add the build job**
@@ -2035,6 +2163,7 @@ Before pushing, edit the PR body to fill in the bundle size from Task 34 Step 3.
 ```bash
 gh pr checks --watch
 ```
+
 Expected: `meta` and `build` both green.
 
 When green, merge:
@@ -2064,6 +2193,7 @@ git checkout -b phase-0-tooling
 ## Task 38: Add new dependencies to package.json
 
 **Files:**
+
 - Modify: `package.json`
 
 - [ ] **Step 1: Replace package.json with the full version**
@@ -2137,11 +2267,13 @@ git checkout -b phase-0-tooling
 ```bash
 pnpm install
 ```
+
 Expected: lockfile updated, ~30 new packages installed. Husky's `prepare` script runs, creating `.husky/`.
 
 ## Task 39: Add Tailwind config and styles
 
 **Files:**
+
 - Create: `tailwind.config.ts`
 - Create: `postcss.config.js`
 - Create: `src/index.css`
@@ -2194,9 +2326,19 @@ export default { plugins: { tailwindcss: {}, autoprefixer: {} } };
 @tailwind utilities;
 
 @layer base {
-  html, body, #root { height: 100%; }
-  body { @apply bg-felt-deep text-white font-body antialiased; }
-  h1, h2, h3 { @apply font-display tracking-wide; }
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+  body {
+    @apply bg-felt-deep text-white font-body antialiased;
+  }
+  h1,
+  h2,
+  h3 {
+    @apply font-display tracking-wide;
+  }
 }
 ```
 
@@ -2245,11 +2387,13 @@ createRoot(document.getElementById('root')!).render(
 ```bash
 pnpm dev
 ```
+
 Open `http://localhost:5173`. The body background should be near-black (felt-deep), text white, headings in display font. Stop with Ctrl+C.
 
 ## Task 40: Add Prettier config
 
 **Files:**
+
 - Create: `.prettierrc`
 - Create: `.prettierignore`
 - Create: `.editorconfig`
@@ -2298,11 +2442,13 @@ trim_trailing_whitespace = false
 ```bash
 pnpm format
 ```
+
 Expected: writes formatted files. Some may show as changed by Prettier — that's expected.
 
 ## Task 41: Add ESLint config (TDD: write failing-lint tests first)
 
 **Files:**
+
 - Create: `eslint.config.js`
 - Create: `src/_lint-fixtures/math-random.ts` (test fixture, deleted after)
 - Create: `src/games/blackjack/_lint-fixtures/db-import.ts` (test fixture, deleted after)
@@ -2342,8 +2488,8 @@ export default tseslint.config(
         'error',
         {
           selector: "MemberExpression[object.name='Math'][property.name='random']",
-          message: 'Math.random is banned. Use src/systems/rng.ts (BUILD_GUIDE §5).'
-        }
+          message: 'Math.random is banned. Use src/systems/rng.ts (BUILD_GUIDE §5).',
+        },
       ],
       '@typescript-eslint/consistent-type-imports': 'error',
       '@typescript-eslint/no-floating-promises': 'error',
@@ -2356,8 +2502,16 @@ export default tseslint.config(
         'error',
         {
           patterns: [
-            { group: ['@/db/*', '@/db'], message: 'Games must not touch the DB directly. Go through src/systems/* (BUILD_GUIDE §3).' },
-            { group: ['@/store/*', '@/store'], message: 'Games must not touch stores directly. Go through src/systems/* (BUILD_GUIDE §3).' },
+            {
+              group: ['@/db/*', '@/db'],
+              message:
+                'Games must not touch the DB directly. Go through src/systems/* (BUILD_GUIDE §3).',
+            },
+            {
+              group: ['@/store/*', '@/store'],
+              message:
+                'Games must not touch stores directly. Go through src/systems/* (BUILD_GUIDE §3).',
+            },
           ],
         },
       ],
@@ -2386,6 +2540,7 @@ export function bad(): number {
 ```bash
 pnpm lint
 ```
+
 Expected: ERROR mentioning "Math.random is banned. Use src/systems/rng.ts (BUILD_GUIDE §5)." pointing at `src/_lint-fixtures/math-random.ts`.
 
 If the error fires correctly, the rule is wired up.
@@ -2409,7 +2564,9 @@ export const x: Anything | undefined = undefined;
 ```bash
 pnpm lint
 ```
+
 Expected: TWO errors —
+
 - "Math.random is banned ..." in `src/_lint-fixtures/math-random.ts`
 - "Games must not touch the DB directly ..." in `src/games/blackjack/_lint-fixtures/db-import.ts`
 
@@ -2426,11 +2583,13 @@ rm -rf src/_lint-fixtures src/games/blackjack/_lint-fixtures
 ```bash
 pnpm lint
 ```
+
 Expected: zero errors, zero warnings.
 
 ## Task 42: Add Vitest config and test setup
 
 **Files:**
+
 - Create: `vitest.config.ts`
 - Create: `src/test/setup.ts`
 
@@ -2476,6 +2635,7 @@ import '@testing-library/jest-dom/vitest';
 ## Task 43: Add the sanity test (TDD)
 
 **Files:**
+
 - Create: `src/App.test.tsx`
 
 This is the test that verifies the test harness works.
@@ -2490,7 +2650,11 @@ import { MemoryRouter } from 'react-router-dom';
 import App from './App';
 
 it('renders the lobby placeholder by default', () => {
-  render(<MemoryRouter initialEntries={['/lobby']}><App /></MemoryRouter>);
+  render(
+    <MemoryRouter initialEntries={['/lobby']}>
+      <App />
+    </MemoryRouter>,
+  );
   expect(screen.getByRole('heading', { name: /lobby/i })).toBeInTheDocument();
 });
 ```
@@ -2500,6 +2664,7 @@ it('renders the lobby placeholder by default', () => {
 ```bash
 pnpm test:run
 ```
+
 Expected: 1 test passes. (Note: the App and LobbyPage already exist from PR #2 — this test verifies the test harness, not new behavior.)
 
 If the test fails because of a coverage threshold violation: that's because there are no `src/games/**/logic.ts` or `src/systems/**/*.ts` files yet. The threshold should not fire on missing-but-globbed paths — verify by reading the Vitest output. If it does fire, adjust `vitest.config.ts` thresholds to use `perFile: false` or temporarily comment out the thresholds and add a TODO; this should not block PR #3.
@@ -2507,6 +2672,7 @@ If the test fails because of a coverage threshold violation: that's because ther
 ## Task 44: Add Husky pre-commit hook
 
 **Files:**
+
 - Create: `.husky/pre-commit`
 
 - [ ] **Step 1: Create the hook**
@@ -2538,6 +2704,7 @@ echo "" >> README.md
 git add README.md
 git commit -m "test(repo): verify husky hook fires"
 ```
+
 Expected: lint-staged runs (you'll see "Running tasks for staged files..." or similar). If it does nothing about the README change (only formats), the commit proceeds.
 
 Then revert that test commit:
@@ -2551,6 +2718,7 @@ git checkout README.md
 ## Task 45: Add VS Code recommended extensions
 
 **Files:**
+
 - Create: `.vscode/extensions.json`
 
 - [ ] **Step 1: Create the file**
@@ -2578,6 +2746,7 @@ mkdir -p .vscode
 ## Task 46: Extend CI to v3 (add lint and test jobs)
 
 **Files:**
+
 - Modify: `.github/workflows/ci.yml`
 
 - [ ] **Step 1: Replace ci.yml with the final version**
@@ -2685,6 +2854,7 @@ jobs:
 ```bash
 pnpm lint && pnpm typecheck && pnpm test:run && pnpm build
 ```
+
 Expected: all four exit 0. If any fail, fix before proceeding.
 
 - [ ] **Step 2: Smoke-test the dev server one more time**
@@ -2692,7 +2862,9 @@ Expected: all four exit 0. If any fail, fix before proceeding.
 ```bash
 pnpm dev
 ```
+
 Open `http://localhost:5173`. Verify:
+
 - Background is near-black (Tailwind applied)
 - "Lobby" heading uses display font
 - Manual nav to /login, /register, /stats, /leaderboard works
@@ -2787,6 +2959,7 @@ EOF
 ```bash
 gh pr checks --watch
 ```
+
 Expected: all four jobs green.
 
 When green:
@@ -2838,6 +3011,7 @@ gh pr create --title "test(ci): deliberate Math.random violation (DO NOT MERGE)"
   --body "Proof-of-life for the ESLint Math.random ban in CI. Expected to fail."
 gh pr checks --watch
 ```
+
 Expected: `lint` job fails with the BUILD_GUIDE §5 message. **Record the failed-run URL in the Phase 0 spec or in the closeout commit message — see Task 50.**
 
 - [ ] **Step 5: Close the PR without merging and clean up**
@@ -2855,6 +3029,7 @@ git branch -D chore/ci-failure-proof
 ## Task 50: Open the release PR
 
 **Files:**
+
 - Modify: `CHANGELOG.md`
 
 - [ ] **Step 1: Branch from main**
@@ -2882,6 +3057,7 @@ and this project versions by BUILD_GUIDE.md phase (`v0.PHASE-name`).
 ## [v0.1-scaffold] — <TODAY>
 
 ### Added
+
 - Repo infrastructure: CLAUDE.md, CONTRIBUTING.md, conventions, ADRs, risks, dev-setup
 - GitHub: PR + issue templates, 9 phase milestones, labels, Dependabot
 - CI: actionlint + markdownlint + commitlint → install + typecheck + build → lint + test + coverage
@@ -2895,6 +3071,7 @@ and this project versions by BUILD_GUIDE.md phase (`v0.PHASE-name`).
 - Anthropic Claude Code GitHub Action active at .github/workflows/claude.yml
 
 ### Verified
+
 - Deliberate-failure CI run for Math.random ban: <FAILED_RUN_URL>
 ```
 
@@ -2913,6 +3090,7 @@ gh pr create --title "chore(release): v0.1-scaffold" \
   --body "Tags Phase 0 completion. See CHANGELOG.md for the full list of additions."
 gh pr checks --watch
 ```
+
 Expected: all four CI jobs green.
 
 - [ ] **Step 5: Merge**
@@ -2942,6 +3120,7 @@ gh release create v0.1-scaffold \
   --notes-file CHANGELOG.md \
   --latest
 ```
+
 Expected: release URL printed.
 
 - [ ] **Step 3: Close all 15 Phase 0 issues**

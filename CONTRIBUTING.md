@@ -33,6 +33,7 @@ Scopes (the canonical list lives in `commitlint.config.js`):
 `ci`, `build-guide`, `deps`, `release`, `repo`.
 
 Examples:
+
 - `feat(blackjack): add dealer soft-17 logic`
 - `fix(wallet): reject bets above balance`
 - `test(roulette): cover corner bet payout`

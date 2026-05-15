@@ -15,11 +15,13 @@ A **local, offline, play-money casino app** that runs in the browser on your own
 **Visual style:** Retro Vegas — neon, deep reds, golds, classic signage feel.
 
 ### Goals
+
 - A polished, genuinely fun single-machine casino with four working games.
 - Every game plugs into one shared wallet and one shared stats system.
 - Clean, well-organized code so new games can be added by copying a pattern.
 
 ### Non-Goals (explicitly out of scope)
+
 - **No real money.** Chips are simulated. Do not add payment processing, crypto, or cash-out.
 - **No remote server / no online multiplayer.** Everything is local to the machine.
 - **No real authentication security guarantees.** The login system is a convenience layer for separating local profiles, not a security boundary. (We still hash passwords — see §7 — but this is not protecting against a determined attacker with disk access.)
@@ -29,23 +31,23 @@ A **local, offline, play-money casino app** that runs in the browser on your own
 
 ## 2. Tech Stack
 
-| Layer | Choice | Why |
-|---|---|---|
-| Language | **TypeScript** | Type-checking catches bugs before runtime and makes Claude Code's output more reliable. |
-| UI framework | **React 18** | Component model fits games well (a reel, a card, a bet chip). Best-documented option. |
-| Build tool / dev server | **Vite** | Instant hot-reload. Save a file, browser updates. Zero-config. |
-| Styling | **Tailwind CSS** | Fast styling without separate CSS files. |
-| Animation | **Framer Motion** | Smooth reel spins, card deals, chip movement, wheel rotation. |
-| State management | **Zustand** | Tiny, simple global store for wallet, session, and game state. |
-| Persistence | **IndexedDB** via **Dexie.js** | Stores user profiles, balances, game history, leaderboard. More robust than localStorage for structured/growing data. |
-| Password hashing | **Web Crypto API** (PBKDF2) | Built into the browser; no dependency needed. |
-| Routing | **React Router** | Navigation between login, lobby, and each game. |
-| Testing | **Vitest** + **React Testing Library** | Vitest pairs natively with Vite. Used heavily for game-logic unit tests. |
-| Linting / formatting | **ESLint** + **Prettier** | Keeps the codebase consistent across many Claude Code sessions. |
+| Layer                   | Choice                                 | Why                                                                                                                   |
+| ----------------------- | -------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| Language                | **TypeScript**                         | Type-checking catches bugs before runtime and makes Claude Code's output more reliable.                               |
+| UI framework            | **React 18**                           | Component model fits games well (a reel, a card, a bet chip). Best-documented option.                                 |
+| Build tool / dev server | **Vite**                               | Instant hot-reload. Save a file, browser updates. Zero-config.                                                        |
+| Styling                 | **Tailwind CSS**                       | Fast styling without separate CSS files.                                                                              |
+| Animation               | **Framer Motion**                      | Smooth reel spins, card deals, chip movement, wheel rotation.                                                         |
+| State management        | **Zustand**                            | Tiny, simple global store for wallet, session, and game state.                                                        |
+| Persistence             | **IndexedDB** via **Dexie.js**         | Stores user profiles, balances, game history, leaderboard. More robust than localStorage for structured/growing data. |
+| Password hashing        | **Web Crypto API** (PBKDF2)            | Built into the browser; no dependency needed.                                                                         |
+| Routing                 | **React Router**                       | Navigation between login, lobby, and each game.                                                                       |
+| Testing                 | **Vitest** + **React Testing Library** | Vitest pairs natively with Vite. Used heavily for game-logic unit tests.                                              |
+| Linting / formatting    | **ESLint** + **Prettier**              | Keeps the codebase consistent across many Claude Code sessions.                                                       |
 
 **Why not C / C++:** This app does almost no performance-critical computation. C/C++ would mean manual memory management, a compile step on every change, and hand-wiring a graphics library — all cost, no benefit. The browser is already the best 2D animation environment available. TypeScript + React is the correct tool.
 
-**Why a local web app and not a native desktop app:** A native app (Electron/Tauri) is the *same web code* wrapped in a window. It adds packaging complexity with no gameplay benefit during development. Build the web app first; wrap it later if you want a double-clickable `.app`/`.exe`.
+**Why a local web app and not a native desktop app:** A native app (Electron/Tauri) is the _same web code_ wrapped in a window. It adds packaging complexity with no gameplay benefit during development. Build the web app first; wrap it later if you want a double-clickable `.app`/`.exe`.
 
 ---
 
@@ -99,6 +101,7 @@ casino-app/
 ```
 
 **The contract every game must follow:**
+
 1. A game **never** touches the database or wallet store directly. It calls `systems/wallet.ts` (`placeBet`, `settleRound`) and `systems/history.ts` (`recordRound`).
 2. All game **rules and odds** live in that game's `logic.ts` as **pure functions** (no React, no I/O) so they can be unit-tested in isolation.
 3. The game's React components only handle display, animation, and user input — they call into `logic.ts` for outcomes.
@@ -111,6 +114,7 @@ This is the single most important architectural rule. If Claude Code follows it,
 ## 4. Shared Systems
 
 ### Wallet
+
 - One wallet per user profile. Balance is an integer number of chips (no floats — avoids rounding bugs).
 - `placeBet(amount)` — validates the user has the chips, deducts them, returns a bet handle. Rejects bets above balance or below table minimum.
 - `settleRound(result)` — credits winnings (if any) based on the RoundResult, persists the new balance to IndexedDB.
@@ -118,6 +122,7 @@ This is the single most important architectural rule. If Claude Code follows it,
 - Every balance change is written to IndexedDB immediately so a refresh or crash never loses chips.
 
 ### Betting flow (same for every game)
+
 1. User is in a game, sees `BettingPanel` with chip denominations.
 2. User composes a bet → `placeBet()` locks the chips.
 3. Game plays out (cards/wheel/reels).
@@ -137,6 +142,7 @@ This is the single most important architectural rule. If Claude Code follows it,
 For a play-money app, the browser's crypto-quality randomness is more than enough. **Centralize it** so it's never reimplemented per game and can be swapped or seeded for testing.
 
 `systems/rng.ts` exposes:
+
 - `randomInt(minInclusive, maxInclusive)` — built on `crypto.getRandomValues`, with rejection sampling to avoid modulo bias.
 - `shuffle(array)` — Fisher–Yates shuffle, used for card decks.
 - `pick(array)` — uniform random element.
@@ -151,16 +157,20 @@ Rules: no game file may call `Math.random()` directly. ESLint should be configur
 Four tables. All IDs are UUIDs unless noted.
 
 **`users`**
+
 - `id`, `username` (unique), `passwordHash`, `passwordSalt`, `createdAt`, `avatarColor`.
 
 **`balances`**
+
 - `userId` (primary key), `chips` (integer), `updatedAt`.
 - Kept separate from `users` so balance writes are cheap and frequent.
 
 **`rounds`** — one row per completed game round (the history log)
+
 - `id`, `userId`, `game` (`'blackjack' | 'roulette' | 'slots' | 'baccarat'`), `betAmount`, `payout` (total returned, 0 on loss), `netChange` (`payout - betAmount`), `outcome` (`'win' | 'loss' | 'push'`), `details` (game-specific JSON: the hand, the winning number, the reel symbols…), `balanceAfter`, `playedAt`.
 
 **`RoundResult`** (the in-memory object a game's `logic.ts` returns; gets written into `rounds`)
+
 - `{ outcome, betAmount, payout, netChange, details }`
 
 Stats and the leaderboard are **derived** from the `rounds` and `balances` tables — they are not stored separately, so they can never drift out of sync. Cache derived values in memory if performance ever needs it, but the tables are the source of truth.
@@ -174,6 +184,7 @@ Include a `schemaVersion` and a Dexie upgrade path from day one, so later change
 This is a **local** auth system — it separates profiles on one machine. It is not defending a network boundary, but we still never store plaintext passwords.
 
 **Register**
+
 - Form: username + password (+ confirm password).
 - Validate: username unique (case-insensitive), 3–20 chars; password min length (e.g. 8).
 - Generate a random salt, derive `passwordHash` with **PBKDF2** (Web Crypto, e.g. 100k+ iterations, SHA-256).
@@ -181,16 +192,20 @@ This is a **local** auth system — it separates profiles on one machine. It is 
 - Log the user straight in.
 
 **Login**
+
 - Look up username, re-derive the hash with the stored salt, constant-time compare.
 - On success, set `sessionStore` to that user.
 
 **Logout**
+
 - Clear `sessionStore`, return to the login page.
 
 **Session persistence**
+
 - Remember the last logged-in user across refreshes (store just the `userId`, not credentials). On app load, if a remembered user exists, skip to the lobby; otherwise show login.
 
 **Route guarding**
+
 - All game/lobby/stats/leaderboard routes require a session. Unauthenticated users are redirected to `/login`.
 
 ---
@@ -220,18 +235,18 @@ Each game's `logic.ts` is pure and unit-tested. Each game returns a standard `Ro
 - **European wheel** (single zero, 37 pockets: 0 and 1–36). House edge stays fair-ish and the table is simpler than American.
 - Player can place multiple bets in one round. Bet types and payouts:
 
-| Bet | Covers | Payout |
-|---|---|---|
-| Straight up | 1 number | 35 to 1 |
-| Split | 2 adjacent numbers | 17 to 1 |
-| Street | 3 numbers (a row) | 11 to 1 |
-| Corner | 4 numbers | 8 to 1 |
-| Six line | 6 numbers | 5 to 1 |
-| Column | 12 numbers | 2 to 1 |
-| Dozen | 1–12 / 13–24 / 25–36 | 2 to 1 |
-| Red / Black | 18 numbers | 1 to 1 |
-| Odd / Even | 18 numbers | 1 to 1 |
-| Low / High (1–18 / 19–36) | 18 numbers | 1 to 1 |
+| Bet                       | Covers               | Payout  |
+| ------------------------- | -------------------- | ------- |
+| Straight up               | 1 number             | 35 to 1 |
+| Split                     | 2 adjacent numbers   | 17 to 1 |
+| Street                    | 3 numbers (a row)    | 11 to 1 |
+| Corner                    | 4 numbers            | 8 to 1  |
+| Six line                  | 6 numbers            | 5 to 1  |
+| Column                    | 12 numbers           | 2 to 1  |
+| Dozen                     | 1–12 / 13–24 / 25–36 | 2 to 1  |
+| Red / Black               | 18 numbers           | 1 to 1  |
+| Odd / Even                | 18 numbers           | 1 to 1  |
+| Low / High (1–18 / 19–36) | 18 numbers           | 1 to 1  |
 
 - 0 loses all even-money and outside bets (no "en prison" rule in MVP — keep it simple).
 - Spin: `rng.randomInt(0, 36)`. The wheel animation is cosmetic; the result is decided by the RNG, then the wheel animates to land on it.
@@ -244,14 +259,14 @@ Each game's `logic.ts` is pure and unit-tested. Each game returns a standard `Ro
 - Each reel is a weighted random pick from the symbol set via `rng`.
 - **Paytable** (three-of-a-kind on the payline), example — tune these so the return-to-player feels fun but not infinite:
 
-| Combination | Payout (× bet) |
-|---|---|
-| 3× Seven | 50 |
-| 3× Bar | 20 |
-| 3× Bell | 12 |
-| 3× Lemon | 8 |
-| 3× Cherry | 5 |
-| 2× Cherry (any position) | 2 |
+| Combination              | Payout (× bet) |
+| ------------------------ | -------------- |
+| 3× Seven                 | 50             |
+| 3× Bar                   | 20             |
+| 3× Bell                  | 12             |
+| 3× Lemon                 | 8              |
+| 3× Cherry                | 5              |
+| 2× Cherry (any position) | 2              |
 
 - The reel-spin animation is cosmetic; the outcome is decided by RNG first.
 - Keep the symbol weights and paytable in a single config object so they're easy to tune.
@@ -275,6 +290,7 @@ Each game's `logic.ts` is pure and unit-tested. Each game returns a standard `Ro
 History is the `rounds` table; stats are **derived** from it (and from `balances`). Nothing here is stored redundantly.
 
 **Per-player stats (StatsPage):**
+
 - Current balance, all-time net (sum of `netChange`), biggest single win, biggest single loss.
 - Total rounds played, win rate, per-game breakdown (rounds played + net per game).
 - Current win/loss streak.
@@ -282,6 +298,7 @@ History is the `rounds` table; stats are **derived** from it (and from `balances
 - Optional: a simple balance-over-time line chart (Chart.js or a tiny SVG).
 
 **History rules:**
+
 - Every completed round writes exactly one `rounds` row, via `systems/history.ts`. Games must not skip this.
 - History is per-user and never deleted automatically (add a manual "clear history" action if desired).
 
@@ -321,18 +338,18 @@ Each row: avatar color + username, the ranked metric, and a couple of secondary 
 
 Build in this order. **Do not start a phase until the previous one runs and its tests pass.** Each phase is one or more PRs.
 
-| Phase | Deliverable | Definition of done |
-|---|---|---|
-| **0. Scaffold** | Vite + React + TS + Tailwind + ESLint/Prettier + Vitest set up. Routing shell. Empty pages. | `npm run dev` serves the app; `npm test` runs; lint passes. |
-| **1. Data + Auth** | Dexie schema, `systems/auth.ts`, Register/Login/Logout, session persistence, route guards. | Can register a user, log out, log back in; refresh keeps you logged in; password is hashed in the DB. |
-| **2. Wallet + Lobby + Game shell** | `walletStore`, `systems/wallet.ts`, starting stake, `LobbyPage`, `_shared/GameShell` + `BettingPanel`, `systems/history.ts`, `systems/rng.ts`. | New user has 1,000 chips; lobby shows balance; a placeholder game can place and settle a bet and write a `rounds` row. |
-| **3. Blackjack** | Full Blackjack: `logic.ts` (pure, tested) + UI. | Playable end-to-end; wallet updates; rounds logged; `logic.test.ts` covers blackjack, bust, push, dealer rules, double down. |
-| **4. Roulette** | Full Roulette with all bet types from §8.2. | Playable; all payouts correct; multiple bets per round; tested. |
-| **5. Slots** | 3-reel single-line slots with config-driven paytable. | Playable; paytable correct; tested. |
-| **6. Baccarat** | Full Baccarat including third-card rules. | Playable; commission and tie payouts correct; third-card tableau tested. |
-| **7. Stats + Leaderboard** | `systems/stats.ts`, StatsPage, LeaderboardPage with all boards. | Stats match the raw `rounds` data; leaderboard ranks correctly; logged-in user highlighted. |
-| **8. Polish** | Animations pass, sound effects, Retro Vegas styling refinement, empty/zero-balance states, daily top-up. | App feels finished; no broken states; design tokens used throughout. |
-| **9. (Optional later)** | Electron/Tauri desktop wrapper; split hands; multi-line slots; more games. | — |
+| Phase                              | Deliverable                                                                                                                                    | Definition of done                                                                                                           |
+| ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| **0. Scaffold**                    | Vite + React + TS + Tailwind + ESLint/Prettier + Vitest set up. Routing shell. Empty pages.                                                    | `npm run dev` serves the app; `npm test` runs; lint passes.                                                                  |
+| **1. Data + Auth**                 | Dexie schema, `systems/auth.ts`, Register/Login/Logout, session persistence, route guards.                                                     | Can register a user, log out, log back in; refresh keeps you logged in; password is hashed in the DB.                        |
+| **2. Wallet + Lobby + Game shell** | `walletStore`, `systems/wallet.ts`, starting stake, `LobbyPage`, `_shared/GameShell` + `BettingPanel`, `systems/history.ts`, `systems/rng.ts`. | New user has 1,000 chips; lobby shows balance; a placeholder game can place and settle a bet and write a `rounds` row.       |
+| **3. Blackjack**                   | Full Blackjack: `logic.ts` (pure, tested) + UI.                                                                                                | Playable end-to-end; wallet updates; rounds logged; `logic.test.ts` covers blackjack, bust, push, dealer rules, double down. |
+| **4. Roulette**                    | Full Roulette with all bet types from §8.2.                                                                                                    | Playable; all payouts correct; multiple bets per round; tested.                                                              |
+| **5. Slots**                       | 3-reel single-line slots with config-driven paytable.                                                                                          | Playable; paytable correct; tested.                                                                                          |
+| **6. Baccarat**                    | Full Baccarat including third-card rules.                                                                                                      | Playable; commission and tie payouts correct; third-card tableau tested.                                                     |
+| **7. Stats + Leaderboard**         | `systems/stats.ts`, StatsPage, LeaderboardPage with all boards.                                                                                | Stats match the raw `rounds` data; leaderboard ranks correctly; logged-in user highlighted.                                  |
+| **8. Polish**                      | Animations pass, sound effects, Retro Vegas styling refinement, empty/zero-balance states, daily top-up.                                       | App feels finished; no broken states; design tokens used throughout.                                                         |
+| **9. (Optional later)**            | Electron/Tauri desktop wrapper; split hands; multi-line slots; more games.                                                                     | —                                                                                                                            |
 
 ---
 
@@ -375,12 +392,13 @@ This is the part that makes the project actually work.
 3. **Work one phase at a time.** Start each session with a prompt like:
    > "We're on Phase 3 (Blackjack) from BUILD_GUIDE.md §8.1 and §12. The previous phases are merged and working. Implement Blackjack: pure tested `logic.ts` first, then the UI, wired through `systems/wallet.ts` and `systems/history.ts`. Show me the logic and tests before building UI."
 4. **Make it show you the plan first** on anything non-trivial — review the approach before it writes a pile of code.
-5. **Logic before UI, every time.** Get `logic.ts` + passing tests, review them, *then* let it build the React components.
+5. **Logic before UI, every time.** Get `logic.ts` + passing tests, review them, _then_ let it build the React components.
 6. **One PR per phase.** Have Claude Code create the branch, and review the diff before merging.
 7. **When something's wrong, fix the spec.** If a rule or payout changes, update this file first, commit it, then ask Claude Code to implement the change. The doc stays the source of truth.
 8. **Keep sessions focused.** Don't ask for Blackjack and the leaderboard in one session — context stays cleaner and PRs stay reviewable.
 
 ### Suggested first prompt to Claude Code
+
 > "Read `BUILD_GUIDE.md`. We're starting Phase 0 (Scaffold). Set up a Vite + React + TypeScript project with Tailwind, ESLint, Prettier, Vitest, and React Router, matching the structure in §3. Create the empty pages and routing shell. Add a GitHub Actions workflow that runs lint, test, and build. Don't implement any features yet. Show me the file tree and `package.json` when done."
 
 ---
@@ -388,6 +406,7 @@ This is the part that makes the project actually work.
 ## 16. Open Questions / Future Decisions
 
 These don't block the build — revisit as you go:
+
 - Exact starting stake and daily top-up amounts (tune for fun).
 - Slots: when to add multi-line / a Wild symbol.
 - Blackjack: whether to include Split and Insurance in MVP or defer.
@@ -397,4 +416,4 @@ These don't block the build — revisit as you go:
 
 ---
 
-*End of build guide. Keep this file updated — it is the contract.*
+_End of build guide. Keep this file updated — it is the contract._
