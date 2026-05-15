@@ -18,8 +18,7 @@
     "allowImportingTsExtensions": false,
     "noEmit": true,
     "useDefineForClassFields": true,
-    "baseUrl": ".",
-    "paths": { "@/*": ["src/*"] },
+    "paths": { "@/*": ["./src/*"] },
     "types": ["vite/client", "vitest/globals", "@testing-library/jest-dom"]
   },
   "include": ["src"]
