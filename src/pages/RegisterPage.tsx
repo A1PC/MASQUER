@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useSessionStore, useCurrentUser } from '@/store/sessionStore';
@@ -22,7 +22,7 @@ export default function RegisterPage() {
   });
 
   useEffect(() => {
-    if (currentUser) navigate('/lobby', { replace: true });
+    if (currentUser) void navigate('/lobby', { replace: true });
   }, [currentUser, navigate]);
 
   const onSubmit = handleSubmit(async (values) => {
@@ -39,7 +39,7 @@ export default function RegisterPage() {
       }
       return;
     }
-    navigate('/lobby', { replace: true });
+    await navigate('/lobby', { replace: true });
   });
 
   return (

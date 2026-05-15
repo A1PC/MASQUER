@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { useSessionStore } from '@/store/sessionStore';
 import { resetDb } from '@/test/db-helpers';
+import { renderWithRouter } from '@/test/router-helpers';
 import LobbyPage from './LobbyPage';
 
 function resetStore() {
@@ -23,24 +23,19 @@ describe('LobbyPage', () => {
 
   it('shows the username and avatar swatch when logged in', async () => {
     await loginAdam();
-    render(
-      <MemoryRouter>
-        <LobbyPage />
-      </MemoryRouter>,
-    );
+    renderWithRouter([{ path: '/lobby', element: <LobbyPage /> }], { initialEntry: '/lobby' });
     expect(screen.getByRole('heading', { name: /welcome, adam/i })).toBeInTheDocument();
     expect(screen.getByLabelText('avatar')).toBeInTheDocument();
   });
 
   it('logout clears the session and navigates to /login', async () => {
     await loginAdam();
-    render(
-      <MemoryRouter initialEntries={['/lobby']}>
-        <Routes>
-          <Route path="/lobby" element={<LobbyPage />} />
-          <Route path="/login" element={<p>login page</p>} />
-        </Routes>
-      </MemoryRouter>,
+    renderWithRouter(
+      [
+        { path: '/lobby', element: <LobbyPage /> },
+        { path: '/login', element: <p>login page</p> },
+      ],
+      { initialEntry: '/lobby' },
     );
     await userEvent.click(screen.getByRole('button', { name: /log out/i }));
     expect(screen.getByText('login page')).toBeInTheDocument();

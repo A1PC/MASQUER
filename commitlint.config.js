@@ -26,6 +26,7 @@ export default {
         'release',
         'repo',
         'adr',
+        'routing',
       ],
     ],
     'subject-case': [0],
