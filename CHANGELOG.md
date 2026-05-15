@@ -10,6 +10,10 @@ and this project versions by BUILD_GUIDE.md phase (`v0.PHASE-name`).
 ### Changed
 
 - TypeScript bumped from 5.6 to 6.x. Dropped `baseUrl` from `tsconfig.app.json` (TS 6 raises TS5101). `paths` alias resolves the same way without it. ADR-0013.
+- React Router upgraded from `react-router-dom` 6.30 to `react-router` 7.x.
+- Adopted data-router pattern: routes defined in `src/router.tsx` via `createBrowserRouter`; mounted via `<RouterProvider>` in `main.tsx`.
+- Bootstrap call + Loading splash extracted to `src/components/AppBootstrap.tsx` (replaces `src/App.tsx`).
+- Tests use `renderWithRouter` helper wrapping `createMemoryRouter`. ADR-0014.
 
 ## [v0.2-data-and-auth] — 2026-05-15
 
