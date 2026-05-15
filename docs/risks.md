@@ -22,3 +22,16 @@ new risks emerge.
 | R-15 | Solo-dev rubber-stamps own PRs                      | All     | H   | L   | PR self-review checklist; CI must be green; squash-merge                                                       |
 
 L = Likelihood (L/M/H), I = Impact (L/M/H).
+
+## Phase 1 additions
+
+| ID   | Risk                                                 | Phase     | L   | I   | Mitigation                                                                                |
+| ---- | ---------------------------------------------------- | --------- | --- | --- | ----------------------------------------------------------------------------------------- |
+| R-16 | PBKDF2 takes too long, login feels frozen            | 1         | M   | L   | 600k iters ≈ 300-500ms; UI shows isSubmitting spinner. Drop to 210k if users complain.    |
+| R-17 | localStorage unavailable (private mode historically) | 1         | L   | M   | All localStorage access wrapped in try/catch; degrade gracefully.                         |
+| R-18 | User opens app on different browser → empty          | 1         | H   | L   | Intentional; data is local per-browser. Documented in dev-setup.                          |
+| R-19 | Username uniqueness race (two tabs register at once) | 1         | L   | L   | Dexie &usernameLower index throws ConstraintError; caught and reported as username_taken. |
+| R-20 | Login timing oracle reveals username existence       | 1         | L   | M   | Always run KDF on login even when user not found.                                         |
+| R-21 | RequireAuth flash-of-content during bootstrap        | 1         | M   | L   | App renders "Loading…" splash while bootstrapping is true.                                |
+| R-22 | Test pollution between test files                    | 1         | M   | M   | resetDb() helper + beforeEach in any test that writes.                                    |
+| R-23 | Dexie ConstraintError detection brittle              | 1, future | L   | M   | Centralized isUniqueIndexError helper.                                                    |
