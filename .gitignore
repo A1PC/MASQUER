@@ -1,0 +1,15 @@
+node_modules
+dist
+dist-ssr
+coverage
+.vite
+*.local
+.env
+.env.*
+!.env.example
+.DS_Store
+.idea
+.vscode/*
+!.vscode/extensions.json
+*.log
+pnpm-debug.log*
