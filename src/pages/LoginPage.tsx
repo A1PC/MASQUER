@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useSessionStore, useCurrentUser } from '@/store/sessionStore';
@@ -24,7 +24,7 @@ export default function LoginPage() {
   });
 
   useEffect(() => {
-    if (currentUser) navigate(from, { replace: true });
+    if (currentUser) void navigate(from, { replace: true });
   }, [currentUser, from, navigate]);
 
   const onSubmit = handleSubmit(async (values) => {
@@ -34,7 +34,7 @@ export default function LoginPage() {
       setSubmitError('Invalid username or password.');
       return;
     }
-    navigate(from, { replace: true });
+    await navigate(from, { replace: true });
   });
 
   return (

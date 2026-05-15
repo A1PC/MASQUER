@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { useCurrentUser, useSessionStore } from '@/store/sessionStore';
 
 export default function LobbyPage() {
@@ -10,7 +10,7 @@ export default function LobbyPage() {
 
   const handleLogout = async () => {
     await logout();
-    navigate('/login', { replace: true });
+    await navigate('/login', { replace: true });
   };
 
   return (
