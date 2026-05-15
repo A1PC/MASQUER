@@ -22,6 +22,7 @@ export default {
         'ci',
         'build-guide',
         'deps',
+        'deps-dev',
         'release',
         'repo',
         'adr',
