@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { useSessionStore } from '@/store/sessionStore';
 import { resetDb } from '@/test/db-helpers';
+import { renderWithRouter } from '@/test/router-helpers';
 import RegisterPage from './RegisterPage';
 
 function resetStore() {
@@ -11,13 +11,12 @@ function resetStore() {
 }
 
 function renderRegister() {
-  return render(
-    <MemoryRouter initialEntries={['/register']}>
-      <Routes>
-        <Route path="/register" element={<RegisterPage />} />
-        <Route path="/lobby" element={<p>lobby page</p>} />
-      </Routes>
-    </MemoryRouter>,
+  return renderWithRouter(
+    [
+      { path: '/register', element: <RegisterPage /> },
+      { path: '/lobby', element: <p>lobby page</p> },
+    ],
+    { initialEntry: '/register' },
   );
 }
 
