@@ -124,22 +124,20 @@ docs/
   superpowers/plans/.gitkeep
 ```
 
-**Pre-existing state to clean up in PR #1:**
-- Delete `.github/workflows/blank.yml` (GitHub starter template, runs
-  `echo Hello, world!`, named `CI` — would collide with our `ci.yml`'s
-  workflow name).
-
 **GitHub-side actions (via `gh` CLI, scripted, idempotent):**
 - 9 milestones created (Phase 0–9 with descriptions referencing BUILD_GUIDE §s).
 - 16 Phase 0 issues filed under `Phase 0 — Scaffold` milestone, labeled `phase-0`.
 - Labels created: `phase-0` … `phase-9`, `bug`, `design`, `chore`, `tooling`,
   `docs`, `tests`, `blocked`, `needs-spec`, `ready-for-review`.
 
-**Already done by the user (outside this spec, recorded for traceability):**
+**Already handled outside this PR sequence (recorded for traceability):**
 - ✅ Moved `claude.yml` from repo root to `.github/workflows/claude.yml`
-  (commit `e605142`, then root file deleted in `76eec09`, 2026-05-15).
+  (commits `e605142` and `76eec09`, 2026-05-15).
 - ✅ Added `ANTHROPIC_API_KEY` repo secret in Settings → Secrets and
   variables → Actions (manual; not git-trackable).
+- ✅ Removed unintentional `.github/workflows/blank.yml` GitHub starter
+  template via `chore(ci): remove unintentional blank.yml workflow` PR
+  (2026-05-15) — would have collided with our `ci.yml` workflow name.
 
 ### PR #2 — Vite scaffold + folder skeleton
 
@@ -1356,35 +1354,35 @@ gh api repos/A1PC/localGamble/milestones -f title="Phase 9 — Optional" \
   -f description="Electron/Tauri wrap, split, multi-line slots, more games. BUILD_GUIDE §12 (optional)."
 ```
 
-### Phase 0 issues (16 total, all attached to "Phase 0 — Scaffold")
+### Phase 0 issues (15 total, all attached to "Phase 0 — Scaffold")
 
-PR #1 work (5 issues):
+PR #1 work (4 issues):
 1. `[Phase 0] PR #1 — Repo meta: CLAUDE.md, CONTRIBUTING.md, gitignore, nvmrc, README, CHANGELOG`
 2. `[Phase 0] PR #1 — GitHub templates (PR template, 3 issue templates)`
-3. `[Phase 0] PR #1 — Delete .github/workflows/blank.yml placeholder`
-4. `[Phase 0] PR #1 — CI workflow v1: actionlint + markdownlint + commitlint`
-5. `[Phase 0] PR #1 — Create 9 phase milestones + labels via gh; enable Dependabot`
+3. `[Phase 0] PR #1 — CI workflow v1: actionlint + markdownlint + commitlint`
+4. `[Phase 0] PR #1 — Create 9 phase milestones + labels via gh; enable Dependabot`
 
 PR #2 work (4 issues):
-6. `[Phase 0] PR #2 — Vite + React 18 + TS + React Router scaffold`
-7. `[Phase 0] PR #2 — Folder skeleton (.gitkeep) per BUILD_GUIDE §3`
-8. `[Phase 0] PR #2 — Placeholder routes/pages and routing shell`
-9. `[Phase 0] PR #2 — CI workflow v2: install + typecheck + build`
+5. `[Phase 0] PR #2 — Vite + React 18 + TS + React Router scaffold`
+6. `[Phase 0] PR #2 — Folder skeleton (.gitkeep) per BUILD_GUIDE §3`
+7. `[Phase 0] PR #2 — Placeholder routes/pages and routing shell`
+8. `[Phase 0] PR #2 — CI workflow v2: install + typecheck + build`
 
 PR #3 work (6 issues):
-10. `[Phase 0] PR #3 — Tailwind v3 + theme tokens + index.css`
-11. `[Phase 0] PR #3 — ESLint flat config (incl. Math.random + games-import bans)`
-12. `[Phase 0] PR #3 — Prettier + EditorConfig + format script`
-13. `[Phase 0] PR #3 — Vitest + RTL + jsdom + coverage thresholds`
-14. `[Phase 0] PR #3 — Husky + lint-staged pre-commit hook`
-15. `[Phase 0] PR #3 — Sanity test (App.test.tsx) passing`
+9.  `[Phase 0] PR #3 — Tailwind v3 + theme tokens + index.css`
+10. `[Phase 0] PR #3 — ESLint flat config (incl. Math.random + games-import bans)`
+11. `[Phase 0] PR #3 — Prettier + EditorConfig + format script`
+12. `[Phase 0] PR #3 — Vitest + RTL + jsdom + coverage thresholds`
+13. `[Phase 0] PR #3 — Husky + lint-staged pre-commit hook`
+14. `[Phase 0] PR #3 — Sanity test (App.test.tsx) passing`
 
 Closeout (1 issue):
-16. `[Phase 0] Tag v0.1-scaffold release after PR #3 merges`
+15. `[Phase 0] Tag v0.1-scaffold release after PR #3 merges`
 
 Manual one-time steps (no issue needed; status tracked here):
 - ✅ `claude.yml` moved to `.github/workflows/` (done 2026-05-15).
 - ✅ `ANTHROPIC_API_KEY` repo secret added (done 2026-05-15).
+- ✅ `blank.yml` placeholder removed via separate chore PR (done 2026-05-15).
 
 ### Labels
 
@@ -1451,7 +1449,7 @@ merge-gate for the `v0.1-scaffold` tag.
 
 **GitHub state**
 - [ ] All 9 milestones exist with descriptions
-- [ ] All 16 Phase 0 issues exist, attached to milestone, labeled `phase-0`
+- [ ] All 15 Phase 0 issues exist, attached to milestone, labeled `phase-0`
 - [ ] All `phase-N` and category labels exist
 - [ ] PR template renders on new PR
 - [ ] All three issue templates appear; blank disabled
