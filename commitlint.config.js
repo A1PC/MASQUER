@@ -5,7 +5,7 @@ export default {
       'blackjack', 'roulette', 'slots', 'baccarat',
       'wallet', 'auth', 'rng', 'history', 'stats', 'leaderboard',
       'theme', 'db', 'session', 'lobby',
-      'ci', 'build-guide', 'deps', 'release', 'repo'
+      'ci', 'build-guide', 'deps', 'release', 'repo', 'adr'
     ]],
     'subject-case': [0],
   },
