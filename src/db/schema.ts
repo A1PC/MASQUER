@@ -15,12 +15,15 @@ export interface Balance {
   userId: string;
   chips: number;
   updatedAt: number;
+  /** Timestamp of last daily +50 claim. undefined for users created before this
+   *  field existed (treated as "never claimed → eligible immediately"). */
+  lastDailyClaimAt?: number;
 }
 
 export interface Round {
   id: string;
   userId: string;
-  game: 'blackjack' | 'roulette' | 'slots' | 'baccarat';
+  game: 'blackjack' | 'roulette' | 'slots' | 'baccarat' | 'coin-flip';
   betAmount: number;
   payout: number;
   netChange: number;

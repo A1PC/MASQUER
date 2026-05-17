@@ -38,6 +38,11 @@ L = Likelihood (L/M/H), I = Impact (L/M/H).
 
 ## Phase 2 additions
 
-| ID   | Risk                               | Phase | L   | I   | Mitigation                                                                             |
-| ---- | ---------------------------------- | ----- | --- | --- | -------------------------------------------------------------------------------------- |
-| R-27 | mulberry32 PRNG bias in test seeds | 2     | L   | L   | mulberry32 passes BigCrush; chi-squared sanity test in rng.test.ts catches gross bias. |
+| ID   | Risk                                                        | Phase | L   | I   | Mitigation                                                                                                              |
+| ---- | ----------------------------------------------------------- | ----- | --- | --- | ----------------------------------------------------------------------------------------------------------------------- |
+| R-24 | Bet placed but settle never called (page crash mid-round)   | 2+    | M   | M   | In-memory bet handle; chips deducted on placeBet. If settle never runs, user loses the bet — acceptable for play-money. |
+| R-25 | Double-settle of the same bet (re-render bug)               | 2+    | L   | M   | settleRound keys the round on handle.betId; second call returns existing row, no double credit.                         |
+| R-26 | Daily-claim race when user opens two tabs                   | 2     | L   | L   | claimDaily is a Dexie transaction; second tab reads updated lastDailyClaimAt and returns not_yet_eligible.              |
+| R-27 | mulberry32 PRNG bias in test seeds                          | 2     | L   | L   | mulberry32 passes BigCrush; chi-squared sanity test in rng.test.ts catches gross bias.                                  |
+| R-30 | RecentResults rail re-orders mid-animation on rapid settles | 2     | M   | L   | Items keyed by round.id; Framer Motion layout handles ordering changes via FLIP.                                        |
+| R-31 | Bet < min or > max accepted via console manipulation        | 2     | L   | L   | wallet.placeBet validates min/max at the system boundary, not just the UI form.                                         |

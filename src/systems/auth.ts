@@ -9,9 +9,9 @@ import {
   timingSafeEqual,
 } from '@/systems/crypto';
 import { pickRandomAvatarColor } from '@/systems/avatar';
+import { WALLET_CONFIG } from '@/systems/wallet';
 
 const SESSION_KEY = 'localGamble.session.userId';
-const STARTING_CHIPS = 1000;
 
 export type RegisterError = 'username_taken' | 'unknown';
 export type LoginError = 'invalid_credentials' | 'unknown';
@@ -45,7 +45,7 @@ export async function register(input: {
       await db.users.add(user);
       await db.balances.add({
         userId: user.id,
-        chips: STARTING_CHIPS,
+        chips: WALLET_CONFIG.STARTING_CHIPS,
         updatedAt: Date.now(),
       });
     });

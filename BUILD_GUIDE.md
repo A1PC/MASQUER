@@ -80,7 +80,6 @@ casino-app/
    │   ├─ wallet.ts          ← debit/credit, balance reads, persistence
    │   ├─ rng.ts             ← single random source (see §5)
    │   ├─ payouts.ts         ← shared payout helpers
-   │   ├─ history.ts         ← record every round result
    │   └─ stats.ts           ← derive player stats + leaderboard
    ├─ components/            ← shared UI: Button, ChipStack, Modal, BalanceBadge…
    ├─ pages/
@@ -102,7 +101,7 @@ casino-app/
 
 **The contract every game must follow:**
 
-1. A game **never** touches the database or wallet store directly. It calls `systems/wallet.ts` (`placeBet`, `settleRound`) and `systems/history.ts` (`recordRound`).
+1. A game **never** touches the database or wallet store directly. It calls `systems/wallet.ts` (`placeBet`, `settleRound`). History rows are written by `wallet.settleRound` in the same Dexie transaction as the balance credit (ADR-0016). There is no separate `systems/history.ts`.
 2. All game **rules and odds** live in that game's `logic.ts` as **pure functions** (no React, no I/O) so they can be unit-tested in isolation.
 3. The game's React components only handle display, animation, and user input — they call into `logic.ts` for outcomes.
 4. Every game round produces a standard **RoundResult** object (see §6) that the history and stats systems understand.
@@ -127,7 +126,7 @@ This is the single most important architectural rule. If Claude Code follows it,
 2. User composes a bet → `placeBet()` locks the chips.
 3. Game plays out (cards/wheel/reels).
 4. `logic.ts` computes the `RoundResult`.
-5. `settleRound()` credits winnings; `recordRound()` logs it; stats update.
+5. `settleRound()` credits winnings and writes the history row atomically (ADR-0016); stats update.
 
 ### RNG — see §5.
 
@@ -167,7 +166,7 @@ Four tables. All IDs are UUIDs unless noted.
 
 **`rounds`** — one row per completed game round (the history log)
 
-- `id`, `userId`, `game` (`'blackjack' | 'roulette' | 'slots' | 'baccarat'`), `betAmount`, `payout` (total returned, 0 on loss), `netChange` (`payout - betAmount`), `outcome` (`'win' | 'loss' | 'push'`), `details` (game-specific JSON: the hand, the winning number, the reel symbols…), `balanceAfter`, `playedAt`.
+- `id`, `userId`, `game` (`'blackjack' | 'roulette' | 'slots' | 'baccarat' | 'coin-flip'`), `betAmount`, `payout` (total returned, 0 on loss), `netChange` (`payout - betAmount`), `outcome` (`'win' | 'loss' | 'push'`), `details` (game-specific JSON: the hand, the winning number, the reel symbols…), `balanceAfter`, `playedAt`. Coin Flip (Phase 2 placeholder game) is the fifth value; see ADR-0020.
 
 **`RoundResult`** (the in-memory object a game's `logic.ts` returns; gets written into `rounds`)
 
@@ -338,18 +337,18 @@ Each row: avatar color + username, the ranked metric, and a couple of secondary 
 
 Build in this order. **Do not start a phase until the previous one runs and its tests pass.** Each phase is one or more PRs.
 
-| Phase                              | Deliverable                                                                                                                                    | Definition of done                                                                                                           |
-| ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| **0. Scaffold**                    | Vite + React + TS + Tailwind + ESLint/Prettier + Vitest set up. Routing shell. Empty pages.                                                    | `npm run dev` serves the app; `npm test` runs; lint passes.                                                                  |
-| **1. Data + Auth**                 | Dexie schema, `systems/auth.ts`, Register/Login/Logout, session persistence, route guards.                                                     | Can register a user, log out, log back in; refresh keeps you logged in; password is hashed in the DB.                        |
-| **2. Wallet + Lobby + Game shell** | `walletStore`, `systems/wallet.ts`, starting stake, `LobbyPage`, `_shared/GameShell` + `BettingPanel`, `systems/history.ts`, `systems/rng.ts`. | New user has 1,000 chips; lobby shows balance; a placeholder game can place and settle a bet and write a `rounds` row.       |
-| **3. Blackjack**                   | Full Blackjack: `logic.ts` (pure, tested) + UI.                                                                                                | Playable end-to-end; wallet updates; rounds logged; `logic.test.ts` covers blackjack, bust, push, dealer rules, double down. |
-| **4. Roulette**                    | Full Roulette with all bet types from §8.2.                                                                                                    | Playable; all payouts correct; multiple bets per round; tested.                                                              |
-| **5. Slots**                       | 3-reel single-line slots with config-driven paytable.                                                                                          | Playable; paytable correct; tested.                                                                                          |
-| **6. Baccarat**                    | Full Baccarat including third-card rules.                                                                                                      | Playable; commission and tie payouts correct; third-card tableau tested.                                                     |
-| **7. Stats + Leaderboard**         | `systems/stats.ts`, StatsPage, LeaderboardPage with all boards.                                                                                | Stats match the raw `rounds` data; leaderboard ranks correctly; logged-in user highlighted.                                  |
-| **8. Polish**                      | Animations pass, sound effects, Retro Vegas styling refinement, empty/zero-balance states, daily top-up.                                       | App feels finished; no broken states; design tokens used throughout.                                                         |
-| **9. (Optional later)**            | Electron/Tauri desktop wrapper; split hands; multi-line slots; more games.                                                                     | —                                                                                                                            |
+| Phase                              | Deliverable                                                                                                              | Definition of done                                                                                                           |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------- |
+| **0. Scaffold**                    | Vite + React + TS + Tailwind + ESLint/Prettier + Vitest set up. Routing shell. Empty pages.                              | `npm run dev` serves the app; `npm test` runs; lint passes.                                                                  |
+| **1. Data + Auth**                 | Dexie schema, `systems/auth.ts`, Register/Login/Logout, session persistence, route guards.                               | Can register a user, log out, log back in; refresh keeps you logged in; password is hashed in the DB.                        |
+| **2. Wallet + Lobby + Game shell** | `walletStore`, `systems/wallet.ts`, starting stake, `LobbyPage`, `_shared/GameShell` + `BettingPanel`, `systems/rng.ts`. | New user has 1,000 chips; lobby shows balance; a placeholder game can place and settle a bet and write a `rounds` row.       |
+| **3. Blackjack**                   | Full Blackjack: `logic.ts` (pure, tested) + UI.                                                                          | Playable end-to-end; wallet updates; rounds logged; `logic.test.ts` covers blackjack, bust, push, dealer rules, double down. |
+| **4. Roulette**                    | Full Roulette with all bet types from §8.2.                                                                              | Playable; all payouts correct; multiple bets per round; tested.                                                              |
+| **5. Slots**                       | 3-reel single-line slots with config-driven paytable.                                                                    | Playable; paytable correct; tested.                                                                                          |
+| **6. Baccarat**                    | Full Baccarat including third-card rules.                                                                                | Playable; commission and tie payouts correct; third-card tableau tested.                                                     |
+| **7. Stats + Leaderboard**         | `systems/stats.ts`, StatsPage, LeaderboardPage with all boards.                                                          | Stats match the raw `rounds` data; leaderboard ranks correctly; logged-in user highlighted.                                  |
+| **8. Polish**                      | Animations pass, sound effects, Retro Vegas styling refinement, empty/zero-balance states, daily top-up.                 | App feels finished; no broken states; design tokens used throughout.                                                         |
+| **9. (Optional later)**            | Electron/Tauri desktop wrapper; split hands; multi-line slots; more games.                                               | —                                                                                                                            |
 
 ---
 
