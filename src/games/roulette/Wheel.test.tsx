@@ -150,3 +150,21 @@ describe('<Wheel /> reduced motion', () => {
     expect(motionSvg!.getAttribute('data-transition-duration')).toBe('0');
   });
 });
+
+describe('<Wheel /> pocket pulse', () => {
+  it('when settled + targetNumber, that pocket has data-pulse=true', () => {
+    render(<Wheel targetNumber={17} spinning={false} settled={true} />);
+    expect(document.querySelector('[data-pocket="17"]')!.getAttribute('data-pulse')).toBe('true');
+    expect(document.querySelector('[data-pocket="18"]')!.getAttribute('data-pulse')).toBeNull();
+  });
+
+  it('no pocket pulses when not settled', () => {
+    render(<Wheel targetNumber={17} spinning={false} settled={false} />);
+    expect(document.querySelectorAll('[data-pulse="true"]')).toHaveLength(0);
+  });
+
+  it('reduced motion suppresses the pulse', () => {
+    render(<Wheel targetNumber={17} spinning={false} settled={true} reducedMotion={true} />);
+    expect(document.querySelectorAll('[data-pulse="true"]')).toHaveLength(0);
+  });
+});
