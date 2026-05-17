@@ -378,7 +378,7 @@ describe('<BettingLayout /> footer and disabled state', () => {
     expect(document.querySelector('[data-roulette-felt]')!.getAttribute('data-disabled')).toBe(
       'true',
     );
-    expect(screen.getByRole('button', { name: /straight bet on 17/i }).disabled).toBe(true);
+    expect(screen.getByRole('button', { name: /straight bet on 17/i })).toBeDisabled();
   });
 
   it('the most recently placed bet has data-selected on its chip stack', () => {
