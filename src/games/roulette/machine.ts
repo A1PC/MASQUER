@@ -59,6 +59,17 @@ export const rouletteMachine = setup({
         return buildRoundResult(context.bets, context.spinResult);
       },
     }),
+    prepareNextRound: assign({
+      bets: ({ context }) => {
+        if (!context.spinResult) return [];
+        const winningNumber = context.spinResult.number;
+        return context.bets
+          .filter((b) => !b.numbers.includes(winningNumber))
+          .map((b) => ({ ...b, betHandleId: '' }));
+      },
+      spinResult: () => null,
+      roundResult: () => null,
+    }),
   },
   delays: {
     spinDuration: ({ context }) => context.spinDurationMs,
@@ -94,7 +105,12 @@ export const rouletteMachine = setup({
       },
     },
     settled: {
-      // 'NEW_ROUND' transition + prepareNextRound action filled in by Task A.11
+      on: {
+        NEW_ROUND: {
+          target: 'betting',
+          actions: 'prepareNextRound',
+        },
+      },
     },
   },
 });
