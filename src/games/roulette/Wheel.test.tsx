@@ -55,3 +55,27 @@ describe('<Wheel /> pocket ring', () => {
     expect(svg!.querySelectorAll('[data-pocket]')).toHaveLength(37);
   });
 });
+
+describe('<Wheel /> ball', () => {
+  it('hidden when targetNumber is null', () => {
+    render(<Wheel targetNumber={null} spinning={false} settled={false} />);
+    expect(document.querySelector('[data-roulette-layer="ball"]')).toBeNull();
+  });
+
+  it('renders the ball when targetNumber is set', () => {
+    render(<Wheel targetNumber={17} spinning={false} settled={true} />);
+    expect(document.querySelector('[data-roulette-layer="ball"]')).toBeInTheDocument();
+  });
+
+  it("ball's data-pocket attribute matches targetNumber", () => {
+    render(<Wheel targetNumber={32} spinning={false} settled={true} />);
+    const ball = document.querySelector('[data-roulette-layer="ball"]');
+    expect(ball!.getAttribute('data-pocket')).toBe('32');
+  });
+
+  it("ball's data-pocket-index reflects POCKET_ORDER position", () => {
+    render(<Wheel targetNumber={32} spinning={false} settled={true} />);
+    const ball = document.querySelector('[data-roulette-layer="ball"]');
+    expect(ball!.getAttribute('data-pocket-index')).toBe(String(POCKET_ORDER.indexOf(32)));
+  });
+});
