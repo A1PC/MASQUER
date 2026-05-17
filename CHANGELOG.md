@@ -7,6 +7,27 @@ and this project versions by BUILD_GUIDE.md phase (`v0.PHASE-name`).
 
 ## [Unreleased]
 
+## [v0.4-blackjack] — 2026-05-17
+
+### Added
+
+- Full Blackjack game: H17 rule, Split (up to 4 hands), DAS, Insurance, 3:2 natural blackjack
+- 6-deck shoe with 50% penetration cut card; reshuffle automatic
+- XState v5 round state machine (9 states with branching transitions)
+- Pure logic modules: cards, hand value, dealer rule, settle (with insurance)
+- Card visual style: formal Times serif pip pattern + subtle neon glow + gold inset border
+- Card back: pinstripe cross-hatch over radial casino-red gradient + "LG" monogram
+- DealerArea + PlayerArea + ActionPanel + InsurancePrompt components
+- BlackjackPage integrating GameShell + XState machine + Card components
+- Lobby cabinet flipped from stub to playable; NEW badge moved from Coin Flip to Blackjack
+- 8 new ADRs (0021–0028)
+- 9 new risk register entries (R-32 to R-40)
+- xstate + @xstate/react dependencies
+
+### Changed
+
+- BUILD_GUIDE §8.1 codifies H17 + split rules + insurance + BJ rounding
+
 ## [v0.3-wallet-and-game-shell] — 2026-05-17
 
 ### Added
