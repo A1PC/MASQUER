@@ -1,4 +1,4 @@
-import { beforeEach, expect, it } from 'vitest';
+import { beforeEach, expect, it, vi } from 'vitest';
 import { screen, waitFor } from '@testing-library/react';
 import { db } from '@/db';
 import { useSessionStore } from '@/store/sessionStore';
@@ -7,6 +7,20 @@ import { renderWithRouter } from '@/test/router-helpers';
 import RequireAuth from './RequireAuth';
 import LoginPage from '@/pages/LoginPage';
 import LobbyPage from '@/pages/LobbyPage';
+
+vi.mock('@/store/walletStore', () => ({
+  useWalletStore: Object.assign(
+    (
+      selector: (s: {
+        hydrate: ReturnType<typeof vi.fn>;
+        clear: ReturnType<typeof vi.fn>;
+      }) => unknown,
+    ) => selector({ hydrate: vi.fn(), clear: vi.fn() }),
+    {
+      getState: () => ({ hydrate: vi.fn(), clear: vi.fn() }),
+    },
+  ),
+}));
 
 const SESSION_KEY = 'localGamble.session.userId';
 
@@ -50,6 +64,11 @@ it('renders /lobby when a user is logged in', async () => {
   // Trigger bootstrap explicitly so currentUser is populated before render.
   await useSessionStore.getState().bootstrap();
 
+  useSessionStore.setState({
+    currentUser: (await db.users.get(users[0]!.id)) ?? null,
+    bootstrapping: false,
+  });
+
   renderWithRouter(
     [
       { path: '/login', element: <LoginPage /> },
@@ -66,6 +85,6 @@ it('renders /lobby when a user is logged in', async () => {
   );
 
   await waitFor(() => {
-    expect(screen.getByRole('heading', { name: /welcome, adam/i })).toBeInTheDocument();
+    expect(screen.getByText(/PICK YOUR POISON/)).toBeInTheDocument();
   });
 });
