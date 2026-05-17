@@ -14,3 +14,7 @@ coverage
 *.log
 pnpm-debug.log*
 *.tsbuildinfo
+
+# Visual companion brainstorm session artifacts
+# (mockups, server state — local to each brainstorming session)
+.superpowers/
