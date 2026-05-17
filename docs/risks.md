@@ -57,3 +57,7 @@ L = Likelihood (L/M/H), I = Impact (L/M/H).
 | R-35 | Reshuffle never triggers (off-by-one in needsReshuffle)                                          | 3     | L   | M   | Test asserts exact cutAt boundary triggers reshuffle.                                                                                                          |
 | R-36 | Splits to 4 hands consume more shoe than expected; mid-round shoe exhaustion                     | 3     | L   | H   | drawCard throws; test that no round can plausibly exhaust a 6-deck shoe (~30 cards max per round).                                                             |
 | R-37 | Multi-hand wallet pattern: a placeBet for split fails (insufficient_chips) after main bet placed | 3     | M   | M   | Wallet placeBet for split occurs at SPLIT action time; on failure, surface error and prevent the split (page-level guard checks balance before sending SPLIT). |
+
+| R-38 | Animation glitch on hole-card flip (Framer Motion + state race) | 3 | L | L | Card component uses `rotateY` motion with explicit transition; tested visually post-merge. |
+| R-39 | Multi-hand layout overflows at narrow viewport (<1024px) | 3 | M | L | CSS scrollable container at player area; documented in dev-setup. |
+| R-40 | "BJ" badge in RecentResults shows for split-Ace 21 by accident | 3 | L | L | BlackjackRoundDetails.hands[i].outcome distinguishes player-blackjack from player-win 21; UI mapping checks specific outcome. |
