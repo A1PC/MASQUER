@@ -10,6 +10,7 @@ import ProfileStubPage from '@/pages/ProfileStubPage';
 import CoinFlipPage from '@/games/coin-flip/CoinFlipPage';
 import StubGamePage from '@/games/_shared/StubGamePage';
 import BlackjackPage from '@/games/blackjack/BlackjackPage';
+import RoulettePage from '@/games/roulette/RoulettePage';
 
 export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
@@ -31,7 +32,7 @@ export const router = createBrowserRouter([
       { path: 'settings', element: <ProfileStubPage feature="Settings" /> },
       { path: 'play/coin-flip', element: <CoinFlipPage /> },
       { path: 'play/blackjack', element: <BlackjackPage /> },
-      { path: 'play/roulette', element: <StubGamePage game="roulette" phase={4} /> },
+      { path: 'play/roulette', element: <RoulettePage /> },
       { path: 'play/slots', element: <StubGamePage game="slots" phase={5} /> },
       { path: 'play/baccarat', element: <StubGamePage game="baccarat" phase={6} /> },
     ],
