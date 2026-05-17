@@ -1,4 +1,5 @@
 import { describe, expect, it, beforeEach } from 'vitest';
+import 'fake-indexeddb/auto';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import LobbyPage from './LobbyPage';
@@ -7,8 +8,8 @@ import type { User } from '@/db';
 
 const testUser: User = {
   id: 'u',
-  username: 'Adam',
-  usernameLower: 'adam',
+  username: 'A',
+  usernameLower: 'a',
   passwordHash: '',
   passwordSalt: '',
   pbkdf2Iterations: 600_000,
@@ -24,12 +25,26 @@ beforeEach(() => {
 });
 
 describe('LobbyPage', () => {
-  it('renders the PICK YOUR POISON heading', () => {
+  it('renders heading and all 5 cabinets', () => {
     render(
       <MemoryRouter>
         <LobbyPage />
       </MemoryRouter>,
     );
     expect(screen.getByText(/PICK YOUR POISON/)).toBeInTheDocument();
+    expect(screen.getByText('COIN FLIP')).toBeInTheDocument();
+    expect(screen.getByText('BLACKJACK')).toBeInTheDocument();
+    expect(screen.getByText('ROULETTE')).toBeInTheDocument();
+    expect(screen.getByText('SLOTS')).toBeInTheDocument();
+    expect(screen.getByText('BACCARAT')).toBeInTheDocument();
+  });
+
+  it('shows empty-state recent-activity strip when no rounds played', () => {
+    render(
+      <MemoryRouter>
+        <LobbyPage />
+      </MemoryRouter>,
+    );
+    expect(screen.getByText(/No rounds played yet/)).toBeInTheDocument();
   });
 });
