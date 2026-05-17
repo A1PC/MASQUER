@@ -45,7 +45,10 @@ export default tseslint.config(
     },
   },
   {
+    // Game logic and helpers must not bypass the system layer.
+    // _shared/ is the bridge layer; *Page.tsx files are UI and may read from stores.
     files: ['src/games/**/*.{ts,tsx}'],
+    ignores: ['src/games/_shared/**', 'src/games/**/*Page.tsx', 'src/games/**/*Page.test.tsx'],
     rules: {
       'no-restricted-imports': [
         'error',
