@@ -222,10 +222,11 @@ Each game's `logic.ts` is pure and unit-tested. Each game returns a standard `Ro
 - Standard 52-card deck; use a 6-deck shoe, reshuffle when depleted past a cut card.
 - Card values: 2–10 face value; J/Q/K = 10; Ace = 1 or 11 (whichever is best for the hand).
 - Player places a bet, gets two cards face up; dealer gets one up, one down.
-- Player actions: **Hit**, **Stand**, **Double Down** (double bet, take exactly one card), **Split** (when two equal-rank cards — optional for MVP, can defer).
-- Dealer plays after the player: hits until 17 or higher (dealer stands on all 17s — pick one rule and document it; "stand on soft 17" is standard).
+- Player actions: **Hit**, **Stand**, **Double Down** (double bet, take exactly one card), **Split** (up to 4 total hands; standard split-Aces rule: one card each, no resplit aces, no double on split aces; ADR-0022). DAS (double after split) allowed.
+- **Insurance** (when dealer's up-card is Ace, before dealer peeks): bet is half the main bet, pays 2:1 if dealer has natural blackjack (ADR-0023).
+- Dealer plays after the player: hits until 17 or higher. **Dealer hits on soft 17 (H17)** (ADR-0021). House edge ~0.2% higher than S17 in exchange for closer Vegas Strip parity.
 - Outcomes & payouts:
-  - Player blackjack (natural 21 on first two cards): **3 to 2**.
+  - Player blackjack (natural 21 on first two cards): **3 to 2**. For odd bets, bet is rounded UP to nearest even before applying 3:2 (winnings = Math.ceil(bet/2) × 3; ADR-0025).
   - Player win (higher total without busting): **1 to 1**.
   - Push (equal totals): bet returned, `outcome: 'push'`.
   - Player bust or lower total: loss.
