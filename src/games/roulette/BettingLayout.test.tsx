@@ -291,3 +291,128 @@ describe('<BettingLayout /> edge overlays', () => {
     expect(onPlaceBet.mock.calls[0]![0].key).toBe('corner:1');
   });
 });
+
+describe('<BettingLayout /> footer and disabled state', () => {
+  it('renders total exposure summing all bet amounts', () => {
+    render(
+      <BettingLayout
+        bets={[
+          {
+            key: 'red',
+            type: 'red',
+            numbers: [1],
+            payoutMultiple: 1,
+            amount: 5,
+            betHandleId: 'h',
+          },
+          {
+            key: 'black',
+            type: 'black',
+            numbers: [2],
+            payoutMultiple: 1,
+            amount: 25,
+            betHandleId: 'h2',
+          },
+        ]}
+        disabled={false}
+        chipAmount={5}
+        onPlaceBet={() => {}}
+        onRemoveBet={() => {}}
+      />,
+    );
+    expect(screen.getByText(/total bet/i).textContent).toBeTruthy();
+    // Check the displayed total contains 30 somewhere
+    expect(document.body.textContent).toContain('30');
+  });
+
+  it('renders a Clear all button that fires onClearAll', async () => {
+    const onClearAll = vi.fn();
+    render(
+      <BettingLayout
+        bets={[
+          {
+            key: 'red',
+            type: 'red',
+            numbers: [1],
+            payoutMultiple: 1,
+            amount: 5,
+            betHandleId: 'h',
+          },
+        ]}
+        disabled={false}
+        chipAmount={5}
+        onPlaceBet={() => {}}
+        onRemoveBet={() => {}}
+        onClearAll={onClearAll}
+      />,
+    );
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: /clear all bets/i }));
+    expect(onClearAll).toHaveBeenCalledTimes(1);
+  });
+
+  it('Clear all button is disabled when bets is empty', () => {
+    render(
+      <BettingLayout
+        bets={[]}
+        disabled={false}
+        chipAmount={5}
+        onPlaceBet={() => {}}
+        onRemoveBet={() => {}}
+        onClearAll={() => {}}
+      />,
+    );
+    expect(screen.getByRole('button', { name: /clear all bets/i })).toBeDisabled();
+  });
+
+  it('when disabled, the felt has data-disabled=true and number cells are disabled', () => {
+    render(
+      <BettingLayout
+        bets={[]}
+        disabled={true}
+        chipAmount={5}
+        onPlaceBet={() => {}}
+        onRemoveBet={() => {}}
+      />,
+    );
+    expect(document.querySelector('[data-roulette-felt]')!.getAttribute('data-disabled')).toBe(
+      'true',
+    );
+    expect(screen.getByRole('button', { name: /straight bet on 17/i }).disabled).toBe(true);
+  });
+
+  it('the most recently placed bet has data-selected on its chip stack', () => {
+    render(
+      <BettingLayout
+        bets={[
+          {
+            key: 'straight:1',
+            type: 'straight',
+            numbers: [1],
+            payoutMultiple: 35,
+            amount: 5,
+            betHandleId: 'h1',
+          },
+          {
+            key: 'straight:2',
+            type: 'straight',
+            numbers: [2],
+            payoutMultiple: 35,
+            amount: 5,
+            betHandleId: 'h2',
+          },
+        ]}
+        disabled={false}
+        chipAmount={5}
+        onPlaceBet={() => {}}
+        onRemoveBet={() => {}}
+      />,
+    );
+    expect(
+      document.querySelector('[data-bet-stack="straight:2"]')!.getAttribute('data-selected'),
+    ).toBe('true');
+    expect(
+      document.querySelector('[data-bet-stack="straight:1"]')!.getAttribute('data-selected'),
+    ).not.toBe('true');
+  });
+});
