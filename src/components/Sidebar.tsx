@@ -16,8 +16,8 @@ interface NavItemDef {
 
 const GAMES: NavItemDef[] = [
   { to: '/lobby', icon: '🏛️', label: 'Lobby' },
-  { to: '/play/coin-flip', icon: '🪙', label: 'Coin Flip', badge: 'NEW' },
-  { to: '/play/blackjack', icon: '🃏', label: 'Blackjack', phase: 'P3' },
+  { to: '/play/coin-flip', icon: '🪙', label: 'Coin Flip' },
+  { to: '/play/blackjack', icon: '🃏', label: 'Blackjack', badge: 'NEW' },
   { to: '/play/roulette', icon: '🎡', label: 'Roulette', phase: 'P4' },
   { to: '/play/slots', icon: '🎰', label: 'Slots', phase: 'P5' },
   { to: '/play/baccarat', icon: '🎴', label: 'Baccarat', phase: 'P6' },

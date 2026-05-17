@@ -27,17 +27,18 @@ describe('Sidebar', () => {
     expect(screen.getByText(/Leaderboard/)).toBeInTheDocument();
   });
 
-  it('shows NEW badge on Coin Flip', () => {
+  it('shows NEW badge on Blackjack', () => {
     renderAtPath('/lobby');
     expect(screen.getByText('NEW')).toBeInTheDocument();
   });
 
-  it('shows phase tags on unimplemented games', () => {
+  it('shows phase tags on unimplemented games (P4, P5, P6)', () => {
     renderAtPath('/lobby');
-    expect(screen.getByText('P3')).toBeInTheDocument();
     expect(screen.getByText('P4')).toBeInTheDocument();
     expect(screen.getByText('P5')).toBeInTheDocument();
     expect(screen.getByText('P6')).toBeInTheDocument();
+    // Blackjack is now playable, no P3 tag
+    expect(screen.queryByText('P3')).not.toBeInTheDocument();
   });
 
   it('hides content visually when collapsed (aria-hidden)', () => {
