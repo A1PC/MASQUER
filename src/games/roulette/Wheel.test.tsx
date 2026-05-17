@@ -79,3 +79,30 @@ describe('<Wheel /> ball', () => {
     expect(ball!.getAttribute('data-pocket-index')).toBe(String(POCKET_ORDER.indexOf(32)));
   });
 });
+
+describe('<Wheel /> spin animation', () => {
+  it('when spinning + targetNumber set, the pocket-ring svg has data-rotate-target set', () => {
+    render(<Wheel targetNumber={32} spinning={true} settled={false} durationMs={5000} />);
+    const motionSvg = document.querySelector('[data-roulette-layer="pocket-ring"] svg');
+    const target = motionSvg!.getAttribute('data-rotate-target');
+    expect(target).not.toBeNull();
+    const value = Number(target);
+    // 5 full turns + θ where θ = idx(32) * 360/37, idx(32)=1, so target ≈ 1809.73
+    expect(value).toBeGreaterThan(1809);
+    expect(value).toBeLessThan(1810);
+  });
+
+  it('when not spinning + targetNumber set, the wheel rests at θ', () => {
+    render(<Wheel targetNumber={32} spinning={false} settled={true} durationMs={5000} />);
+    const motionSvg = document.querySelector('[data-roulette-layer="pocket-ring"] svg');
+    const value = Number(motionSvg!.getAttribute('data-rotate-target'));
+    expect(value).toBeGreaterThan(9);
+    expect(value).toBeLessThan(10);
+  });
+
+  it('when targetNumber is null, rotate target is 0', () => {
+    render(<Wheel targetNumber={null} spinning={false} settled={false} />);
+    const motionSvg = document.querySelector('[data-roulette-layer="pocket-ring"] svg');
+    expect(motionSvg!.getAttribute('data-rotate-target')).toBe('0');
+  });
+});
