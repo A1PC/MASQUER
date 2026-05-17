@@ -185,6 +185,7 @@ export default function RoulettePage(): JSX.Element | null {
               </button>
               <button
                 type="button"
+                aria-label="New round"
                 onClick={() => send({ type: 'NEW_ROUND' })}
                 disabled={!inSettled}
                 className="rounded-md border border-gold/40 bg-transparent px-3 py-2 text-xs text-gold-bright hover:bg-gold/10 disabled:opacity-40"
