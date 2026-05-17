@@ -1,7 +1,6 @@
 import { assign, setup } from 'xstate';
 import { ROULETTE_CONFIG } from './config';
-import { spin } from './logic';
-import type { buildRoundResult } from './logic';
+import { buildRoundResult, spin } from './logic';
 import type { BetPositionKey, PlacedBet, SpinResult } from './types';
 
 interface Context {
@@ -54,6 +53,15 @@ export const rouletteMachine = setup({
     setSpinResult: assign({
       spinResult: () => spin(),
     }),
+    setRoundResult: assign({
+      roundResult: ({ context }) => {
+        if (!context.spinResult) return null;
+        return buildRoundResult(context.bets, context.spinResult);
+      },
+    }),
+  },
+  delays: {
+    spinDuration: ({ context }) => context.spinDurationMs,
   },
 }).createMachine({
   id: 'roulette',
@@ -78,7 +86,12 @@ export const rouletteMachine = setup({
     },
     spinning: {
       entry: 'setSpinResult',
-      // 'after' transition + setRoundResult action filled in by Task A.10
+      after: {
+        spinDuration: {
+          target: 'settled',
+          actions: 'setRoundResult',
+        },
+      },
     },
     settled: {
       // 'NEW_ROUND' transition + prepareNextRound action filled in by Task A.11

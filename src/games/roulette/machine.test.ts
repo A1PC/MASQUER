@@ -1,8 +1,9 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { createActor } from 'xstate';
 import { rouletteMachine } from './machine';
 import { makeBet } from './bets';
 import type { PlacedBet } from './types';
+import { ROULETTE_CONFIG } from './config';
 
 function placed(bet: ReturnType<typeof makeBet>, amount: number, handleId = 'h'): PlacedBet {
   return { ...bet, amount, betHandleId: handleId };
@@ -91,5 +92,37 @@ describe('rouletteMachine — SPIN gate', () => {
     a.send({ type: 'SPIN' });
     expect(a.getSnapshot().value).toBe('spinning');
     expect(a.getSnapshot().context.spinResult).not.toBeNull();
+  });
+});
+
+describe('rouletteMachine — spinning delay → settled', () => {
+  it('after SPIN_DURATION_MS, transitions to settled with roundResult populated', async () => {
+    vi.useFakeTimers();
+    try {
+      const a = startMachine();
+      a.send({ type: 'PLACE_BET', bet: placed(makeBet({ type: 'red' }), 5, 'h') });
+      a.send({ type: 'SPIN' });
+      expect(a.getSnapshot().value).toBe('spinning');
+      await vi.advanceTimersByTimeAsync(ROULETTE_CONFIG.SPIN_DURATION_MS);
+      expect(a.getSnapshot().value).toBe('settled');
+      expect(a.getSnapshot().context.roundResult).not.toBeNull();
+      expect(a.getSnapshot().context.roundResult!.betAmount).toBe(5);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('reduced-motion override (spinDurationMs=0) settles immediately', async () => {
+    vi.useFakeTimers();
+    try {
+      const actor = createActor(rouletteMachine, { input: { spinDurationMs: 0 } });
+      actor.start();
+      actor.send({ type: 'PLACE_BET', bet: placed(makeBet({ type: 'red' }), 5, 'h') });
+      actor.send({ type: 'SPIN' });
+      await vi.advanceTimersByTimeAsync(0);
+      expect(actor.getSnapshot().value).toBe('settled');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
