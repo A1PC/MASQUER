@@ -176,6 +176,7 @@ export default function RoulettePage(): JSX.Element | null {
               </span>
               <button
                 type="button"
+                aria-label="SPIN"
                 onClick={handleSpinClick}
                 disabled={!inBetting || !hasBets}
                 className="rounded-md bg-casino-red px-4 py-2 font-display text-sm tracking-wider text-white shadow-gold-glow hover:bg-casino-red-deep disabled:opacity-40"
