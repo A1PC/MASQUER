@@ -113,6 +113,105 @@ export default function BettingLayout({
           }),
         )}
 
+        {/* Column 2:1 buttons (right of the number grid) */}
+        {([1, 2, 3] as const).map((rouletteCol) => {
+          const row = 4 - rouletteCol; // col 1 → row 3 (bottom), col 2 → row 2, col 3 → row 1 (top)
+          return (
+            <button
+              key={rouletteCol}
+              type="button"
+              data-outside-bet={`column:${rouletteCol}`}
+              disabled={disabled}
+              onClick={() => {
+                if (disabled) return;
+                onPlaceBet({
+                  ...makeBet({ type: 'column', col: rouletteCol }),
+                  amount: chipAmount,
+                });
+              }}
+              aria-label={`Column bet on column ${rouletteCol}`}
+              className="absolute flex items-center justify-center font-display text-[10px] text-white"
+              style={{
+                left: cellLeft(13),
+                top: cellTop(row),
+                width: COL_BTN_W,
+                height: CELL_H,
+                background: 'rgba(11, 31, 17, 0.7)',
+                border: '1px solid rgba(212,175,55,0.6)',
+              }}
+            >
+              2:1
+            </button>
+          );
+        })}
+
+        {/* Dozen row */}
+        {(
+          [
+            { dozen: 1, label: '1st 12' },
+            { dozen: 2, label: '2nd 12' },
+            { dozen: 3, label: '3rd 12' },
+          ] as const
+        ).map(({ dozen, label }) => (
+          <button
+            key={dozen}
+            type="button"
+            data-outside-bet={`dozen:${dozen}`}
+            disabled={disabled}
+            onClick={() => {
+              if (disabled) return;
+              onPlaceBet({ ...makeBet({ type: 'dozen', dozen }), amount: chipAmount });
+            }}
+            aria-label={`Dozen bet on ${label}`}
+            className="absolute flex items-center justify-center font-display text-[11px] text-white"
+            style={{
+              left: cellLeft(1 + (dozen - 1) * 4),
+              top: 3 * CELL_H + GUTTER,
+              width: 4 * CELL_W,
+              height: DOZEN_H,
+              background: 'rgba(11, 31, 17, 0.6)',
+              border: '1px solid rgba(212,175,55,0.6)',
+            }}
+          >
+            {label}
+          </button>
+        ))}
+
+        {/* Even-money row */}
+        {(
+          [
+            { type: 'low', label: '1-18', bg: 'rgba(11, 31, 17, 0.6)' },
+            { type: 'even', label: 'EVEN', bg: 'rgba(11, 31, 17, 0.6)' },
+            { type: 'red', label: 'RED', bg: 'rgba(163, 18, 42, 0.6)' },
+            { type: 'black', label: 'BLACK', bg: 'rgba(15, 15, 15, 0.7)' },
+            { type: 'odd', label: 'ODD', bg: 'rgba(11, 31, 17, 0.6)' },
+            { type: 'high', label: '19-36', bg: 'rgba(11, 31, 17, 0.6)' },
+          ] as const
+        ).map(({ type, label, bg }, i) => (
+          <button
+            key={type}
+            type="button"
+            data-outside-bet={type}
+            disabled={disabled}
+            onClick={() => {
+              if (disabled) return;
+              onPlaceBet({ ...makeBet({ type }), amount: chipAmount });
+            }}
+            aria-label={label === 'RED' ? 'Red' : label === 'BLACK' ? 'Black' : label}
+            className="absolute flex items-center justify-center font-display text-[11px] text-white"
+            style={{
+              left: cellLeft(1 + i * 2),
+              top: 3 * CELL_H + GUTTER + DOZEN_H + GUTTER,
+              width: 2 * CELL_W,
+              height: EVEN_H,
+              background: bg,
+              border: '1px solid rgba(212,175,55,0.6)',
+            }}
+          >
+            {label}
+          </button>
+        ))}
+
         {/* Chip stacks for straight bets */}
         {bets.map((b) => {
           if (b.type !== 'straight') return null;
