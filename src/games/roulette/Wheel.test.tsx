@@ -106,3 +106,47 @@ describe('<Wheel /> spin animation', () => {
     expect(motionSvg!.getAttribute('data-rotate-target')).toBe('0');
   });
 });
+
+describe('<Wheel /> reduced motion', () => {
+  it('when reducedMotion=true, container records data-reduced-motion=true', () => {
+    render(
+      <Wheel
+        targetNumber={17}
+        spinning={true}
+        settled={false}
+        durationMs={5000}
+        reducedMotion={true}
+      />,
+    );
+    const container = screen.getByRole('img', { name: /roulette wheel/i });
+    expect(container.getAttribute('data-reduced-motion')).toBe('true');
+  });
+
+  it('when reducedMotion=true, the pocket-ring svg snaps (transition duration 0)', () => {
+    render(
+      <Wheel
+        targetNumber={17}
+        spinning={true}
+        settled={false}
+        durationMs={5000}
+        reducedMotion={true}
+      />,
+    );
+    const motionSvg = document.querySelector('[data-roulette-layer="pocket-ring"] svg');
+    expect(motionSvg!.getAttribute('data-transition-duration')).toBe('0');
+  });
+
+  it('when reducedMotion=false but durationMs=0, also snaps', () => {
+    render(
+      <Wheel
+        targetNumber={17}
+        spinning={true}
+        settled={false}
+        durationMs={0}
+        reducedMotion={false}
+      />,
+    );
+    const motionSvg = document.querySelector('[data-roulette-layer="pocket-ring"] svg');
+    expect(motionSvg!.getAttribute('data-transition-duration')).toBe('0');
+  });
+});
