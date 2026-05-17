@@ -7,6 +7,7 @@
 - Type-only imports MUST use `import type`. Enforced by ESLint.
 - Within `src/games/**`: no imports from `src/db` or `src/store`. Use
   `src/systems/*` only. Enforced by ESLint.
+- localStorage access is allowed in `src/systems/auth.ts` AND `src/store/uiStore.ts` ONLY.
 
 ## File naming
 
