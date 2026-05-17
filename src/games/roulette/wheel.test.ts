@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { POCKET_ORDER, RED_NUMBERS, colorOf, pocketIndexOf } from './wheelData';
+import { POCKET_ORDER, RED_NUMBERS, colorOf, pocketIndexOf } from './wheel';
 
 describe('POCKET_ORDER', () => {
   it('contains exactly 37 unique numbers, 0..36', () => {

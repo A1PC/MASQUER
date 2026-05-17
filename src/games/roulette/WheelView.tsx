@@ -1,6 +1,6 @@
 import type { JSX } from 'react';
 import { motion } from 'framer-motion';
-import { POCKET_ORDER, colorOf } from './wheelData';
+import { POCKET_ORDER, colorOf } from './wheel';
 import type { PocketColor } from './types';
 
 export interface WheelProps {

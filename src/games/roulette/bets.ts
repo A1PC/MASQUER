@@ -1,4 +1,4 @@
-import { RED_NUMBERS } from './wheelData';
+import { RED_NUMBERS } from './wheel';
 
 export const RED_NUMBERS_ARRAY: readonly number[] = [
   1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36,
