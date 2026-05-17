@@ -1,6 +1,6 @@
 import type { JSX } from 'react';
 import SidebarToggle from './SidebarToggle';
-import BalanceBadge from './BalanceBadge';
+import CreditsDropdown from './CreditsDropdown';
 import ProfileDropdown from './ProfileDropdown';
 
 export default function TopBar(): JSX.Element {
@@ -11,7 +11,7 @@ export default function TopBar(): JSX.Element {
         <span className="font-display tracking-wider text-gold text-lg">LOCALGAMBLE</span>
       </div>
       <div className="flex items-center gap-3.5 text-sm">
-        <BalanceBadge />
+        <CreditsDropdown />
         <ProfileDropdown />
       </div>
     </header>
