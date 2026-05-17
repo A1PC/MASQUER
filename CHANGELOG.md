@@ -7,13 +7,42 @@ and this project versions by BUILD_GUIDE.md phase (`v0.PHASE-name`).
 
 ## [Unreleased]
 
+## [v0.3-wallet-and-game-shell] — 2026-05-17
+
+### Added
+
+- RNG (`src/systems/rng.ts`) with seedable mode for deterministic tests
+- Wallet system: placeBet, settleRound, claimDaily, getBalance — discriminated-union result types
+- Daily +50 chip top-up every 24h (ADR-0017)
+- Reactive useRecentRounds hook (dexie-react-hooks)
+- AppLayout shell: TopBar, collapsible Sidebar, ProfileDropdown, CreditsDropdown with countdown
+- UIStore for sidebar collapse preference (persisted to localStorage)
+- Layout-route pattern (ADR-0018): single `/` parent with RequireAuth + Outlet children
+- GameShell + BettingPanel + RecentResults + useGameRound — reusable game template
+- Coin Flip placeholder game (1:1 payout, 1-500 bet range)
+- 4 stub pages for Blackjack/Roulette/Slots/Baccarat
+- Lobby cabinet carousel + recent activity strip
+- ADRs 0015-0020
+
 ### Changed
 
+- BUILD_GUIDE §3: removed `systems/history.ts` mention (history written in settle transaction)
+- BUILD_GUIDE §4: clarified daily top-up policy (floating 24h, no zero-chip bypass)
+- BUILD_GUIDE §6: added 'coin-flip' to Round.game union
+- BUILD_GUIDE §12: extended row 2 with Phase 2 deliverables
+- `src/systems/auth.ts`: imports `STARTING_CHIPS` from wallet (single source of truth)
+- `src/components/AppBootstrap.tsx`: hydrates walletStore after session restored
+- `src/router.tsx`: restructured to single layout route at `/` with child routes
+- localStorage allow-list extended to `src/store/uiStore.ts`
 - TypeScript bumped from 5.6 to 6.x. Dropped `baseUrl` from `tsconfig.app.json` (TS 6 raises TS5101). `paths` alias resolves the same way without it. ADR-0013.
 - React Router upgraded from `react-router-dom` 6.30 to `react-router` 7.x.
 - Adopted data-router pattern: routes defined in `src/router.tsx` via `createBrowserRouter`; mounted via `<RouterProvider>` in `main.tsx`.
 - Bootstrap call + Loading splash extracted to `src/components/AppBootstrap.tsx` (replaces `src/App.tsx`).
 - Tests use `renderWithRouter` helper wrapping `createMemoryRouter`. ADR-0014.
+
+### Removed
+
+- `src/components/BalanceBadge.tsx` (replaced by `CreditsDropdown`)
 
 ## [v0.2-data-and-auth] — 2026-05-15
 
