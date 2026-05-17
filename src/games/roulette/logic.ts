@@ -1,5 +1,5 @@
 import { randomInt } from '@/systems/rng';
-import { colorOf, pocketIndexOf } from './wheel';
+import { colorOf, pocketIndexOf } from './wheelData';
 import type { BetOutcome, PlacedBet, SpinResult } from './types';
 
 export function spin(): SpinResult {
