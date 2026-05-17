@@ -30,6 +30,7 @@ export default {
         'ui',
         'shell',
         'coin-flip',
+        'games',
       ],
     ],
     'subject-case': [0],
