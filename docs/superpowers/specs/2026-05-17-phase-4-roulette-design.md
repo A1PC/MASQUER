@@ -611,11 +611,12 @@ page pattern from Phase 3).
    stroke for contrast.
 4. **Wooden hub disc** — small inner circle, radial gradient.
 5. **Silver turret cross** — two crossed bars (horizontal + vertical) with a
-   metallic gradient (`linear-gradient(180deg, #f4f4f4, #b8b8b8, #888, #b8b8b8,
-#f4f4f4)`) and a central silver cap with gold trim. Sits on top of the hub.
+   metallic gradient
+   (`linear-gradient(180deg, #f4f4f4, #b8b8b8, #888, #b8b8b8, #f4f4f4)`)
+   and a central silver cap with gold trim. Sits on top of the hub.
 6. **Pearl ball** — 14×14 px `<div>` with a radial gradient producing the pearl
-   highlight. Positioned in the ball track via `transform: rotate(<angle>)
-translateY(-<trackRadius>)`.
+   highlight. Positioned in the ball track via
+   `transform: rotate(<angle>) translateY(-<trackRadius>)`.
 
 **Fixed pointer** — gold downward triangle anchored above the wheel,
 indicating the winning pocket when the wheel stops.
