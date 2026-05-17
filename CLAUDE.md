@@ -14,13 +14,14 @@ in the repo root. Read it before doing anything.
    no I/O) with passing `logic.test.ts` BEFORE writing any React component.
 4. **Games are sandboxed.** A file under `src/games/**` may NEVER import from
    `src/db/**` or `src/store/**` directly. Games go through `src/systems/**`
-   only. (`placeBet`, `settleRound`, `recordRound` etc.)
+   only. (`placeBet`, `settleRound` etc.)
 5. **One RNG.** No `Math.random()` anywhere. Use `src/systems/rng.ts`. ESLint
    enforces this — do not add `eslint-disable` for it.
 6. **Money is integers.** All chip amounts are integers. No floats. No
    `parseFloat`. Rounding bugs at this layer are unacceptable.
 7. **Every round is recorded.** Every completed game round writes exactly
-   one row to the `rounds` table via `src/systems/history.ts`. No exceptions.
+   one row to the `rounds` table via `wallet.settleRound` (ADR-0016). There is
+   no separate `systems/history.ts`. No exceptions.
 8. **Definition of done.** Before saying a task is complete, run:
    `pnpm lint && pnpm typecheck && pnpm test && pnpm build`. All four must
    pass. Then click through the affected feature in `pnpm dev`.
@@ -41,7 +42,7 @@ in the repo root. Read it before doing anything.
 - `docs/superpowers/specs/` — per-phase design specs
 - `docs/superpowers/plans/` — per-phase implementation plans
 - `docs/adr/` — architecture decision records
-- `src/systems/` — shared, side-effecting modules (auth, wallet, rng, history, stats, payouts)
+- `src/systems/` — shared, side-effecting modules (auth, wallet, rng, stats, payouts)
 - `src/games/<name>/logic.ts` — pure game rules, fully unit-tested
 - `src/games/<name>/*.tsx` — React UI for that game
 - `src/db/` — Dexie schema and typed helpers
