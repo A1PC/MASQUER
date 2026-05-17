@@ -35,3 +35,9 @@ L = Likelihood (L/M/H), I = Impact (L/M/H).
 | R-21 | RequireAuth flash-of-content during bootstrap        | 1         | M   | L   | App renders "Loading…" splash while bootstrapping is true.                                |
 | R-22 | Test pollution between test files                    | 1         | M   | M   | resetDb() helper + beforeEach in any test that writes.                                    |
 | R-23 | Dexie ConstraintError detection brittle              | 1, future | L   | M   | Centralized isUniqueIndexError helper.                                                    |
+
+## Phase 2 additions
+
+| ID   | Risk                               | Phase | L   | I   | Mitigation                                                                             |
+| ---- | ---------------------------------- | ----- | --- | --- | -------------------------------------------------------------------------------------- |
+| R-27 | mulberry32 PRNG bias in test seeds | 2     | L   | L   | mulberry32 passes BigCrush; chi-squared sanity test in rng.test.ts catches gross bias. |
