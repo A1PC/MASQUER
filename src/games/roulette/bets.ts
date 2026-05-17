@@ -71,3 +71,109 @@ export function isValidSixLine(rowStart: number): boolean {
   if (!Number.isInteger(rowStart)) return false;
   return rowStart >= 1 && rowStart <= 31 && rowStart % 3 === 1;
 }
+
+import type { BetPosition } from './types';
+
+type MakeBetInput =
+  | { type: 'straight'; n: number }
+  | { type: 'split'; a: number; b: number }
+  | { type: 'street'; rowStart: number }
+  | { type: 'corner'; topLeft: number }
+  | { type: 'six-line'; rowStart: number }
+  | { type: 'column'; col: 1 | 2 | 3 }
+  | { type: 'dozen'; dozen: 1 | 2 | 3 }
+  | { type: 'red' }
+  | { type: 'black' }
+  | { type: 'odd' }
+  | { type: 'even' }
+  | { type: 'low' }
+  | { type: 'high' };
+
+export function makeBet(input: MakeBetInput): BetPosition {
+  switch (input.type) {
+    case 'straight': {
+      if (!Number.isInteger(input.n) || input.n < 0 || input.n > 36) {
+        throw new RangeError(`makeBet straight: n=${input.n} must be 0..36`);
+      }
+      return {
+        key: `straight:${input.n}`,
+        type: 'straight',
+        numbers: [input.n],
+        payoutMultiple: 35,
+      };
+    }
+    case 'split': {
+      const [lo, hi] = input.a < input.b ? [input.a, input.b] : [input.b, input.a];
+      if (!isValidSplit(lo, hi)) {
+        throw new RangeError(`makeBet split: ${lo}-${hi} is not a valid split`);
+      }
+      return {
+        key: `split:${lo}-${hi}`,
+        type: 'split',
+        numbers: [lo, hi],
+        payoutMultiple: 17,
+      };
+    }
+    case 'street': {
+      if (!isValidStreet(input.rowStart)) {
+        throw new RangeError(`makeBet street: rowStart=${input.rowStart} invalid`);
+      }
+      return {
+        key: `street:${input.rowStart}`,
+        type: 'street',
+        numbers: [input.rowStart, input.rowStart + 1, input.rowStart + 2],
+        payoutMultiple: 11,
+      };
+    }
+    case 'corner': {
+      if (!isValidCorner(input.topLeft)) {
+        throw new RangeError(`makeBet corner: topLeft=${input.topLeft} invalid`);
+      }
+      const t = input.topLeft;
+      return {
+        key: `corner:${t}`,
+        type: 'corner',
+        numbers: [t, t + 1, t + 3, t + 4],
+        payoutMultiple: 8,
+      };
+    }
+    case 'six-line': {
+      if (!isValidSixLine(input.rowStart)) {
+        throw new RangeError(`makeBet six-line: rowStart=${input.rowStart} invalid`);
+      }
+      const s = input.rowStart;
+      return {
+        key: `six-line:${s}`,
+        type: 'six-line',
+        numbers: [s, s + 1, s + 2, s + 3, s + 4, s + 5],
+        payoutMultiple: 5,
+      };
+    }
+    case 'column':
+      return {
+        key: `column:${input.col}`,
+        type: 'column',
+        numbers: COLUMN_NUMBERS[input.col],
+        payoutMultiple: 2,
+      };
+    case 'dozen':
+      return {
+        key: `dozen:${input.dozen}`,
+        type: 'dozen',
+        numbers: DOZEN_NUMBERS[input.dozen],
+        payoutMultiple: 2,
+      };
+    case 'red':
+      return { key: 'red', type: 'red', numbers: RED_NUMBERS_ARRAY, payoutMultiple: 1 };
+    case 'black':
+      return { key: 'black', type: 'black', numbers: BLACK_NUMBERS_ARRAY, payoutMultiple: 1 };
+    case 'odd':
+      return { key: 'odd', type: 'odd', numbers: ODD_NUMBERS, payoutMultiple: 1 };
+    case 'even':
+      return { key: 'even', type: 'even', numbers: EVEN_NUMBERS, payoutMultiple: 1 };
+    case 'low':
+      return { key: 'low', type: 'low', numbers: LOW_NUMBERS, payoutMultiple: 1 };
+    case 'high':
+      return { key: 'high', type: 'high', numbers: HIGH_NUMBERS, payoutMultiple: 1 };
+  }
+}

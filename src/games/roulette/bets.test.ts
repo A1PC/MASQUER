@@ -14,6 +14,7 @@ import {
   isValidStreet,
   isValidCorner,
   isValidSixLine,
+  makeBet,
 } from './bets';
 
 describe('number-set constants', () => {
@@ -211,4 +212,111 @@ describe('isValidSixLine', () => {
     expect(isValidSixLine(2)).toBe(false);
     expect(isValidSixLine(3)).toBe(false);
   });
+});
+
+describe('makeBet', () => {
+  it('straight on N: key, numbers, payout 35', () => {
+    const b = makeBet({ type: 'straight', n: 17 });
+    expect(b).toEqual({
+      key: 'straight:17',
+      type: 'straight',
+      numbers: [17],
+      payoutMultiple: 35,
+    });
+  });
+
+  it('straight on 0', () => {
+    expect(makeBet({ type: 'straight', n: 0 })).toMatchObject({
+      key: 'straight:0',
+      numbers: [0],
+      payoutMultiple: 35,
+    });
+  });
+
+  it('rejects straight outside 0..36', () => {
+    expect(() => makeBet({ type: 'straight', n: 37 })).toThrow(RangeError);
+    expect(() => makeBet({ type: 'straight', n: -1 })).toThrow(RangeError);
+  });
+
+  it('split canonicalises key by sorting (a < b in the key)', () => {
+    const b = makeBet({ type: 'split', a: 5, b: 4 });
+    expect(b.key).toBe('split:4-5');
+    expect(b.numbers).toEqual([4, 5]);
+    expect(b.payoutMultiple).toBe(17);
+  });
+
+  it('split on 0-1 / 0-2 / 0-3', () => {
+    expect(makeBet({ type: 'split', a: 0, b: 1 }).key).toBe('split:0-1');
+    expect(makeBet({ type: 'split', a: 0, b: 2 }).key).toBe('split:0-2');
+    expect(makeBet({ type: 'split', a: 0, b: 3 }).key).toBe('split:0-3');
+  });
+
+  it('rejects invalid splits', () => {
+    expect(() => makeBet({ type: 'split', a: 3, b: 4 })).toThrow(RangeError);
+    expect(() => makeBet({ type: 'split', a: 0, b: 4 })).toThrow(RangeError);
+    expect(() => makeBet({ type: 'split', a: 1, b: 5 })).toThrow(RangeError);
+  });
+
+  it('street covers three sequential numbers and pays 11', () => {
+    const b = makeBet({ type: 'street', rowStart: 4 });
+    expect(b).toMatchObject({
+      key: 'street:4',
+      numbers: [4, 5, 6],
+      payoutMultiple: 11,
+    });
+  });
+
+  it('rejects invalid street rowStart', () => {
+    expect(() => makeBet({ type: 'street', rowStart: 2 })).toThrow(RangeError);
+  });
+
+  it('corner covers four 2×2 numbers and pays 8', () => {
+    const b = makeBet({ type: 'corner', topLeft: 1 });
+    expect(b).toMatchObject({
+      key: 'corner:1',
+      numbers: [1, 2, 4, 5],
+      payoutMultiple: 8,
+    });
+  });
+
+  it('rejects invalid corner topLeft', () => {
+    expect(() => makeBet({ type: 'corner', topLeft: 3 })).toThrow(RangeError);
+    expect(() => makeBet({ type: 'corner', topLeft: 33 })).toThrow(RangeError);
+  });
+
+  it('six-line covers six numbers and pays 5', () => {
+    const b = makeBet({ type: 'six-line', rowStart: 1 });
+    expect(b).toMatchObject({
+      key: 'six-line:1',
+      numbers: [1, 2, 3, 4, 5, 6],
+      payoutMultiple: 5,
+    });
+  });
+
+  it('column N covers the right 12 numbers and pays 2', () => {
+    expect(makeBet({ type: 'column', col: 1 }).numbers).toEqual([
+      1, 4, 7, 10, 13, 16, 19, 22, 25, 28, 31, 34,
+    ]);
+    expect(makeBet({ type: 'column', col: 2 }).key).toBe('column:2');
+    expect(makeBet({ type: 'column', col: 3 }).payoutMultiple).toBe(2);
+  });
+
+  it('dozen N covers the right 12 numbers and pays 2', () => {
+    expect(makeBet({ type: 'dozen', dozen: 1 }).numbers).toEqual(
+      Array.from({ length: 12 }, (_, i) => i + 1),
+    );
+    expect(makeBet({ type: 'dozen', dozen: 2 }).key).toBe('dozen:2');
+    expect(makeBet({ type: 'dozen', dozen: 3 }).payoutMultiple).toBe(2);
+  });
+
+  it.each(['red', 'black', 'odd', 'even', 'low', 'high'] as const)(
+    '%s even-money bet has key === type and pays 1',
+    (t) => {
+      const b = makeBet({ type: t });
+      expect(b.key).toBe(t);
+      expect(b.type).toBe(t);
+      expect(b.payoutMultiple).toBe(1);
+      expect(b.numbers).toHaveLength(18);
+    },
+  );
 });
