@@ -207,6 +207,40 @@ export default function Wheel({
             );
           })}
           <circle cx={CX} cy={CY} r={R_INNER} fill="none" stroke="#d4af37" strokeWidth={2} />
+
+          {/* Pearl ball — rendered INSIDE the rotating SVG so it always
+              physically sits over the winning pocket regardless of rotation
+              math. Positioned at pocket N's wheel-local angular midpoint. */}
+          {targetNumber !== null &&
+            (() => {
+              const idx = POCKET_ORDER.indexOf(targetNumber);
+              const ballMidDeg = idx * ARC_DEG + ARC_DEG / 2;
+              const ballPos = polar(CX, CY, R_BALL, ballMidDeg);
+              return (
+                <g data-roulette-layer="ball" data-pocket={targetNumber} data-pocket-index={idx}>
+                  <defs>
+                    <radialGradient id="pearl-gradient" cx="0.3" cy="0.25" r="0.85">
+                      <stop offset="0%" stopColor="#ffffff" />
+                      <stop offset="30%" stopColor="#fff5e8" />
+                      <stop offset="60%" stopColor="#f0e0c8" />
+                      <stop offset="100%" stopColor="#c9b896" />
+                    </radialGradient>
+                  </defs>
+                  <circle
+                    cx={ballPos.x}
+                    cy={ballPos.y}
+                    r={BALL_SIZE / 2}
+                    fill="url(#pearl-gradient)"
+                    stroke="#fff"
+                    strokeWidth={0.5}
+                    style={{
+                      filter:
+                        'drop-shadow(0 0 4px rgba(255,255,255,0.9)) drop-shadow(0 0 8px rgba(255,220,180,0.5))',
+                    }}
+                  />
+                </g>
+              );
+            })()}
         </motion.svg>
       </div>
 
@@ -247,50 +281,8 @@ export default function Wheel({
         />
       </div>
 
-      {/* Pearl ball — orbits counter-clockwise during the spin and lands at
-          viewport top, which (per the rotation math above) is exactly over the
-          winning pocket once the wheel stops. The orbit happens via a
-          motion-wrapper that rotates around the wheel centre; the ball element
-          itself is fixed at angular 0 inside that wrapper. */}
-      {targetNumber !== null &&
-        (() => {
-          const idx = POCKET_ORDER.indexOf(targetNumber);
-          const pos = polar(CX, CY, R_BALL, 0); // ball is always at top inside the wrapper
-          const left = 36 + pos.x - BALL_SIZE / 2;
-          const top = 36 + pos.y - BALL_SIZE / 2;
-          return (
-            <motion.div
-              data-roulette-layer="ball-orbit"
-              className="pointer-events-none absolute inset-0 z-20"
-              style={{ transformOrigin: '50% 50%' }}
-              animate={{ rotate: spinning ? -5 * 360 : 0 }}
-              transition={
-                effectiveDurationSec === 0
-                  ? { duration: 0 }
-                  : spinning
-                    ? { duration: effectiveDurationSec, ease: [0.16, 1, 0.3, 1] }
-                    : { duration: 0 }
-              }
-            >
-              <div
-                data-roulette-layer="ball"
-                data-pocket={targetNumber}
-                data-pocket-index={idx}
-                className="absolute rounded-full"
-                style={{
-                  width: BALL_SIZE,
-                  height: BALL_SIZE,
-                  left,
-                  top,
-                  background:
-                    'radial-gradient(circle at 30% 25%, #ffffff 0%, #fff5e8 30%, #f0e0c8 60%, #c9b896 100%)',
-                  boxShadow:
-                    '0 0 6px rgba(255,255,255,0.8), 0 0 12px rgba(255,220,180,0.4), 0 1px 2px rgba(0,0,0,0.4)',
-                }}
-              />
-            </motion.div>
-          );
-        })()}
+      {/* Ball is rendered inside the rotating <motion.svg> above so it shares
+          the pocket coordinate space. See that block for the ball element. */}
     </div>
   );
 }
