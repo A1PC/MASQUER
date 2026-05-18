@@ -20,7 +20,7 @@ export interface ReelProps {
   winning?: boolean;
 }
 
-const CELL_SIZE = 96; // px — each reel cell. Bumped from 64 to make the reels feel more prominent.
+const CELL_SIZE = 128; // px — each reel cell. Sized to dominate the play area.
 
 /** Idle filler symbols (deterministic — purely cosmetic). */
 const IDLE_FILLERS: readonly [SymbolType, SymbolType] = ['cherry', 'lemon'];
