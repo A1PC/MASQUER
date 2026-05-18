@@ -1,5 +1,5 @@
 import type { JSX } from 'react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useMachine } from '@xstate/react';
 import { useReducedMotion } from 'framer-motion';
 import GameShell from '@/games/_shared/GameShell';
@@ -28,9 +28,6 @@ export default function SlotsPage(): JSX.Element | null {
     },
   });
 
-  // Reset BettingPanel commit state when the round resets.
-  const [bettingPanelKey, setBettingPanelKey] = useState(0);
-
   const placeBet = useWalletStore((s) => s.placeBet);
   const settleRound = useWalletStore((s) => s.settleRound);
 
@@ -39,14 +36,16 @@ export default function SlotsPage(): JSX.Element | null {
 
   const inBetting = state.matches('betting');
   const inSpinning = state.matches('spinning');
-  const inSettled = state.matches('settled');
   const hasBet = state.context.bet >= SLOTS_CONFIG.MIN_BET;
 
   const spinResult = state.context.spinResult;
   const roundResult = state.context.roundResult;
   const payout = roundResult?.details.payout ?? null;
+  // The reels show the winning highlight once the spin has resolved (i.e.
+  // roundResult is populated). The state has already auto-transitioned back
+  // to `betting`, so we can't gate on a settled state any more.
   const winning = (idx: number) =>
-    inSettled && payout !== null && payout.winningReelIndices.includes(idx);
+    roundResult !== null && payout !== null && payout.winningReelIndices.includes(idx);
 
   const handlePlaceAndSpin = useCallback(
     async (amount: number) => {
@@ -69,9 +68,11 @@ export default function SlotsPage(): JSX.Element | null {
     [user, placeBet, send],
   );
 
-  // Settle bridge — call settleRound exactly once when entering settled state.
+  // Settle bridge — call settleRound exactly once when a new roundResult
+  // appears. With the two-state machine, the result lands while we're back
+  // in `betting`, so we no longer gate on a settled state.
   useEffect(() => {
-    if (!inSettled || !user) return;
+    if (!user) return;
     if (!roundResult) return;
     const handle = handleRef.current;
     if (!handle) return;
@@ -95,17 +96,21 @@ export default function SlotsPage(): JSX.Element | null {
         },
       });
     })();
-  }, [inSettled, user, roundResult, settleRound]);
+  }, [user, roundResult, settleRound]);
 
+  // When a new spin starts, clear the dedup guards so the next round can
+  // settle independently.
   useEffect(() => {
-    if (!inSettled) settledRef.current = null;
-  }, [inSettled]);
-
-  useEffect(() => {
-    if (inBetting && state.context.spinResult === null) {
-      handleRef.current = null;
+    if (inSpinning) {
+      settledRef.current = null;
     }
-  }, [inBetting, state.context.spinResult]);
+  }, [inSpinning]);
+
+  // The machine's `spinCount` increments once per completed spin. Using it
+  // as the BettingPanel key remounts the panel between rounds so its
+  // internal `committed` state clears and the player can bet again
+  // immediately — no useEffect / useState chain needed.
+  const bettingPanelKey = state.context.spinCount;
 
   const handleSpinClick = useCallback(() => {
     if (!inBetting || !hasBet) return;
@@ -144,7 +149,6 @@ export default function SlotsPage(): JSX.Element | null {
 
   return (
     <>
-      {}
       <style
         dangerouslySetInnerHTML={{
           __html: `
@@ -161,7 +165,7 @@ export default function SlotsPage(): JSX.Element | null {
       @keyframes slotsCoinFall {
         0% { transform: translateY(-30px); opacity: 0; }
         20% { opacity: 1; }
-        100% { transform: translateY(260px); opacity: 0; }
+        100% { transform: translateY(320px); opacity: 0; }
       }
     `,
         }}
@@ -178,32 +182,17 @@ export default function SlotsPage(): JSX.Element | null {
               max={SLOTS_CONFIG.MAX_BET}
               balance={balance}
               onCommit={(amount) => {
-                if (inSettled) {
-                  send({ type: 'NEW_ROUND' });
-                  setBettingPanelKey((k) => k + 1);
-                }
                 send({ type: 'PLACE_BET', bet: amount, betHandleId: '' });
               }}
               callButtons={() => (
-                <div className="flex justify-center gap-3">
+                <div className="flex justify-center">
                   <button
                     type="button"
                     onClick={handleSpinClick}
-                    disabled={!inBetting || !hasBet}
-                    className="rounded-md bg-casino-red px-4 py-2 font-display text-sm tracking-wider text-white shadow-gold-glow hover:bg-casino-red-deep disabled:opacity-40"
+                    disabled={!inBetting || !hasBet || inSpinning}
+                    className="rounded-md bg-casino-red px-6 py-2 font-display text-sm tracking-wider text-white shadow-gold-glow hover:bg-casino-red-deep disabled:opacity-40"
                   >
                     SPIN
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      send({ type: 'NEW_ROUND' });
-                      setBettingPanelKey((k) => k + 1);
-                    }}
-                    disabled={!inSettled}
-                    className="rounded-md border border-gold/40 bg-transparent px-3 py-2 text-xs text-gold-bright hover:bg-gold/10 disabled:opacity-40"
-                  >
-                    New round
                   </button>
                 </div>
               )}
@@ -211,9 +200,14 @@ export default function SlotsPage(): JSX.Element | null {
           </div>
         }
       >
-        <div className="relative flex flex-1 flex-col items-center justify-center gap-5 px-6 py-4">
-          <Paytable winningKey={payout?.key ?? null} />
-          <div className="flex gap-3">
+        {/* Horizontal layout: paytable on the LEFT, reels CENTRED.
+            Wrapped in `relative` so the win-celebration overlay can use
+            `absolute inset-0` over the full content area. */}
+        <div className="relative flex flex-1 items-center justify-center gap-10 px-6 py-6">
+          <div className="flex-shrink-0">
+            <Paytable winningKey={payout?.key ?? null} />
+          </div>
+          <div className="flex gap-4">
             {[0, 1, 2].map((i) => (
               <ReelView
                 key={i}
@@ -226,13 +220,11 @@ export default function SlotsPage(): JSX.Element | null {
               />
             ))}
           </div>
-          {inSettled && (
-            <WinCelebration
-              tier={roundResult?.details.winTier ?? 'none'}
-              netChange={roundResult?.netChange ?? 0}
-              reducedMotion={reducedMotion}
-            />
-          )}
+          <WinCelebration
+            tier={roundResult?.details.winTier ?? 'none'}
+            netChange={roundResult?.netChange ?? 0}
+            reducedMotion={reducedMotion}
+          />
         </div>
       </GameShell>
     </>
@@ -267,7 +259,6 @@ function WinCelebration({
     >
       {isJackpot && !reducedMotion && (
         <>
-          {/* magenta tint */}
           <div
             aria-hidden
             className="absolute inset-0"
@@ -276,8 +267,6 @@ function WinCelebration({
               animation: 'slotsJackpotTint 1500ms ease-out',
             }}
           />
-
-          {/* 12 coin-shower particles — deterministic jitter (no Math.random) */}
           {Array.from({ length: 12 }).map((_, i) => (
             <div
               key={i}
@@ -306,8 +295,8 @@ function WinCelebration({
           aria-hidden
           className="absolute"
           style={{
-            width: 320,
-            height: 80,
+            width: 360,
+            height: 100,
             background:
               'radial-gradient(ellipse at center, rgba(255,224,102,0.5) 0%, transparent 70%)',
             animation: 'slotsMediumBurst 800ms ease-out',
@@ -323,7 +312,7 @@ function WinCelebration({
             background: '#06120c',
             color: isJackpot ? '#ff5cf2' : '#ffe066',
             textShadow: isJackpot ? '0 0 8px rgba(255,92,242,0.8)' : 'none',
-            marginTop: -200,
+            marginTop: -240,
           }}
         >
           {isJackpot ? `JACKPOT! $${netChange}` : verdict}
