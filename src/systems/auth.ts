@@ -14,7 +14,7 @@ import { WALLET_CONFIG } from '@/systems/wallet';
 const SESSION_KEY = 'localGamble.session.userId';
 
 export type RegisterError = 'username_taken' | 'reserved_username' | 'unknown';
-export type LoginError = 'invalid_credentials' | 'unknown';
+export type LoginError = 'invalid_credentials' | 'banned' | 'unknown';
 
 export type RegisterResult = { ok: true; user: User } | { ok: false; error: RegisterError };
 
@@ -81,6 +81,10 @@ export async function login(input: { username: string; password: string }): Prom
   const storedHash = base64ToBytes(user.passwordHash);
   if (!timingSafeEqual(candidateHash, storedHash)) {
     return { ok: false, error: 'invalid_credentials' };
+  }
+
+  if (user.isBanned === true) {
+    return { ok: false, error: 'banned' };
   }
 
   setStoredSession(user.id);

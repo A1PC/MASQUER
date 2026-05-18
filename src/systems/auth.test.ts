@@ -182,3 +182,39 @@ describe('auth.login — reserved username', () => {
     },
   );
 });
+
+describe('auth.login — banned user', () => {
+  beforeEach(async () => {
+    await resetDb();
+    localStorage.removeItem(SESSION_KEY);
+  });
+
+  it('rejects login when isBanned=true with error "banned"', async () => {
+    const reg = await register({ username: 'alice', password: 'password123' });
+    expect(reg.ok).toBe(true);
+    if (!reg.ok) return;
+    await db.users.update(reg.user.id, { isBanned: true });
+    localStorage.removeItem(SESSION_KEY);
+
+    const r = await login({ username: 'alice', password: 'password123' });
+    expect(r).toEqual({ ok: false, error: 'banned' });
+  });
+
+  it('allows login when isBanned=false (or undefined)', async () => {
+    const reg = await register({ username: 'bob', password: 'password123' });
+    expect(reg.ok).toBe(true);
+    localStorage.removeItem(SESSION_KEY);
+    const r = await login({ username: 'bob', password: 'password123' });
+    expect(r.ok).toBe(true);
+  });
+
+  it('allows login after unban (isBanned=false)', async () => {
+    const reg = await register({ username: 'carol', password: 'password123' });
+    if (!reg.ok) return;
+    await db.users.update(reg.user.id, { isBanned: true });
+    localStorage.removeItem(SESSION_KEY);
+    await db.users.update(reg.user.id, { isBanned: false });
+    const r = await login({ username: 'carol', password: 'password123' });
+    expect(r.ok).toBe(true);
+  });
+});
