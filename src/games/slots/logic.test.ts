@@ -1,6 +1,11 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { seed, unseed } from '@/systems/rng';
-import { spin, winTierOf } from './logic';
+import { spin, winTierOf, settleSpin } from './logic';
+import type { Symbol } from './types';
+
+function spinOf(a: Symbol, b: Symbol, c: Symbol) {
+  return { reels: [a, b, c] as const };
+}
 
 describe('spin', () => {
   afterEach(() => unseed());
@@ -65,5 +70,63 @@ describe('winTierOf', () => {
 
   it('returns "jackpot" just past MEDIUM_MAX boundary (21)', () => {
     expect(winTierOf(21)).toBe('jackpot');
+  });
+});
+
+describe('settleSpin', () => {
+  it('returns null when all three symbols differ', () => {
+    expect(settleSpin(spinOf('cherry', 'lemon', 'bell'))).toBeNull();
+    expect(settleSpin(spinOf('bar', 'seven', 'bell'))).toBeNull();
+  });
+
+  it('returns null when only 1 cherry is present', () => {
+    expect(settleSpin(spinOf('cherry', 'lemon', 'bell'))).toBeNull();
+    expect(settleSpin(spinOf('bar', 'cherry', 'lemon'))).toBeNull();
+  });
+
+  it('returns 2-cherry payout when exactly 2 cherries are present (any 2 positions)', () => {
+    const r1 = settleSpin(spinOf('cherry', 'cherry', 'lemon'));
+    expect(r1).toEqual({
+      key: 'two-cherry',
+      multiple: 2,
+      winningReelIndices: [0, 1],
+    });
+
+    const r2 = settleSpin(spinOf('cherry', 'lemon', 'cherry'));
+    expect(r2).toEqual({
+      key: 'two-cherry',
+      multiple: 2,
+      winningReelIndices: [0, 2],
+    });
+
+    const r3 = settleSpin(spinOf('lemon', 'cherry', 'cherry'));
+    expect(r3).toEqual({
+      key: 'two-cherry',
+      multiple: 2,
+      winningReelIndices: [1, 2],
+    });
+  });
+
+  it('returns 3-cherry payout (NOT 2-cherry) when all three are cherries', () => {
+    const r = settleSpin(spinOf('cherry', 'cherry', 'cherry'));
+    expect(r).toEqual({
+      key: 'cherry-cherry-cherry',
+      multiple: 5,
+      winningReelIndices: [0, 1, 2],
+    });
+  });
+
+  it.each([
+    ['lemon', 'lemon-lemon-lemon', 8],
+    ['bell', 'bell-bell-bell', 12],
+    ['bar', 'bar-bar-bar', 20],
+    ['seven', 'seven-seven-seven', 50],
+  ] as const)('3-of-a-kind %s → %s (%i×)', (sym, key, mult) => {
+    const r = settleSpin(spinOf(sym, sym, sym));
+    expect(r).toEqual({
+      key,
+      multiple: mult,
+      winningReelIndices: [0, 1, 2],
+    });
   });
 });
