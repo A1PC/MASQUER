@@ -84,5 +84,13 @@ export class LocalGambleDB extends Dexie {
       balances: 'userId',
       rounds: 'id, userId, game, playedAt, [userId+playedAt]',
     });
+    this.version(2).stores({
+      users: 'id, &usernameLower, createdAt, isBanned',
+      balances: 'userId',
+      rounds: 'id, userId, game, playedAt, [userId+playedAt]',
+      sessions: 'id, userId, loginAt, [userId+loginAt]',
+      gameVisits: 'id, userId, game, sessionId, [userId+game], [userId+enteredAt]',
+      adjustments: 'id, userId, adjustedAt, [userId+adjustedAt]',
+    });
   }
 }
