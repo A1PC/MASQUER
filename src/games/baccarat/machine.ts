@@ -12,6 +12,10 @@ import { bankerDrawsThird, cardValue, makeHand, playerDrawsThird, resolveRound }
 
 export interface Ctx {
   bets: Bets;
+  /** Snapshot of `bets` at the moment DEAL fired — preserved across the
+   *  settling/clearLosingBets action so the wallet bridge can compute
+   *  payouts. Null between rounds. */
+  betsAtDeal: Bets | null;
   shoe: ShoeState;
   playerCards: Card[];
   bankerCards: Card[];
@@ -56,6 +60,7 @@ export const baccaratMachine = setup({
       }
       return { freshShoeBanner: false };
     }),
+    snapshotBets: assign(({ context }) => ({ betsAtDeal: { ...context.bets } })),
     dealInitialFour: assign(({ context }) => {
       let s = context.shoe;
       const player: Card[] = [];
@@ -135,6 +140,7 @@ export const baccaratMachine = setup({
   id: 'baccarat',
   context: ({ input }) => ({
     bets: { ...EMPTY_BETS },
+    betsAtDeal: null,
     shoe: build8DeckShoe(),
     playerCards: [],
     bankerCards: [],
@@ -157,7 +163,7 @@ export const baccaratMachine = setup({
       },
     },
     preDealReshuffle: {
-      entry: 'reshuffleIfNeeded',
+      entry: ['snapshotBets', 'reshuffleIfNeeded'],
       always: { target: 'dealing' },
     },
     dealing: {

@@ -12,10 +12,10 @@ import StatsPage from '@/pages/StatsPage';
 import LeaderboardPage from '@/pages/LeaderboardPage';
 import ProfileStubPage from '@/pages/ProfileStubPage';
 import CoinFlipPage from '@/games/coin-flip/CoinFlipPage';
-import StubGamePage from '@/games/_shared/StubGamePage';
 import BlackjackPage from '@/games/blackjack/BlackjackPage';
 import RoulettePage from '@/games/roulette/RoulettePage';
 import SlotsPage from '@/games/slots/SlotsPage';
+import BaccaratPage from '@/games/baccarat/BaccaratPage';
 
 const AdminLoginPage = lazy(() => import('@/pages/admin/AdminLoginPage'));
 const AdminLayout = lazy(() => import('@/pages/admin/AdminLayout'));
@@ -78,7 +78,7 @@ export const router = createBrowserRouter([
       { path: 'play/blackjack', element: <BlackjackPage /> },
       { path: 'play/roulette', element: <RoulettePage /> },
       { path: 'play/slots', element: <SlotsPage /> },
-      { path: 'play/baccarat', element: <StubGamePage game="baccarat" phase={6} /> },
+      { path: 'play/baccarat', element: <BaccaratPage /> },
     ],
   },
   { path: '*', element: <Navigate to="/lobby" replace /> },
