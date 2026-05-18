@@ -80,31 +80,131 @@ describe('<WheelView /> ball', () => {
   });
 });
 
-describe('<WheelView /> spin animation', () => {
-  it('when spinning + targetNumber set, the pocket-ring svg has data-rotate-target set', () => {
+describe('<WheelView /> wheel rotation (clockwise, 5 full turns per spin)', () => {
+  // Model: the wheel rotates exactly SPIN_TURNS * 360 each spin (1800°). That
+  // is an integer multiple of 360, so pocket N lands at its natural geometric
+  // angle θ_N when the spin completes. The ball orbit wrapper (tested below)
+  // counter-rotates to that same angle θ_N, so they always agree visually.
+
+  it('wheel target while spinning = 1800 (5 clockwise turns)', () => {
     render(<WheelView targetNumber={32} spinning={true} settled={false} durationMs={5000} />);
-    const motionSvg = document.querySelector('[data-roulette-layer="pocket-ring"] svg');
-    const target = motionSvg!.getAttribute('data-rotate-target');
-    expect(target).not.toBeNull();
-    const value = Number(target);
-    // 5 full turns + θ where θ = idx(32) * 360/37, idx(32)=1, so target ≈ 1809.73
-    expect(value).toBeGreaterThan(1809);
-    expect(value).toBeLessThan(1810);
+    const svg = document.querySelector('[data-roulette-layer="pocket-ring"] svg');
+    expect(svg!.getAttribute('data-rotate-target')).toBe('1800');
   });
 
-  it('when not spinning + targetNumber set, the wheel rests at θ', () => {
+  it('wheel target while settled = 0 (snap from 1800 is visually identical)', () => {
     render(<WheelView targetNumber={32} spinning={false} settled={true} durationMs={5000} />);
-    const motionSvg = document.querySelector('[data-roulette-layer="pocket-ring"] svg');
-    const value = Number(motionSvg!.getAttribute('data-rotate-target'));
-    expect(value).toBeGreaterThan(9);
-    expect(value).toBeLessThan(10);
+    const svg = document.querySelector('[data-roulette-layer="pocket-ring"] svg');
+    expect(svg!.getAttribute('data-rotate-target')).toBe('0');
   });
 
-  it('when targetNumber is null, rotate target is 0', () => {
+  it('wheel target when idle (targetNumber null) = 0', () => {
     render(<WheelView targetNumber={null} spinning={false} settled={false} />);
-    const motionSvg = document.querySelector('[data-roulette-layer="pocket-ring"] svg');
-    expect(motionSvg!.getAttribute('data-rotate-target')).toBe('0');
+    const svg = document.querySelector('[data-roulette-layer="pocket-ring"] svg');
+    expect(svg!.getAttribute('data-rotate-target')).toBe('0');
   });
+
+  it('wheel rotation is independent of which pocket is winning', () => {
+    for (const n of [0, 17, 32, 36]) {
+      const { unmount } = render(
+        <WheelView targetNumber={n} spinning={true} settled={false} durationMs={5000} />,
+      );
+      const svg = document.querySelector('[data-roulette-layer="pocket-ring"] svg');
+      expect(svg!.getAttribute('data-rotate-target')).toBe('1800');
+      unmount();
+    }
+  });
+
+  it('transition animates only while spinning; snaps when settled or idle', () => {
+    const { rerender } = render(
+      <WheelView targetNumber={17} spinning={true} settled={false} durationMs={5000} />,
+    );
+    const svg = document.querySelector('[data-roulette-layer="pocket-ring"] svg')!;
+    expect(svg.getAttribute('data-transition-duration')).toBe('5');
+
+    rerender(<WheelView targetNumber={17} spinning={false} settled={true} durationMs={5000} />);
+    expect(svg.getAttribute('data-transition-duration')).toBe('0');
+  });
+});
+
+describe('<WheelView /> ball orbit (counter-clockwise, lands in winning pocket)', () => {
+  const ARC = 360 / 37;
+  const SPIN_TURNS = 5;
+
+  it('ball orbit wrapper exists when targetNumber is set', () => {
+    render(<WheelView targetNumber={17} spinning={false} settled={true} />);
+    expect(document.querySelector('[data-roulette-layer="ball-orbit"]')).toBeInTheDocument();
+  });
+
+  it('ball orbit wrapper is not rendered when targetNumber is null', () => {
+    render(<WheelView targetNumber={null} spinning={false} settled={false} />);
+    expect(document.querySelector('[data-roulette-layer="ball-orbit"]')).toBeNull();
+  });
+
+  it('ball orbit while spinning = θ_N - 1800 (5 turns counter-clockwise + lands at pocket N)', () => {
+    render(<WheelView targetNumber={32} spinning={true} settled={false} durationMs={5000} />);
+    const wrap = document.querySelector('[data-roulette-layer="ball-orbit"]');
+    const value = Number(wrap!.getAttribute('data-rotate-target'));
+    // idx(32) = 1, θ_N = ARC = 9.7297…. Target = 9.73 - 1800 ≈ -1790.27
+    const expected = ARC - SPIN_TURNS * 360;
+    expect(value).toBeCloseTo(expected, 5);
+  });
+
+  it('ball orbit when settled = θ_N (ball at viewport angle of pocket N)', () => {
+    for (const n of [0, 17, 32, 36]) {
+      const { unmount } = render(<WheelView targetNumber={n} spinning={false} settled={true} />);
+      const wrap = document.querySelector('[data-roulette-layer="ball-orbit"]');
+      const value = Number(wrap!.getAttribute('data-rotate-target'));
+      const idx = POCKET_ORDER.indexOf(n);
+      const expected = idx * ARC;
+      expect(value).toBeCloseTo(expected, 5);
+      unmount();
+    }
+  });
+
+  it('target 0 → ball settles at rotation 0 (top of wheel, where pocket 0 sits)', () => {
+    render(<WheelView targetNumber={0} spinning={false} settled={true} />);
+    const wrap = document.querySelector('[data-roulette-layer="ball-orbit"]');
+    expect(wrap!.getAttribute('data-rotate-target')).toBe('0');
+  });
+
+  it('ball orbit shares the wheel transition (5s when spinning, 0 when settled)', () => {
+    const { rerender } = render(
+      <WheelView targetNumber={17} spinning={true} settled={false} durationMs={5000} />,
+    );
+    const wrap = document.querySelector('[data-roulette-layer="ball-orbit"]')!;
+    expect(wrap.getAttribute('data-transition-duration')).toBe('5');
+
+    rerender(<WheelView targetNumber={17} spinning={false} settled={true} durationMs={5000} />);
+    expect(wrap.getAttribute('data-transition-duration')).toBe('0');
+  });
+});
+
+describe('<WheelView /> visual alignment invariant: ball + pulsed pocket end at same viewport angle', () => {
+  // The invariant: after the spin settles, the visual angle of the ball
+  // (computed from its wrapper rotation) must equal the visual angle of the
+  // pulsed pocket N (computed from θ_N + wheel rotation, both mod 360). If
+  // this passes for every pocket, the visual outcome is guaranteed to match
+  // the RNG result.
+  it.each([0, 1, 17, 22, 32, 35, 36])(
+    'target %i: ball viewport angle === pulsed pocket viewport angle',
+    (target) => {
+      render(<WheelView targetNumber={target} spinning={false} settled={true} />);
+
+      const svg = document.querySelector('[data-roulette-layer="pocket-ring"] svg');
+      const wrap = document.querySelector('[data-roulette-layer="ball-orbit"]');
+      const wheelRot = Number(svg!.getAttribute('data-rotate-target'));
+      const ballRot = Number(wrap!.getAttribute('data-rotate-target'));
+
+      const idx = POCKET_ORDER.indexOf(target);
+      const thetaDeg = idx * (360 / 37);
+
+      const ballViewport = ((ballRot % 360) + 360) % 360;
+      const pocketViewport = (((thetaDeg + wheelRot) % 360) + 360) % 360;
+
+      expect(Math.abs(ballViewport - pocketViewport)).toBeLessThan(0.0001);
+    },
+  );
 });
 
 describe('<WheelView /> reduced motion', () => {
