@@ -1229,9 +1229,9 @@ Expected: FAIL — `spinning` doesn't transition to `settled`.
 
 - [ ] **Step 3: Update `src/games/slots/machine.ts`**
 
-**Three changes:**
+**Three changes (each described under its own subheading):**
 
-1. **Add `setRoundResult` to the `actions` block** of `setup({})`:
+**Change A — add `setRoundResult` to the `actions` block** of `setup({})`:
 
 ```ts
 setRoundResult: assign({
@@ -1242,7 +1242,7 @@ setRoundResult: assign({
 }),
 ```
 
-2. **Add a `delays` block** to `setup({})` (sibling of `guards`, `actions`):
+**Change B — add a `delays` block** to `setup({})` (sibling of `guards`, `actions`):
 
 ```ts
 delays: {
@@ -1250,7 +1250,7 @@ delays: {
 },
 ```
 
-3. **Update the `spinning` state** to add the `after` transition:
+**Change C — update the `spinning` state** to add the `after` transition:
 
 ```ts
 spinning: {
