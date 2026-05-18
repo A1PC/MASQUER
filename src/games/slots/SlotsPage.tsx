@@ -173,6 +173,7 @@ export default function SlotsPage(): JSX.Element | null {
       <GameShell
         title="🎰 SLOTS"
         meta="3 reels · 5–1000"
+        game="slots"
         recentItems={recentItems}
         bettingPanel={
           <div className="mx-auto flex max-w-[640px] flex-col gap-3 px-2">

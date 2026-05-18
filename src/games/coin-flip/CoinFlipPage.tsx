@@ -84,6 +84,7 @@ export default function CoinFlipPage(): JSX.Element | null {
     <GameShell
       title="🪙 COIN FLIP"
       meta="1:1 · 1–500"
+      game="coin-flip"
       recentItems={items}
       bettingPanel={
         <BettingPanel

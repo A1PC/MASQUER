@@ -10,6 +10,7 @@ describe('GameShell', () => {
         <GameShell
           title="🪙 COIN FLIP"
           meta="1:1 · 1–500"
+          game="coin-flip"
           bettingPanel={<div data-testid="panel">PANEL</div>}
         >
           <div data-testid="game">GAME</div>
@@ -25,7 +26,7 @@ describe('GameShell', () => {
   it('shows RecentResults rail when recentItems is provided', () => {
     render(
       <MemoryRouter>
-        <GameShell title="X" recentItems={[]} bettingPanel={<div>P</div>}>
+        <GameShell title="X" game="coin-flip" recentItems={[]} bettingPanel={<div>P</div>}>
           <div>G</div>
         </GameShell>
       </MemoryRouter>,
@@ -36,7 +37,7 @@ describe('GameShell', () => {
   it('hides RecentResults rail when recentItems is undefined', () => {
     render(
       <MemoryRouter>
-        <GameShell title="X" bettingPanel={<div>P</div>}>
+        <GameShell title="X" game="coin-flip" bettingPanel={<div>P</div>}>
           <div>G</div>
         </GameShell>
       </MemoryRouter>,

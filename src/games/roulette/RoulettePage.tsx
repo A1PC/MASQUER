@@ -152,6 +152,7 @@ export default function RoulettePage(): JSX.Element | null {
     <GameShell
       title="🎡 ROULETTE"
       meta="Single-zero · 5–1000 · max 10 positions"
+      game="roulette"
       recentItems={recentItems}
       bettingPanel={
         <div className="mx-auto flex max-w-[720px] flex-col gap-3 px-2">
