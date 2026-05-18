@@ -68,3 +68,38 @@ describe('<ReelView /> scrolling animation', () => {
     expect(sevens.length).toBeGreaterThan(0);
   });
 });
+
+describe('<ReelView /> reduced motion', () => {
+  it('when reducedMotion=true, the strip has data-transition-duration="0"', () => {
+    render(
+      <ReelView
+        reelIndex={0}
+        symbol="seven"
+        spinning={true}
+        stopAtMs={1200}
+        reducedMotion={true}
+      />,
+    );
+    expect(
+      document.querySelector('[data-reel-strip]')!.getAttribute('data-transition-duration'),
+    ).toBe('0');
+  });
+
+  it('when stopAtMs=0, the strip also has data-transition-duration="0"', () => {
+    render(
+      <ReelView reelIndex={1} symbol="bell" spinning={true} stopAtMs={0} reducedMotion={false} />,
+    );
+    expect(
+      document.querySelector('[data-reel-strip]')!.getAttribute('data-transition-duration'),
+    ).toBe('0');
+  });
+
+  it('when reducedMotion=false and stopAtMs>0, transition duration equals stopAtMs/1000', () => {
+    render(
+      <ReelView reelIndex={2} symbol="bar" spinning={true} stopAtMs={3000} reducedMotion={false} />,
+    );
+    expect(
+      document.querySelector('[data-reel-strip]')!.getAttribute('data-transition-duration'),
+    ).toBe('3');
+  });
+});

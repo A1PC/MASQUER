@@ -48,6 +48,7 @@ export default function ReelView({
   const strip = useMemo(() => (symbol ? buildScrollStrip(symbol) : []), [symbol]);
   const stripHeight = strip.length * CELL_SIZE;
   const finalY = -(stripHeight - 3 * CELL_SIZE);
+  const effectiveDurationSec = reducedMotion || stopAtMs === 0 ? 0 : stopAtMs / 1000;
 
   return (
     <div
@@ -63,12 +64,13 @@ export default function ReelView({
           data-reel-strip
           data-stop-at-ms={stopAtMs}
           data-final-symbol={symbol}
+          data-transition-duration={effectiveDurationSec}
           animate={{ y: finalY }}
           initial={{ y: 0 }}
           transition={
-            reducedMotion || stopAtMs === 0
+            effectiveDurationSec === 0
               ? { duration: 0 }
-              : { duration: stopAtMs / 1000, ease: [0.16, 1, 0.3, 1] }
+              : { duration: effectiveDurationSec, ease: [0.16, 1, 0.3, 1] }
           }
           style={{ position: 'absolute', top: 0, left: 0, width: CELL_SIZE }}
         >
