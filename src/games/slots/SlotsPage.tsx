@@ -266,14 +266,39 @@ function WinCelebration({
       className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center"
     >
       {isJackpot && !reducedMotion && (
-        <div
-          aria-hidden
-          className="absolute inset-0"
-          style={{
-            background: 'radial-gradient(circle, rgba(255,92,242,0.18) 0%, transparent 70%)',
-            animation: 'slotsJackpotTint 1500ms ease-out',
-          }}
-        />
+        <>
+          {/* magenta tint */}
+          <div
+            aria-hidden
+            className="absolute inset-0"
+            style={{
+              background: 'radial-gradient(circle, rgba(255,92,242,0.18) 0%, transparent 70%)',
+              animation: 'slotsJackpotTint 1500ms ease-out',
+            }}
+          />
+
+          {/* 12 coin-shower particles — deterministic jitter (no Math.random) */}
+          {Array.from({ length: 12 }).map((_, i) => (
+            <div
+              key={i}
+              data-coin-particle
+              data-particle-index={i}
+              aria-hidden
+              className="absolute"
+              style={{
+                top: 0,
+                left: `${(i * 100) / 12 + ((i * 7) % 5)}%`,
+                width: 10,
+                height: 10,
+                borderRadius: '50%',
+                background: 'radial-gradient(circle at 30% 30%, #ffd23f, #d4af37)',
+                boxShadow: '0 0 4px rgba(212,175,55,0.8)',
+                animation: `slotsCoinFall 1500ms ease-out ${i * 80}ms forwards`,
+                opacity: 0,
+              }}
+            />
+          ))}
+        </>
       )}
 
       {tier === 'medium' && !reducedMotion && (
