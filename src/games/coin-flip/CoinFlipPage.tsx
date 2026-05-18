@@ -2,6 +2,7 @@ import type { JSX } from 'react';
 import { useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import GameShell from '@/games/_shared/GameShell';
+import CoinFlipRules from './rules';
 import BettingPanel from '@/games/_shared/BettingPanel';
 import { useGameRound } from '@/games/_shared/useGameRound';
 import { useRecentRounds } from '@/systems/hooks/useRecentRounds';
@@ -86,6 +87,7 @@ export default function CoinFlipPage(): JSX.Element | null {
       meta="1:1 · 1–500"
       game="coin-flip"
       recentItems={items}
+      rules={<CoinFlipRules />}
       bettingPanel={
         <BettingPanel
           key={betPanelKey}
