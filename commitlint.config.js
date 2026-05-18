@@ -33,6 +33,7 @@ export default {
         'games',
         'admin',
         'tracking',
+        'baccarat',
       ],
     ],
     'subject-case': [0],
