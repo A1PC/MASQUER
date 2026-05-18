@@ -45,9 +45,9 @@ the next card changes (though the effect is tiny over 416 cards).
   the small-but-real variation in real-casino practice. Rejected for the
   realism reason.
 - **Persist shoe state in Dexie so it survives reloads.** Adds a new table
-  - serialization layer. Rejected: the value of persisting a shoe across
-    page reloads is near-zero (no card counting upside in this game), and
-    the cost is non-trivial.
+  plus a serialization layer. Rejected: the value of persisting a shoe
+  across page reloads is near-zero (no card counting upside in this game),
+  and the cost is non-trivial.
 - **Reshuffle immediately mid-round when the cut card is hit.** Real
   casinos do NOT do this — once the cut card is dealt, the round finishes
   with the current shoe. Rejected to keep realism.
