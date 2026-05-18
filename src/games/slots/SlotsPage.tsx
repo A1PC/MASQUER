@@ -200,14 +200,16 @@ export default function SlotsPage(): JSX.Element | null {
           </div>
         }
       >
-        {/* Horizontal layout: paytable on the LEFT, reels CENTRED.
-            Wrapped in `relative` so the win-celebration overlay can use
-            `absolute inset-0` over the full content area. */}
-        <div className="relative flex flex-1 items-center justify-center gap-10 px-6 py-6">
-          <div className="flex-shrink-0">
+        {/* Two-column layout. The paytable sits hard against the far-left
+            edge of the play area (col 1, auto-width). The reels take up
+            the remaining width and centre themselves within it (col 2),
+            so they become the visual focal point. Wrapped in `relative`
+            so the win-celebration overlay can use `absolute inset-0`. */}
+        <div className="relative grid flex-1 grid-cols-[auto_1fr] items-center gap-6 px-4 py-6">
+          <div className="self-center">
             <Paytable winningKey={payout?.key ?? null} />
           </div>
-          <div className="flex gap-4">
+          <div className="flex items-center justify-center gap-5">
             {[0, 1, 2].map((i) => (
               <ReelView
                 key={i}
