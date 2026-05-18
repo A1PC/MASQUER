@@ -18,8 +18,8 @@ function formatDuration(ms: number): string {
 }
 
 export default function AdminSessionsPage(): JSX.Element {
-  const rows: SessionRow[] = useLiveQuery<SessionRow[]>(
-    async () => {
+  const rows: SessionRow[] = useLiveQuery(
+    async (): Promise<SessionRow[]> => {
       const sessions = await db.sessions.orderBy('loginAt').reverse().toArray();
       const userIds = [...new Set(sessions.map((s) => s.userId))];
       const users = await db.users.bulkGet(userIds);

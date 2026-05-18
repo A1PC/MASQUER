@@ -9,8 +9,8 @@ type AuditRow = Adjustment & { username: string };
 const EMPTY_ROWS: AuditRow[] = [];
 
 export default function AdminAuditPage(): JSX.Element {
-  const rows: AuditRow[] = useLiveQuery<AuditRow[]>(
-    async () => {
+  const rows: AuditRow[] = useLiveQuery(
+    async (): Promise<AuditRow[]> => {
       const adjustments = await db.adjustments.orderBy('adjustedAt').reverse().toArray();
       const userIds = [...new Set(adjustments.map((a) => a.userId))];
       const users = await db.users.bulkGet(userIds);
