@@ -63,6 +63,15 @@ export const REVEAL_TIMING = {
   reducedMotionBanner: 1000,
 } as const;
 
+/** Chip denominations available in the chip selector. Spec §6 limits are 5–2000
+ *  for main zones and 5–1000 for side zones; chips at 1000 are still useful on
+ *  main zones, the 500 chip is the largest side-zone-friendly increment. */
+export const CHIP_DENOMINATIONS = [5, 25, 100, 500, 1000] as const;
+export type ChipDenomination = (typeof CHIP_DENOMINATIONS)[number];
+
+/** Default chip selection on page mount. */
+export const DEFAULT_CHIP: ChipDenomination = 25;
+
 /** Bead plate grid dimensions (rows × visible columns). */
 export const BEAD_PLATE_ROWS = 6;
 export const BEAD_PLATE_VISIBLE_COLS = 10;
