@@ -11,16 +11,15 @@ interface NavItemDef {
   icon: string;
   label: string;
   badge?: 'NEW';
-  phase?: 'P3' | 'P4' | 'P5' | 'P6';
 }
 
 const GAMES: NavItemDef[] = [
   { to: '/lobby', icon: '🏛️', label: 'Lobby' },
   { to: '/play/coin-flip', icon: '🪙', label: 'Coin Flip' },
-  { to: '/play/blackjack', icon: '🃏', label: 'Blackjack', badge: 'NEW' },
-  { to: '/play/roulette', icon: '🎡', label: 'Roulette', phase: 'P4' },
-  { to: '/play/slots', icon: '🎰', label: 'Slots', phase: 'P5' },
-  { to: '/play/baccarat', icon: '🎴', label: 'Baccarat', phase: 'P6' },
+  { to: '/play/blackjack', icon: '🃏', label: 'Blackjack' },
+  { to: '/play/roulette', icon: '🎡', label: 'Roulette' },
+  { to: '/play/slots', icon: '🎰', label: 'Slots' },
+  { to: '/play/baccarat', icon: '🎴', label: 'Baccarat', badge: 'NEW' },
 ];
 
 const YOU: NavItemDef[] = [
@@ -64,7 +63,7 @@ function Divider() {
 }
 
 function NavItem({ item }: { item: NavItemDef }) {
-  const { to, icon, label, badge, phase } = item;
+  const { to, icon, label, badge } = item;
   return (
     <NavLink
       to={to}
@@ -72,9 +71,7 @@ function NavItem({ item }: { item: NavItemDef }) {
         `flex items-center justify-between px-4 py-2 text-[13px] transition-colors ${
           isActive
             ? 'border-l-[3px] border-gold-bright bg-gold-bright/10 text-gold-bright'
-            : phase
-              ? 'text-white/55 hover:text-white'
-              : 'text-white hover:bg-white/5'
+            : 'text-white hover:bg-white/5'
         }`
       }
     >
@@ -86,7 +83,6 @@ function NavItem({ item }: { item: NavItemDef }) {
           {badge}
         </span>
       )}
-      {phase && <span className="text-[10px] opacity-70">{phase}</span>}
     </NavLink>
   );
 }

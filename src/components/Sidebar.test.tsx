@@ -27,18 +27,20 @@ describe('Sidebar', () => {
     expect(screen.getByText(/Leaderboard/)).toBeInTheDocument();
   });
 
-  it('shows NEW badge on Blackjack', () => {
+  it('shows NEW badge on Baccarat (most recent ship)', () => {
     renderAtPath('/lobby');
-    expect(screen.getByText('NEW')).toBeInTheDocument();
+    const badge = screen.getByText('NEW');
+    expect(badge).toBeInTheDocument();
+    // Badge sits in the Baccarat row.
+    expect(badge.closest('a')).toHaveAttribute('href', '/play/baccarat');
   });
 
-  it('shows phase tags on unimplemented games (P4, P5, P6)', () => {
+  it('does not show any stale phase tags (all games shipped)', () => {
     renderAtPath('/lobby');
-    expect(screen.getByText('P4')).toBeInTheDocument();
-    expect(screen.getByText('P5')).toBeInTheDocument();
-    expect(screen.getByText('P6')).toBeInTheDocument();
-    // Blackjack is now playable, no P3 tag
     expect(screen.queryByText('P3')).not.toBeInTheDocument();
+    expect(screen.queryByText('P4')).not.toBeInTheDocument();
+    expect(screen.queryByText('P5')).not.toBeInTheDocument();
+    expect(screen.queryByText('P6')).not.toBeInTheDocument();
   });
 
   it('hides content visually when collapsed (aria-hidden)', () => {
