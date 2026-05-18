@@ -32,8 +32,10 @@ export const SLOTS_CONFIG = {
   MAX_BET: 1_000,
   /** Number of reels. */
   REEL_COUNT: 3 as const,
-  /** Reel stop timings in ms, left → right. ADR-0033 (incl. suspense gap). */
-  REEL_STOP_TIMES_MS: [1_200, 2_000, 3_000] as const,
+  /** Reel stop timings in ms, left → right. ADR-0033 (incl. suspense gap).
+   *  Tuned long for drama: 2.0s / 3.4s / 5.0s with a 1.6s gap before the
+   *  third reel — each spin lasts long enough to feel like a real moment. */
+  REEL_STOP_TIMES_MS: [2_000, 3_400, 5_000] as const,
   /** Cells visible per reel — top, centre (payline), bottom. */
   REEL_VISIBLE_CELLS: 3 as const,
   /** Small-win celebration duration (ms). */

@@ -185,12 +185,17 @@ describe('<SlotsPage /> win celebration tiers', () => {
     expect(['none', 'small', 'medium', 'jackpot']).toContain(tier);
   });
 
-  it('celebration overlay is NOT rendered when not in settled state', () => {
+  it('celebration overlay container is always rendered; data-win-tier="none" before any spin', () => {
+    // With the two-state machine, the WinCelebration overlay is always
+    // mounted (so tests can find it). Its visual content is hidden until a
+    // round result is available — surfaced via data-win-tier="none".
     render(
       <MemoryRouter>
         <SlotsPage />
       </MemoryRouter>,
     );
-    expect(document.querySelector('[data-roulette-layer="win-celebration"]')).toBeNull();
+    const overlay = document.querySelector('[data-roulette-layer="win-celebration"]');
+    expect(overlay).toBeInTheDocument();
+    expect(overlay!.getAttribute('data-win-tier')).toBe('none');
   });
 });
