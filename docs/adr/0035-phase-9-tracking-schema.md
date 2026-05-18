@@ -34,7 +34,7 @@ adding tables and adding optional columns are both additive.
 
 **New `sessions` table** — one row per login.
 
-```ts
+```text
 { id, userId, loginAt, logoutAt: number | null, durationMs: number | null }
 ```
 
@@ -43,7 +43,7 @@ orphan cleanup at the user's next login.
 
 **New `gameVisits` table** — one row per game-page mount.
 
-```ts
+```text
 { id, userId, sessionId, game, enteredAt, exitedAt: number | null, durationMs: number | null }
 ```
 
@@ -52,10 +52,8 @@ close via the same best-effort path as sessions).
 
 **New `adjustments` table** — one row per admin chip change.
 
-```ts
-{
-  (id, userId, amount, reason, adjustedAt);
-}
+```text
+{ id, userId, amount, reason, adjustedAt }
 ```
 
 Written atomically with the `balances` update by `admin.adjustBalance`.
