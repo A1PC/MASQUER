@@ -37,7 +37,7 @@ export const baccaratMachine = setup({
   types: {
     context: {} as Ctx,
     events: {} as Event,
-    input: {},
+    input: undefined as unknown as MachineInput,
   },
   actions: {
     placeChip: assign(({ context, event }) => {
@@ -135,7 +135,7 @@ export const baccaratMachine = setup({
     roundResult: null,
     roundCount: 0,
     freshShoeBanner: false,
-    reducedMotion: input.reducedMotion === true,
+    reducedMotion: input?.reducedMotion === true,
   }),
   initial: 'betting',
   states: {
