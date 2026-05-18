@@ -13,7 +13,7 @@ const CABINETS: Cabinet[] = [
   { to: '/play/coin-flip', icon: '🪙', label: 'COIN FLIP', status: 'playable' },
   { to: '/play/blackjack', icon: '🃏', label: 'BLACKJACK', status: 'playable' },
   { to: '/play/roulette', icon: '🎡', label: 'ROULETTE', status: 'playable' },
-  { to: '/play/slots', icon: '🎰', label: 'SLOTS', status: 'stub', phase: 5 },
+  { to: '/play/slots', icon: '🎰', label: 'SLOTS', status: 'playable' },
   { to: '/play/baccarat', icon: '🎴', label: 'BACCARAT', status: 'stub', phase: 6 },
 ];
 
