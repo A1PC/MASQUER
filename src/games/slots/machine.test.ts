@@ -1,6 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { createActor } from 'xstate';
 import { slotsMachine } from './machine';
+import { SLOTS_CONFIG } from './config';
 
 function startMachine() {
   const actor = createActor(slotsMachine);
@@ -50,5 +51,64 @@ describe('slotsMachine — SPIN gate', () => {
     expect(a.getSnapshot().value).toBe('spinning');
     expect(a.getSnapshot().context.spinResult).not.toBeNull();
     expect(a.getSnapshot().context.spinResult?.reels).toHaveLength(3);
+  });
+});
+
+const DEFAULT_TOTAL_SPIN_MS =
+  SLOTS_CONFIG.REEL_STOP_TIMES_MS[SLOTS_CONFIG.REEL_STOP_TIMES_MS.length - 1]!;
+
+describe('slotsMachine — spinning delay → settled', () => {
+  it('after totalSpinDurationMs, transitions to settled with roundResult populated', async () => {
+    vi.useFakeTimers();
+    try {
+      const a = startMachine();
+      a.send({ type: 'PLACE_BET', bet: 25, betHandleId: 'h' });
+      a.send({ type: 'SPIN' });
+      expect(a.getSnapshot().value).toBe('spinning');
+      await vi.advanceTimersByTimeAsync(DEFAULT_TOTAL_SPIN_MS);
+      expect(a.getSnapshot().value).toBe('settled');
+      const result = a.getSnapshot().context.roundResult;
+      expect(result).not.toBeNull();
+      expect(result!.betAmount).toBe(25);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('reduced-motion override (totalSpinDurationMs=0) settles immediately', async () => {
+    vi.useFakeTimers();
+    try {
+      const actor = createActor(slotsMachine, { input: { totalSpinDurationMs: 0 } });
+      actor.start();
+      actor.send({ type: 'PLACE_BET', bet: 5, betHandleId: 'h' });
+      actor.send({ type: 'SPIN' });
+      await vi.advanceTimersByTimeAsync(0);
+      expect(actor.getSnapshot().value).toBe('settled');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
+describe('slotsMachine — NEW_ROUND', () => {
+  it('NEW_ROUND from settled clears all context fields and returns to betting', async () => {
+    vi.useFakeTimers();
+    try {
+      const a = startMachine();
+      a.send({ type: 'PLACE_BET', bet: 25, betHandleId: 'h1' });
+      a.send({ type: 'SPIN' });
+      await vi.advanceTimersByTimeAsync(DEFAULT_TOTAL_SPIN_MS);
+      expect(a.getSnapshot().value).toBe('settled');
+
+      a.send({ type: 'NEW_ROUND' });
+      const next = a.getSnapshot();
+      expect(next.value).toBe('betting');
+      expect(next.context.bet).toBe(0);
+      expect(next.context.betHandleId).toBe('');
+      expect(next.context.spinResult).toBeNull();
+      expect(next.context.roundResult).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

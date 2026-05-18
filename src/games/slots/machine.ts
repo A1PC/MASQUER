@@ -1,7 +1,6 @@
 import { assign, setup } from 'xstate';
 import { SLOTS_CONFIG } from './config';
-import { spin } from './logic';
-import type { buildRoundResult } from './logic';
+import { buildRoundResult, spin } from './logic';
 import type { SpinResult } from './types';
 
 interface Context {
@@ -40,12 +39,21 @@ export const slotsMachine = setup({
     setSpinResult: assign({
       spinResult: () => spin(),
     }),
+    setRoundResult: assign({
+      roundResult: ({ context }) => {
+        if (!context.spinResult) return null;
+        return buildRoundResult({ spin: context.spinResult, bet: context.bet });
+      },
+    }),
     clearForNextRound: assign({
       bet: () => 0,
       betHandleId: () => '',
       spinResult: () => null,
       roundResult: () => null,
     }),
+  },
+  delays: {
+    totalSpin: ({ context }) => context.totalSpinDurationMs,
   },
 }).createMachine({
   id: 'slots',
@@ -69,7 +77,12 @@ export const slotsMachine = setup({
     },
     spinning: {
       entry: 'setSpinResult',
-      // `after` transition + setRoundResult arrive in Task A.10
+      after: {
+        totalSpin: {
+          target: 'settled',
+          actions: 'setRoundResult',
+        },
+      },
     },
     settled: {
       on: {
