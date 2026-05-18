@@ -31,6 +31,8 @@ export default {
         'shell',
         'coin-flip',
         'games',
+        'admin',
+        'tracking',
       ],
     ],
     'subject-case': [0],

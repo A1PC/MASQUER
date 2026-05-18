@@ -9,6 +9,12 @@ export interface User {
   pbkdf2Iterations: number;
   avatarColor: string;
   createdAt: number;
+  /** v2: soft-ban flag. Banned users cannot log in. Undefined = false. */
+  isBanned?: boolean;
+  /** v2: number of successful logins (incremented in sessionStore.login). */
+  loginCount?: number;
+  /** v2: epoch ms of the most recent successful login. */
+  lastLoginAt?: number;
 }
 
 export interface Balance {
@@ -33,10 +39,43 @@ export interface Round {
   playedAt: number;
 }
 
+/** v2: one row per user login. Closed by logout, beforeunload, or orphan
+ *  cleanup at next login. ADR-0035. */
+export interface Session {
+  id: string;
+  userId: string;
+  loginAt: number;
+  logoutAt: number | null;
+  durationMs: number | null;
+}
+
+/** v2: one row per game-page mount. Closed on unmount. ADR-0035. */
+export interface GameVisit {
+  id: string;
+  userId: string;
+  sessionId: string;
+  game: Round['game'];
+  enteredAt: number;
+  exitedAt: number | null;
+  durationMs: number | null;
+}
+
+/** v2: one row per admin chip adjustment. Signed amount. ADR-0035. */
+export interface Adjustment {
+  id: string;
+  userId: string;
+  amount: number;
+  reason: string;
+  adjustedAt: number;
+}
+
 export class LocalGambleDB extends Dexie {
   users!: EntityTable<User, 'id'>;
   balances!: EntityTable<Balance, 'userId'>;
   rounds!: EntityTable<Round, 'id'>;
+  sessions!: EntityTable<Session, 'id'>;
+  gameVisits!: EntityTable<GameVisit, 'id'>;
+  adjustments!: EntityTable<Adjustment, 'id'>;
 
   constructor(name = 'localGamble') {
     super(name);
@@ -44,6 +83,16 @@ export class LocalGambleDB extends Dexie {
       users: 'id, &usernameLower, createdAt',
       balances: 'userId',
       rounds: 'id, userId, game, playedAt, [userId+playedAt]',
+    });
+    this.version(2).stores({
+      // isBanned intentionally NOT indexed — IndexedDB doesn't support boolean
+      // keys; callers filter banned users in memory (small N).
+      users: 'id, &usernameLower, createdAt',
+      balances: 'userId',
+      rounds: 'id, userId, game, playedAt, [userId+playedAt]',
+      sessions: 'id, userId, loginAt, [userId+loginAt]',
+      gameVisits: 'id, userId, game, sessionId, [userId+game], [userId+enteredAt]',
+      adjustments: 'id, userId, adjustedAt, [userId+adjustedAt]',
     });
   }
 }
