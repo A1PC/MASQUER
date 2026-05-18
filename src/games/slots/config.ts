@@ -33,9 +33,10 @@ export const SLOTS_CONFIG = {
   /** Number of reels. */
   REEL_COUNT: 3 as const,
   /** Reel stop timings in ms, left → right. ADR-0033 (incl. suspense gap).
-   *  Tuned long for drama: 2.0s / 3.4s / 5.0s with a 1.6s gap before the
-   *  third reel — each spin lasts long enough to feel like a real moment. */
-  REEL_STOP_TIMES_MS: [2_000, 3_400, 5_000] as const,
+   *  Long spin per user feedback: 3s / 5s / 8s. A full 3-second suspense
+   *  gap between the second and third reels — the wait for the third reel
+   *  is now THE moment of every spin. Total spin = 8 seconds. */
+  REEL_STOP_TIMES_MS: [3_000, 5_000, 8_000] as const,
   /** Cells visible per reel — top, centre (payline), bottom. */
   REEL_VISIBLE_CELLS: 3 as const,
   /** Small-win celebration duration (ms). */
