@@ -72,17 +72,26 @@ export default function Wheel({
   // Rotation math
   //
   // Goal: when the wheel stops, the winning pocket sits under the fixed gold
-  // pointer at the top (viewport angle 0), so the pointer + ball + the
-  // RNG-decided number all visually agree.
+  // pointer at the top (viewport angle 0), so the pointer, the ball (rendered
+  // inside the rotating SVG below), and the RNG-decided number all visually
+  // agree.
   //
   // Pocket N starts at wheel-local angle θ_N (clockwise from top). After
   // rotating the wheel by R, its viewport angle is (θ_N + R) mod 360. For
-  // pocket N to land at viewport 0 we need R ≡ -θ_N (mod 360), i.e.
-  // R = 360 − θ_N. Add 5 full turns of clockwise rotation for the spin drama.
+  // pocket N to land at viewport 0 we need R ≡ −θ_N (mod 360), so use
+  // R = 5 × 360 + (360 − θ_N): the (360 − θ_N) puts the pocket under the
+  // pointer; the 5 full turns provide the spin drama.
+  //
+  // CRITICAL: rotateTarget must NOT drop the 5-turn term when the state
+  // transitions from `spinning` to `settled`. If it did, Framer Motion would
+  // see a new (smaller) target and animate the wheel backward by 5 turns
+  // during the settled state. Keeping the same value for spinning + settled
+  // means Framer Motion sees no change and the wheel stays put once the
+  // spin animation completes. The 5-turn term is dropped only when the round
+  // resets (targetNumber → null), at which point we snap to 0 instantly.
   const targetIdx = targetNumber !== null ? POCKET_ORDER.indexOf(targetNumber) : 0;
   const thetaDeg = targetIdx * ARC_DEG;
-  const settledRotation = targetNumber === null ? 0 : 360 - thetaDeg;
-  const rotateTarget = spinning ? 5 * 360 + settledRotation : settledRotation;
+  const rotateTarget = targetNumber === null ? 0 : 5 * 360 + (360 - thetaDeg);
 
   // Reduced-motion / snap path
   const effectiveDurationSec = reducedMotion || durationMs === 0 ? 0 : durationMs / 1000;
@@ -145,14 +154,14 @@ export default function Wheel({
           height={POCKET_RING_SIZE}
           className="overflow-visible"
           data-rotate-target={rotateTarget}
-          data-transition-duration={effectiveDurationSec}
+          data-transition-duration={spinning ? effectiveDurationSec : 0}
           animate={{ rotate: rotateTarget }}
           transition={
-            effectiveDurationSec === 0
-              ? { duration: 0 }
-              : { duration: effectiveDurationSec, ease: [0.16, 1, 0.3, 1] }
+            spinning && effectiveDurationSec > 0
+              ? { duration: effectiveDurationSec, ease: [0.16, 1, 0.3, 1] }
+              : { duration: 0 }
           }
-          style={{ originX: '50%', originY: '50%' }}
+          style={{ originX: '50%', originY: '50%', transformBox: 'fill-box' }}
         >
           <circle cx={CX} cy={CY} r={R_OUTER} fill="#0b1f17" />
           {POCKET_ORDER.map((n, i) => {
