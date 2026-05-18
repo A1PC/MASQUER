@@ -34,3 +34,37 @@ describe('<ReelView /> static', () => {
     expect(centre!.getAttribute('data-winning')).toBeNull();
   });
 });
+
+describe('<ReelView /> scrolling animation', () => {
+  it('renders a scroll strip when spinning + symbol set', () => {
+    render(<ReelView reelIndex={0} symbol="seven" spinning={true} stopAtMs={1200} />);
+    const strip = document.querySelector('[data-reel-strip]');
+    expect(strip).toBeInTheDocument();
+  });
+
+  it('does NOT render a scroll strip when not spinning', () => {
+    render(<ReelView reelIndex={0} symbol="seven" spinning={false} stopAtMs={1200} />);
+    expect(document.querySelector('[data-reel-strip]')).toBeNull();
+  });
+
+  it('scroll strip exposes data-stop-at-ms (drives animation duration)', () => {
+    render(<ReelView reelIndex={2} symbol="bar" spinning={true} stopAtMs={3000} />);
+    expect(document.querySelector('[data-reel-strip]')!.getAttribute('data-stop-at-ms')).toBe(
+      '3000',
+    );
+  });
+
+  it('scroll strip exposes data-final-symbol matching the symbol prop', () => {
+    render(<ReelView reelIndex={1} symbol="bell" spinning={true} stopAtMs={2000} />);
+    expect(document.querySelector('[data-reel-strip]')!.getAttribute('data-final-symbol')).toBe(
+      'bell',
+    );
+  });
+
+  it('scroll strip contains the final symbol somewhere', () => {
+    render(<ReelView reelIndex={0} symbol="seven" spinning={true} stopAtMs={1200} />);
+    const strip = document.querySelector('[data-reel-strip]')!;
+    const sevens = strip.querySelectorAll('[data-symbol="seven"]');
+    expect(sevens.length).toBeGreaterThan(0);
+  });
+});
