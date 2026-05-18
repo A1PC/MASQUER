@@ -147,3 +147,23 @@ describe('auth.logout and restoreSession', () => {
     expect(restored).toBeNull();
   });
 });
+
+describe('auth.register — reserved username', () => {
+  beforeEach(async () => {
+    await resetDb();
+    localStorage.removeItem(SESSION_KEY);
+  });
+
+  it.each(['admin', 'Admin', 'ADMIN', '  admin  ', 'aDmIn'])(
+    'rejects username %j (case- and whitespace-insensitive)',
+    async (username) => {
+      const r = await register({ username, password: 'password123' });
+      expect(r).toEqual({ ok: false, error: 'reserved_username' });
+    },
+  );
+
+  it('still accepts usernames that merely contain "admin" as a substring', async () => {
+    const r = await register({ username: 'admin42', password: 'password123' });
+    expect(r.ok).toBe(true);
+  });
+});

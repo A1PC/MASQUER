@@ -13,7 +13,7 @@ import { WALLET_CONFIG } from '@/systems/wallet';
 
 const SESSION_KEY = 'localGamble.session.userId';
 
-export type RegisterError = 'username_taken' | 'unknown';
+export type RegisterError = 'username_taken' | 'reserved_username' | 'unknown';
 export type LoginError = 'invalid_credentials' | 'unknown';
 
 export type RegisterResult = { ok: true; user: User } | { ok: false; error: RegisterError };
@@ -25,6 +25,9 @@ export async function register(input: {
   password: string;
 }): Promise<RegisterResult> {
   const trimmed = input.username.trim();
+  if (trimmed.toLowerCase() === 'admin') {
+    return { ok: false, error: 'reserved_username' };
+  }
   const usernameLower = trimmed.toLowerCase();
   const salt = generateSalt();
   const hash = await deriveKey(input.password, salt, PASSWORD_HASHING.iterations);
