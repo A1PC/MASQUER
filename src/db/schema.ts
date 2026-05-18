@@ -85,7 +85,9 @@ export class LocalGambleDB extends Dexie {
       rounds: 'id, userId, game, playedAt, [userId+playedAt]',
     });
     this.version(2).stores({
-      users: 'id, &usernameLower, createdAt, isBanned',
+      // isBanned intentionally NOT indexed — IndexedDB doesn't support boolean
+      // keys; callers filter banned users in memory (small N).
+      users: 'id, &usernameLower, createdAt',
       balances: 'userId',
       rounds: 'id, userId, game, playedAt, [userId+playedAt]',
       sessions: 'id, userId, loginAt, [userId+loginAt]',
