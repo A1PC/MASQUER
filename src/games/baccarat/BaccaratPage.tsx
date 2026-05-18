@@ -17,6 +17,7 @@ import ShoeIndicator from './ShoeIndicator';
 import Scoreboard from './Scoreboard';
 import WinCelebration from './WinCelebration';
 import ChipSelector from './ChipSelector';
+import BaccaratRules from './rules';
 
 const ANIMATIONS = `
   @keyframes baccaratJackpot { 0% { opacity: 0; } 20% { opacity: 1; } 100% { opacity: 0; } }
@@ -227,6 +228,7 @@ export default function BaccaratPage(): JSX.Element | null {
         meta="8-deck shoe · 9 zones"
         game="baccarat"
         recentItems={recentItems}
+        rules={<BaccaratRules />}
         bettingPanel={
           <div className="mx-auto flex max-w-[900px] flex-col gap-2 px-2">
             <div className="flex items-center justify-between gap-3">

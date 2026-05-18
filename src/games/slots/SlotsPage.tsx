@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useMachine } from '@xstate/react';
 import { useReducedMotion } from 'framer-motion';
 import GameShell from '@/games/_shared/GameShell';
+import SlotsRules from './rules';
 import BettingPanel from '@/games/_shared/BettingPanel';
 import { useCurrentUser } from '@/store/sessionStore';
 import { useBalance, useWalletStore } from '@/store/walletStore';
@@ -175,6 +176,7 @@ export default function SlotsPage(): JSX.Element | null {
         meta="3 reels · 5–1000"
         game="slots"
         recentItems={recentItems}
+        rules={<SlotsRules />}
         bettingPanel={
           <div className="mx-auto flex max-w-[640px] flex-col gap-3 px-2">
             <BettingPanel

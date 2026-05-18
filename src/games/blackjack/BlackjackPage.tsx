@@ -2,6 +2,7 @@ import type { JSX } from 'react';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useMachine } from '@xstate/react';
 import GameShell from '@/games/_shared/GameShell';
+import BlackjackRules from './rules';
 import BettingPanel from '@/games/_shared/BettingPanel';
 import { useRecentRounds } from '@/systems/hooks/useRecentRounds';
 import { useCurrentUser } from '@/store/sessionStore';
@@ -211,6 +212,7 @@ export default function BlackjackPage(): JSX.Element | null {
       game="blackjack"
       recentItems={items}
       bettingPanel={bottomPanel}
+      rules={<BlackjackRules />}
     >
       <div className="flex flex-1 flex-col items-center justify-center gap-6 px-6 py-4">
         <DealerArea cards={snapshot.context.dealerCards} holeRevealed={holeRevealed} />

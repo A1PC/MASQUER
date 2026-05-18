@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useMachine } from '@xstate/react';
 import { useReducedMotion } from 'framer-motion';
 import GameShell from '@/games/_shared/GameShell';
+import RouletteRules from './rules';
 import { useCurrentUser } from '@/store/sessionStore';
 import { useBalance, useWalletStore } from '@/store/walletStore';
 import { useRecentRounds } from '@/systems/hooks/useRecentRounds';
@@ -154,6 +155,7 @@ export default function RoulettePage(): JSX.Element | null {
       meta="Single-zero · 5–1000 · max 10 positions"
       game="roulette"
       recentItems={recentItems}
+      rules={<RouletteRules />}
       bettingPanel={
         <div className="mx-auto flex max-w-[720px] flex-col gap-3 px-2">
           <ResultBanner
