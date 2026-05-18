@@ -119,3 +119,34 @@ describe('<SlotsPage /> wallet bridge', () => {
     });
   });
 });
+
+describe('<SlotsPage /> recent results sidebar', () => {
+  beforeEach(async () => {
+    seed(1);
+    await resetDb();
+    await hydrateUser(500);
+  });
+  afterEach(() => {
+    unseed();
+  });
+
+  it('after a settled round, RECENT sidebar shows at least one entry', async () => {
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <SlotsPage />
+      </MemoryRouter>,
+    );
+    await user.click(screen.getByRole('button', { name: /add 5 chips to bet/i }));
+    await user.click(screen.getByRole('button', { name: /place bet/i }));
+    await user.click(screen.getByRole('button', { name: /^spin$/i }));
+
+    await waitFor(
+      () => {
+        expect(screen.getByText(/RECENT/i)).toBeInTheDocument();
+        expect(screen.getByText(/last 1/i)).toBeInTheDocument();
+      },
+      { timeout: 5000 },
+    );
+  });
+});

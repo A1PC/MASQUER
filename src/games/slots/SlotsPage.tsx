@@ -1,15 +1,19 @@
 import type { JSX } from 'react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useMachine } from '@xstate/react';
 import { useReducedMotion } from 'framer-motion';
 import GameShell from '@/games/_shared/GameShell';
 import BettingPanel from '@/games/_shared/BettingPanel';
 import { useCurrentUser } from '@/store/sessionStore';
 import { useBalance, useWalletStore } from '@/store/walletStore';
+import { useRecentRounds } from '@/systems/hooks/useRecentRounds';
+import type { RecentResultItem } from '@/games/_shared/RecentResults';
 import Paytable from './Paytable';
 import ReelView from './ReelView';
 import { slotsMachine } from './machine';
 import { SLOTS_CONFIG } from './config';
+import type { SlotsRoundDetails } from './types';
+import { SYMBOL_DISPLAY } from './symbols';
 
 export default function SlotsPage(): JSX.Element | null {
   const user = useCurrentUser();
@@ -108,12 +112,41 @@ export default function SlotsPage(): JSX.Element | null {
     void handlePlaceAndSpin(state.context.bet);
   }, [inBetting, hasBet, handlePlaceAndSpin, state.context.bet]);
 
+  const rounds = useRecentRounds(user?.id, 'slots', 12);
+  const recentItems: RecentResultItem[] = useMemo(
+    () =>
+      rounds.map((r) => {
+        const d = r.details as SlotsRoundDetails;
+        const tier = d.winTier;
+        const badgeBg =
+          tier === 'jackpot'
+            ? '#ff5cf2'
+            : tier === 'medium'
+              ? '#d4af37'
+              : tier === 'small'
+                ? '#3dd17a'
+                : '#7a1f2b';
+        const badgeText = d.spin.reels.map((s) => SYMBOL_DISPLAY[s].label[0]).join('');
+        return {
+          key: r.id,
+          badgeText,
+          badgeColor: badgeBg,
+          badgeTextColor: '#06120c',
+          betLabel: String(r.betAmount),
+          netChips: r.netChange,
+          accent: r.outcome,
+        };
+      }),
+    [rounds],
+  );
+
   if (!user) return null;
 
   return (
     <GameShell
       title="🎰 SLOTS"
       meta="3 reels · 5–1000"
+      recentItems={recentItems}
       bettingPanel={
         <div className="mx-auto flex max-w-[640px] flex-col gap-3 px-2">
           <BettingPanel
