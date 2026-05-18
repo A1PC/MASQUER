@@ -2,12 +2,14 @@ import { describe, expect, it } from 'vitest';
 import {
   bankerDrawsThird,
   cardValue,
+  computePayouts,
   handTotal,
   isPair,
   makeHand,
   playerDrawsThird,
+  resolveRound,
 } from './logic';
-import type { Card, HandTotal, Rank, Suit } from './types';
+import { EMPTY_BETS, type Card, type HandTotal, type Rank, type Suit } from './types';
 
 function card(rank: Rank, suit: Suit = '♠'): Card {
   return { rank, suit, faceUp: true };
@@ -116,5 +118,144 @@ describe('bankerDrawsThird — input validation', () => {
   });
   it('throws on playerThirdValue > 9', () => {
     expect(() => bankerDrawsThird(3, 10)).toThrow(/invalid playerThirdValue/);
+  });
+});
+
+describe('resolveRound', () => {
+  it('Player 7 vs Banker 5 → player wins, margin 2', () => {
+    const r = resolveRound([card('3'), card('4')], [card('2'), card('3')]);
+    expect(r.winner).toBe('player');
+    expect(r.margin).toBe(2);
+    expect(r.winnerNatural).toBe(false);
+    expect(r.bothNatural).toBe(false);
+    expect(r.totalCards).toBe(4);
+  });
+
+  it('Player 8 (natural) vs Banker 5 → player wins natural', () => {
+    const r = resolveRound([card('A'), card('7')], [card('2'), card('3')]);
+    expect(r.winner).toBe('player');
+    expect(r.winnerNatural).toBe(true);
+    expect(r.bothNatural).toBe(false);
+  });
+
+  it('Player 8 vs Banker 8 → tie, both natural', () => {
+    const r = resolveRound([card('A'), card('7')], [card('3'), card('5')]);
+    expect(r.winner).toBe('tie');
+    expect(r.bothNatural).toBe(true);
+  });
+
+  it('detects Player Pair on rank match', () => {
+    const r = resolveRound([card('7', '♠'), card('7', '♥')], [card('K'), card('Q')]);
+    expect(r.playerPair).toBe(true);
+    expect(r.bankerPair).toBe(false);
+  });
+
+  it('totalCards counts all dealt cards including thirds', () => {
+    const r = resolveRound([card('2'), card('3'), card('4')], [card('5'), card('6'), card('7')]);
+    expect(r.totalCards).toBe(6);
+  });
+});
+
+describe('computePayouts', () => {
+  it('zero bets → all zeros', () => {
+    const r = resolveRound([card('3'), card('4')], [card('2'), card('3')]);
+    expect(computePayouts(EMPTY_BETS, r)).toEqual(EMPTY_BETS);
+  });
+
+  it('Player win, bet on Player: returns +bet (1:1 winnings)', () => {
+    const r = resolveRound([card('3'), card('4')], [card('2'), card('3')]);
+    const p = computePayouts({ ...EMPTY_BETS, player: 100 }, r);
+    expect(p.player).toBe(100);
+  });
+
+  it('Banker win, bet on Banker 100: returns 95 (5% commission floor)', () => {
+    const r = resolveRound([card('2'), card('3')], [card('3'), card('4')]);
+    const p = computePayouts({ ...EMPTY_BETS, banker: 100 }, r);
+    expect(p.banker).toBe(95);
+  });
+
+  it('Banker win, bet on Banker 17: returns 17 (floor(17*0.05) = 0 commission)', () => {
+    const r = resolveRound([card('2'), card('3')], [card('3'), card('4')]);
+    const p = computePayouts({ ...EMPTY_BETS, banker: 17 }, r);
+    expect(p.banker).toBe(17);
+  });
+
+  it('Banker win, bet on Banker 21: returns 20 (floor(21*0.05) = 1 commission)', () => {
+    const r = resolveRound([card('2'), card('3')], [card('3'), card('4')]);
+    const p = computePayouts({ ...EMPTY_BETS, banker: 21 }, r);
+    expect(p.banker).toBe(20);
+  });
+
+  it('Tie: Player and Banker push (return 0), Tie pays 8:1', () => {
+    const r = resolveRound([card('3'), card('5')], [card('3'), card('5')]);
+    const p = computePayouts({ ...EMPTY_BETS, player: 50, banker: 50, tie: 10 }, r);
+    expect(p.player).toBe(0);
+    expect(p.banker).toBe(0);
+    expect(p.tie).toBe(80);
+  });
+
+  it('Player Pair fires: pays 11:1', () => {
+    const r = resolveRound([card('7', '♠'), card('7', '♥')], [card('K'), card('Q')]);
+    const p = computePayouts({ ...EMPTY_BETS, playerPair: 10 }, r);
+    expect(p.playerPair).toBe(110);
+  });
+
+  it('No pair: pair bet loses', () => {
+    const r = resolveRound([card('7'), card('8')], [card('K'), card('Q')]);
+    const p = computePayouts({ ...EMPTY_BETS, playerPair: 10 }, r);
+    expect(p.playerPair).toBe(-10);
+  });
+
+  it('Big (4 cards) loses; Small (4 cards) wins floor(bet*1.5)', () => {
+    const r = resolveRound([card('3'), card('4')], [card('2'), card('3')]);
+    expect(r.totalCards).toBe(4);
+    const p = computePayouts({ ...EMPTY_BETS, big: 100, small: 100 }, r);
+    expect(p.big).toBe(-100);
+    expect(p.small).toBe(150);
+  });
+
+  it('Small (5 cards) loses; Big (5 cards) wins floor(bet*0.54)', () => {
+    const r = resolveRound([card('2'), card('3'), card('4')], [card('2'), card('3')]);
+    expect(r.totalCards).toBe(5);
+    const p = computePayouts({ ...EMPTY_BETS, big: 100, small: 100 }, r);
+    expect(p.small).toBe(-100);
+    expect(p.big).toBe(54);
+  });
+
+  it('Dragon natural win pays 1:1', () => {
+    const r = resolveRound([card('A'), card('7')], [card('2'), card('3')]);
+    const p = computePayouts({ ...EMPTY_BETS, playerDragon: 100 }, r);
+    expect(p.playerDragon).toBe(100);
+  });
+
+  it('Dragon non-natural margin-9 win pays 30:1', () => {
+    const r = resolveRound([card('A'), card('2'), card('6')], [card('K'), card('K')]);
+    expect(r.winner).toBe('player');
+    expect(r.margin).toBe(9);
+    expect(r.winnerNatural).toBe(false);
+    const p = computePayouts({ ...EMPTY_BETS, playerDragon: 50 }, r);
+    expect(p.playerDragon).toBe(1500);
+  });
+
+  it('Dragon margin-1/2/3 win → loses (real Dragon rule)', () => {
+    const r = resolveRound([card('3'), card('4')], [card('2'), card('4')]);
+    expect(r.winner).toBe('player');
+    expect(r.margin).toBe(1);
+    const p = computePayouts({ ...EMPTY_BETS, playerDragon: 100 }, r);
+    expect(p.playerDragon).toBe(-100);
+  });
+
+  it('Dragon on tie with both natural → push', () => {
+    const r = resolveRound([card('A'), card('7')], [card('3'), card('5')]);
+    expect(r.bothNatural).toBe(true);
+    const p = computePayouts({ ...EMPTY_BETS, playerDragon: 50, bankerDragon: 50 }, r);
+    expect(p.playerDragon).toBe(0);
+    expect(p.bankerDragon).toBe(0);
+  });
+
+  it('Dragon on losing side → loses', () => {
+    const r = resolveRound([card('A'), card('7')], [card('2'), card('3')]);
+    const p = computePayouts({ ...EMPTY_BETS, bankerDragon: 100 }, r);
+    expect(p.bankerDragon).toBe(-100);
   });
 });
