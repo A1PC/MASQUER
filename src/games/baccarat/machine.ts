@@ -123,7 +123,7 @@ export const baccaratMachine = setup({
     },
   },
   delays: {
-    bannerDisplay: 2000,
+    bannerDisplay: ({ context }) => (context.reducedMotion ? 0 : 2000),
   },
 }).createMachine({
   id: 'baccarat',
