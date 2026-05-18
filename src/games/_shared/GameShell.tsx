@@ -1,7 +1,10 @@
 import type { JSX, ReactNode } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router';
 import type { Round } from '@/db';
 import RecentResults, { type RecentResultItem } from './RecentResults';
+import RulesButton from './RulesButton';
+import RulesModal from './RulesModal';
 import { useGameVisit } from './useGameVisit';
 
 type Game = Round['game'];
@@ -14,6 +17,8 @@ interface Props {
   children: ReactNode;
   /** Required for visit tracking. Pass the same key used in db.rounds.game. */
   game: Game;
+  /** Optional rules content (renders the bottom-left RULES button + overlay modal). */
+  rules?: ReactNode;
 }
 
 export default function GameShell({
@@ -23,8 +28,10 @@ export default function GameShell({
   bettingPanel,
   children,
   game,
+  rules,
 }: Props): JSX.Element {
   useGameVisit(game);
+  const [rulesOpen, setRulesOpen] = useState(false);
   return (
     <div className="flex h-full flex-col">
       <div className="flex flex-1 overflow-hidden">
@@ -45,6 +52,14 @@ export default function GameShell({
         )}
       </div>
       <div className="border-t-2 border-gold/40 bg-felt-deep px-6 py-4">{bettingPanel}</div>
+      {rules !== undefined && (
+        <>
+          <RulesButton onClick={() => setRulesOpen(true)} />
+          <RulesModal open={rulesOpen} title={title} onClose={() => setRulesOpen(false)}>
+            {rules}
+          </RulesModal>
+        </>
+      )}
     </div>
   );
 }
