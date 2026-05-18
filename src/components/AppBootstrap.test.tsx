@@ -1,10 +1,11 @@
-import { beforeEach, expect, it, vi } from 'vitest';
-import { screen, waitFor } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
 import { db } from '@/db';
 import { useSessionStore } from '@/store/sessionStore';
 import { resetDb } from '@/test/db-helpers';
 import { renderWithRouter } from '@/test/router-helpers';
 import RequireAuth from './RequireAuth';
+import AppBootstrap from './AppBootstrap';
 import LoginPage from '@/pages/LoginPage';
 import LobbyPage from '@/pages/LobbyPage';
 
@@ -25,7 +26,12 @@ vi.mock('@/store/walletStore', () => ({
 const SESSION_KEY = 'localGamble.session.userId';
 
 function resetStore() {
-  useSessionStore.setState({ currentUser: null, bootstrapping: false });
+  useSessionStore.setState({
+    currentUser: null,
+    bootstrapping: false,
+    isAdmin: false,
+    currentSessionId: null,
+  });
 }
 
 beforeEach(async () => {
@@ -52,6 +58,39 @@ it('redirects to /login when no session is active', async () => {
 
   await waitFor(() => {
     expect(screen.getByRole('heading', { name: /sign in/i })).toBeInTheDocument();
+  });
+});
+
+describe('AppBootstrap — beforeunload session close', () => {
+  it('registers a beforeunload listener that closes the active session', async () => {
+    await useSessionStore.getState().register({ username: 'nina', password: 'password123' });
+    await useSessionStore.getState().logout();
+    await useSessionStore.getState().login({ username: 'nina', password: 'password123' });
+    const sid = useSessionStore.getState().currentSessionId!;
+
+    render(
+      <AppBootstrap>
+        <div>child</div>
+      </AppBootstrap>,
+    );
+    await waitFor(() => expect(useSessionStore.getState().bootstrapping).toBe(false));
+
+    window.dispatchEvent(new Event('beforeunload'));
+    await new Promise((r) => setTimeout(r, 50));
+
+    const closed = await db.sessions.get(sid);
+    expect(closed?.logoutAt).not.toBeNull();
+    expect(closed?.durationMs).toBeGreaterThanOrEqual(0);
+  });
+
+  it('beforeunload is a no-op when no session is active', async () => {
+    render(
+      <AppBootstrap>
+        <div>child</div>
+      </AppBootstrap>,
+    );
+    await waitFor(() => expect(useSessionStore.getState().bootstrapping).toBe(false));
+    expect(() => window.dispatchEvent(new Event('beforeunload'))).not.toThrow();
   });
 });
 
