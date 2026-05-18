@@ -98,12 +98,18 @@ export const baccaratMachine = setup({
       next.bankerDragon = dragonKept('banker', r) ? next.bankerDragon : 0;
       return { bets: next };
     }),
+    // After the banner times out, advance roundCount but keep roundResult in
+    // context — the page renders the celebration based on roundResult presence
+    // and dismisses on the next DEAL. Cards remain visible until the next deal too.
     resetForNextRound: assign(({ context }) => ({
-      playerCards: [] as Card[],
-      bankerCards: [] as Card[],
-      roundResult: null,
       roundCount: context.roundCount + 1,
     })),
+    // Cleared at the start of the next round (dealing entry).
+    clearPreviousRound: assign({
+      playerCards: () => [] as Card[],
+      bankerCards: () => [] as Card[],
+      roundResult: () => null,
+    }),
   },
   guards: {
     hasAnyBet: ({ context }) => totalBet(context.bets) > 0,
@@ -155,7 +161,7 @@ export const baccaratMachine = setup({
       always: { target: 'dealing' },
     },
     dealing: {
-      entry: 'dealInitialFour',
+      entry: ['clearPreviousRound', 'dealInitialFour'],
       always: [{ guard: 'isNatural', target: 'settling' }, { target: 'playerThird' }],
     },
     playerThird: {
