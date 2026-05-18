@@ -1,5 +1,6 @@
 import { createBrowserRouter, Navigate } from 'react-router';
 import RequireAuth from '@/components/RequireAuth';
+import RequireAdmin from '@/components/RequireAdmin';
 import AppLayout from '@/components/AppLayout';
 import LoginPage from '@/pages/LoginPage';
 import RegisterPage from '@/pages/RegisterPage';
@@ -12,10 +13,33 @@ import StubGamePage from '@/games/_shared/StubGamePage';
 import BlackjackPage from '@/games/blackjack/BlackjackPage';
 import RoulettePage from '@/games/roulette/RoulettePage';
 import SlotsPage from '@/games/slots/SlotsPage';
+import AdminLoginPage from '@/pages/admin/AdminLoginPage';
+import AdminLayout from '@/pages/admin/AdminLayout';
+import AdminOverviewPage from '@/pages/admin/AdminOverviewPage';
+import AdminUsersListPage from '@/pages/admin/AdminUsersListPage';
+import AdminUserPage from '@/pages/admin/AdminUserPage';
+import AdminAuditPage from '@/pages/admin/AdminAuditPage';
+import AdminSessionsPage from '@/pages/admin/AdminSessionsPage';
 
 export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
   { path: '/register', element: <RegisterPage /> },
+  { path: '/admin/login', element: <AdminLoginPage /> },
+  {
+    path: '/admin',
+    element: (
+      <RequireAdmin>
+        <AdminLayout />
+      </RequireAdmin>
+    ),
+    children: [
+      { index: true, element: <AdminOverviewPage /> },
+      { path: 'users', element: <AdminUsersListPage /> },
+      { path: 'users/:id', element: <AdminUserPage /> },
+      { path: 'adjustments', element: <AdminAuditPage /> },
+      { path: 'sessions', element: <AdminSessionsPage /> },
+    ],
+  },
   {
     path: '/',
     element: (
