@@ -70,9 +70,19 @@ export default function Wheel({
   reducedMotion = false,
 }: WheelProps): JSX.Element {
   // Rotation math
+  //
+  // Goal: when the wheel stops, the winning pocket sits under the fixed gold
+  // pointer at the top (viewport angle 0), so the pointer + ball + the
+  // RNG-decided number all visually agree.
+  //
+  // Pocket N starts at wheel-local angle θ_N (clockwise from top). After
+  // rotating the wheel by R, its viewport angle is (θ_N + R) mod 360. For
+  // pocket N to land at viewport 0 we need R ≡ -θ_N (mod 360), i.e.
+  // R = 360 − θ_N. Add 5 full turns of clockwise rotation for the spin drama.
   const targetIdx = targetNumber !== null ? POCKET_ORDER.indexOf(targetNumber) : 0;
   const thetaDeg = targetIdx * ARC_DEG;
-  const rotateTarget = targetNumber === null ? 0 : spinning ? 5 * 360 + thetaDeg : thetaDeg;
+  const settledRotation = targetNumber === null ? 0 : 360 - thetaDeg;
+  const rotateTarget = spinning ? 5 * 360 + settledRotation : settledRotation;
 
   // Reduced-motion / snap path
   const effectiveDurationSec = reducedMotion || durationMs === 0 ? 0 : durationMs / 1000;
@@ -237,31 +247,48 @@ export default function Wheel({
         />
       </div>
 
-      {/* Pearl ball — positioned over the target pocket */}
+      {/* Pearl ball — orbits counter-clockwise during the spin and lands at
+          viewport top, which (per the rotation math above) is exactly over the
+          winning pocket once the wheel stops. The orbit happens via a
+          motion-wrapper that rotates around the wheel centre; the ball element
+          itself is fixed at angular 0 inside that wrapper. */}
       {targetNumber !== null &&
         (() => {
           const idx = POCKET_ORDER.indexOf(targetNumber);
-          const midDeg = idx * ARC_DEG + ARC_DEG / 2;
-          const pos = polar(CX, CY, R_BALL, midDeg);
+          const pos = polar(CX, CY, R_BALL, 0); // ball is always at top inside the wrapper
           const left = 36 + pos.x - BALL_SIZE / 2;
           const top = 36 + pos.y - BALL_SIZE / 2;
           return (
-            <div
-              data-roulette-layer="ball"
-              data-pocket={targetNumber}
-              data-pocket-index={idx}
-              className="absolute z-20 rounded-full"
-              style={{
-                width: BALL_SIZE,
-                height: BALL_SIZE,
-                left,
-                top,
-                background:
-                  'radial-gradient(circle at 30% 25%, #ffffff 0%, #fff5e8 30%, #f0e0c8 60%, #c9b896 100%)',
-                boxShadow:
-                  '0 0 6px rgba(255,255,255,0.8), 0 0 12px rgba(255,220,180,0.4), 0 1px 2px rgba(0,0,0,0.4)',
-              }}
-            />
+            <motion.div
+              data-roulette-layer="ball-orbit"
+              className="pointer-events-none absolute inset-0 z-20"
+              style={{ transformOrigin: '50% 50%' }}
+              animate={{ rotate: spinning ? -5 * 360 : 0 }}
+              transition={
+                effectiveDurationSec === 0
+                  ? { duration: 0 }
+                  : spinning
+                    ? { duration: effectiveDurationSec, ease: [0.16, 1, 0.3, 1] }
+                    : { duration: 0 }
+              }
+            >
+              <div
+                data-roulette-layer="ball"
+                data-pocket={targetNumber}
+                data-pocket-index={idx}
+                className="absolute rounded-full"
+                style={{
+                  width: BALL_SIZE,
+                  height: BALL_SIZE,
+                  left,
+                  top,
+                  background:
+                    'radial-gradient(circle at 30% 25%, #ffffff 0%, #fff5e8 30%, #f0e0c8 60%, #c9b896 100%)',
+                  boxShadow:
+                    '0 0 6px rgba(255,255,255,0.8), 0 0 12px rgba(255,220,180,0.4), 0 1px 2px rgba(0,0,0,0.4)',
+                }}
+              />
+            </motion.div>
           );
         })()}
     </div>

@@ -81,29 +81,40 @@ describe('<WheelView /> ball', () => {
 });
 
 describe('<WheelView /> spin animation', () => {
-  it('when spinning + targetNumber set, the pocket-ring svg has data-rotate-target set', () => {
+  // After the spin, the winning pocket must land under the fixed top pointer
+  // (viewport angle 0). For pocket index k, the wheel rotates 5 full turns +
+  // (360 − k × 360/37). For target 32 → idx 1 → settled rotation ≈ 350.27°,
+  // total spin target ≈ 5×360 + 350.27 = 2150.27°.
+  it('when spinning + targetNumber set, the wheel ends with the winning pocket at top', () => {
     render(<WheelView targetNumber={32} spinning={true} settled={false} durationMs={5000} />);
     const motionSvg = document.querySelector('[data-roulette-layer="pocket-ring"] svg');
-    const target = motionSvg!.getAttribute('data-rotate-target');
-    expect(target).not.toBeNull();
-    const value = Number(target);
-    // 5 full turns + θ where θ = idx(32) * 360/37, idx(32)=1, so target ≈ 1809.73
-    expect(value).toBeGreaterThan(1809);
-    expect(value).toBeLessThan(1810);
+    const value = Number(motionSvg!.getAttribute('data-rotate-target'));
+    expect(value).toBeGreaterThan(2150);
+    expect(value).toBeLessThan(2151);
   });
 
-  it('when not spinning + targetNumber set, the wheel rests at θ', () => {
+  it('when not spinning + targetNumber set, the wheel rests at (360 − θ)', () => {
     render(<WheelView targetNumber={32} spinning={false} settled={true} durationMs={5000} />);
     const motionSvg = document.querySelector('[data-roulette-layer="pocket-ring"] svg');
     const value = Number(motionSvg!.getAttribute('data-rotate-target'));
-    expect(value).toBeGreaterThan(9);
-    expect(value).toBeLessThan(10);
+    // 360 − (1 × 360/37) ≈ 350.27
+    expect(value).toBeGreaterThan(350);
+    expect(value).toBeLessThan(351);
   });
 
   it('when targetNumber is null, rotate target is 0', () => {
     render(<WheelView targetNumber={null} spinning={false} settled={false} />);
     const motionSvg = document.querySelector('[data-roulette-layer="pocket-ring"] svg');
     expect(motionSvg!.getAttribute('data-rotate-target')).toBe('0');
+  });
+
+  it('target 0 keeps the wheel at rotation 0 (pocket 0 is already at top)', () => {
+    render(<WheelView targetNumber={0} spinning={false} settled={true} durationMs={5000} />);
+    const motionSvg = document.querySelector('[data-roulette-layer="pocket-ring"] svg');
+    // 360 − 0 = 360 ≡ 0 (mod 360). Either 0 or 360 is mathematically correct;
+    // we pick the literal value the component computes.
+    const value = Number(motionSvg!.getAttribute('data-rotate-target'));
+    expect(value).toBe(360);
   });
 });
 
