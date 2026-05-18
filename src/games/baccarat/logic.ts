@@ -1,5 +1,23 @@
-import type { Bets, Card, Hand, HandTotal, Payouts, Rank, RoundResult, Winner } from './types';
-import { BIG_PAYOUT_RATE, COMMISSION_RATE, DRAGON_PAYOUT, SMALL_PAYOUT_RATE } from './config';
+import type {
+  BeadCell,
+  Bets,
+  BigRoadCell,
+  Card,
+  Hand,
+  HandTotal,
+  Payouts,
+  Rank,
+  RoundResult,
+  Winner,
+} from './types';
+import {
+  BIG_PAYOUT_RATE,
+  BIG_ROAD_ROWS,
+  COMMISSION_RATE,
+  DRAGON_PAYOUT,
+  SCOREBOARD_HISTORY_CAP,
+  SMALL_PAYOUT_RATE,
+} from './config';
 
 const RANK_VALUE: Record<Rank, number> = {
   A: 1,
@@ -203,4 +221,72 @@ function payDragon(side: 'player' | 'banker', bet: number, result: RoundResult):
     default:
       return -bet;
   }
+}
+
+// ----- Scoreboard derivers -----
+
+/** History entry the scoreboard derivers consume. Subset of RoundResult. */
+export interface ScoreboardEntry {
+  readonly winner: Winner;
+  readonly playerPair: boolean;
+  readonly bankerPair: boolean;
+}
+
+/** Bead plate: caps history at SCOREBOARD_HISTORY_CAP rounds. Returns oldest-first. */
+export function getBeadPlate(entries: readonly ScoreboardEntry[]): BeadCell[] {
+  const trimmed = entries.slice(-SCOREBOARD_HISTORY_CAP);
+  return trimmed.map((e) => ({
+    winner: e.winner,
+    playerPair: e.playerPair,
+    bankerPair: e.bankerPair,
+  }));
+}
+
+/**
+ * Big road: walked-pen behavior.
+ * - Each new winner of the same type as the previous drops one row in the same column.
+ * - A change of winner moves to the top of the next column.
+ * - Ties overlay on the most recent non-tie cell (counted, not a new column).
+ * - Returns a 2D grid where outer index is column, inner index is row.
+ *   Empty cells are not represented (sparse trailing columns are omitted).
+ */
+export function getBigRoad(entries: readonly ScoreboardEntry[]): BigRoadCell[][] {
+  const trimmed = entries.slice(-SCOREBOARD_HISTORY_CAP);
+  const columns: BigRoadCell[][] = [];
+  let curCol = -1;
+  let curRow = -1;
+  let curWinner: 'player' | 'banker' | null = null;
+
+  for (const e of trimmed) {
+    if (e.winner === 'tie') {
+      if (curCol >= 0 && curRow >= 0) {
+        const cell = columns[curCol]![curRow]!;
+        columns[curCol]![curRow] = { ...cell, ties: cell.ties + 1 };
+      }
+      continue;
+    }
+    const next: BigRoadCell = {
+      winner: e.winner,
+      ties: 0,
+      playerPair: e.playerPair,
+      bankerPair: e.bankerPair,
+    };
+    if (curWinner === null || curWinner !== e.winner) {
+      curCol += 1;
+      curRow = 0;
+      columns[curCol] = [next];
+    } else {
+      if (curRow + 1 < BIG_ROAD_ROWS) {
+        curRow += 1;
+        columns[curCol]!.push(next);
+      } else {
+        curCol += 1;
+        curRow = 0;
+        columns[curCol] = [next];
+      }
+    }
+    curWinner = e.winner;
+  }
+
+  return columns;
 }

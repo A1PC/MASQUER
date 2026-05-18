@@ -3,11 +3,14 @@ import {
   bankerDrawsThird,
   cardValue,
   computePayouts,
+  getBeadPlate,
+  getBigRoad,
   handTotal,
   isPair,
   makeHand,
   playerDrawsThird,
   resolveRound,
+  type ScoreboardEntry,
 } from './logic';
 import { EMPTY_BETS, type Card, type HandTotal, type Rank, type Suit } from './types';
 
@@ -257,5 +260,89 @@ describe('computePayouts', () => {
     const r = resolveRound([card('A'), card('7')], [card('2'), card('3')]);
     const p = computePayouts({ ...EMPTY_BETS, bankerDragon: 100 }, r);
     expect(p.bankerDragon).toBe(-100);
+  });
+});
+
+describe('getBeadPlate / getBigRoad', () => {
+  const entry = (winner: ScoreboardEntry['winner'], pp = false, bp = false): ScoreboardEntry => ({
+    winner,
+    playerPair: pp,
+    bankerPair: bp,
+  });
+
+  it('getBeadPlate returns entries unchanged (oldest-first)', () => {
+    expect(getBeadPlate([entry('player'), entry('banker'), entry('tie')])).toEqual([
+      { winner: 'player', playerPair: false, bankerPair: false },
+      { winner: 'banker', playerPair: false, bankerPair: false },
+      { winner: 'tie', playerPair: false, bankerPair: false },
+    ]);
+  });
+
+  it('getBeadPlate caps to last 60 entries', () => {
+    const e: ScoreboardEntry[] = Array.from({ length: 80 }, () => entry('player'));
+    expect(getBeadPlate(e)).toHaveLength(60);
+  });
+
+  it('getBigRoad: empty input → empty grid', () => {
+    expect(getBigRoad([])).toEqual([]);
+  });
+
+  it('getBigRoad: single player win → one column, one cell', () => {
+    const r = getBigRoad([entry('player')]);
+    expect(r).toHaveLength(1);
+    expect(r[0]).toHaveLength(1);
+    expect(r[0]![0]).toMatchObject({ winner: 'player', ties: 0 });
+  });
+
+  it('getBigRoad: same winner repeats → drops down in same column', () => {
+    const r = getBigRoad([entry('player'), entry('player'), entry('player')]);
+    expect(r).toHaveLength(1);
+    expect(r[0]).toHaveLength(3);
+  });
+
+  it('getBigRoad: winner change → new column', () => {
+    const r = getBigRoad([entry('player'), entry('banker'), entry('player')]);
+    expect(r).toHaveLength(3);
+  });
+
+  it('getBigRoad: tie overlays on the most recent cell (counts ties)', () => {
+    const r = getBigRoad([entry('player'), entry('tie'), entry('tie')]);
+    expect(r).toHaveLength(1);
+    expect(r[0]![0]).toMatchObject({ winner: 'player', ties: 2 });
+  });
+
+  it('getBigRoad: tie before any non-tie is ignored', () => {
+    const r = getBigRoad([entry('tie'), entry('tie'), entry('player')]);
+    expect(r).toHaveLength(1);
+    expect(r[0]![0]).toMatchObject({ winner: 'player', ties: 0 });
+  });
+
+  it('getBigRoad: column overflows after 6 same-side wins → new column', () => {
+    const r = getBigRoad(Array.from({ length: 7 }, () => entry('banker')));
+    expect(r).toHaveLength(2);
+    expect(r[0]).toHaveLength(6);
+    expect(r[1]).toHaveLength(1);
+  });
+
+  it('getBigRoad: PPBPB sequence produces expected shape', () => {
+    const r = getBigRoad([
+      entry('player'),
+      entry('player'),
+      entry('banker'),
+      entry('player'),
+      entry('banker'),
+    ]);
+    expect(r.map((col) => col.map((c) => c.winner))).toEqual([
+      ['player', 'player'],
+      ['banker'],
+      ['player'],
+      ['banker'],
+    ]);
+  });
+
+  it('getBigRoad: preserves pair flags on the cell that produced the round', () => {
+    const r = getBigRoad([entry('player', true, false), entry('banker', false, true)]);
+    expect(r[0]![0]).toMatchObject({ playerPair: true, bankerPair: false });
+    expect(r[1]![0]).toMatchObject({ playerPair: false, bankerPair: true });
   });
 });
