@@ -167,3 +167,18 @@ describe('auth.register — reserved username', () => {
     expect(r.ok).toBe(true);
   });
 });
+
+describe('auth.login — reserved username', () => {
+  beforeEach(async () => {
+    await resetDb();
+    localStorage.removeItem(SESSION_KEY);
+  });
+
+  it.each(['admin', 'Admin', 'ADMIN', '  admin  '])(
+    'rejects username %j with invalid_credentials (no enumeration of reservation)',
+    async (username) => {
+      const r = await login({ username, password: 'admin12345' });
+      expect(r).toEqual({ ok: false, error: 'invalid_credentials' });
+    },
+  );
+});

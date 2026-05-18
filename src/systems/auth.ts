@@ -63,6 +63,14 @@ export async function register(input: {
 
 export async function login(input: { username: string; password: string }): Promise<LoginResult> {
   const usernameLower = input.username.trim().toLowerCase();
+  if (usernameLower === 'admin') {
+    // Reserved — short-circuit to invalid_credentials without leaking the
+    // reservation via a distinct error. Run the KDF anyway to keep timing
+    // consistent with the normal-failure path.
+    const salt = generateSalt();
+    await deriveKey(input.password, salt, PASSWORD_HASHING.iterations);
+    return { ok: false, error: 'invalid_credentials' };
+  }
   const user = await db.users.where('usernameLower').equals(usernameLower).first();
   const salt = user ? base64ToBytes(user.passwordSalt) : generateSalt();
   const iters = user?.pbkdf2Iterations ?? PASSWORD_HASHING.iterations;
