@@ -29,3 +29,20 @@ export function pickSymbol(): Symbol {
   // Defensive — unreachable if weights sum correctly.
   throw new Error(`pickSymbol: RNG returned ${n} but no symbol matched`);
 }
+
+/** Display metadata consumed by SymbolView.tsx (PR B). */
+export interface SymbolDisplay {
+  readonly label: string;
+  /** Lowercase to match the Symbol type; used for `data-symbol` attrs. */
+  readonly key: Symbol;
+  /** True iff the symbol is rendered with a neon glow. */
+  readonly neon: boolean;
+}
+
+export const SYMBOL_DISPLAY: Readonly<Record<Symbol, SymbolDisplay>> = {
+  cherry: { label: 'Cherry', key: 'cherry', neon: false },
+  lemon: { label: 'Lemon', key: 'lemon', neon: false },
+  bell: { label: 'Bell', key: 'bell', neon: true },
+  bar: { label: 'BAR', key: 'bar', neon: true },
+  seven: { label: '7', key: 'seven', neon: true },
+};

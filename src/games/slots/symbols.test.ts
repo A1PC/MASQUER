@@ -1,7 +1,8 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { seed, unseed } from '@/systems/rng';
-import { pickSymbol } from './symbols';
+import { pickSymbol, SYMBOL_DISPLAY } from './symbols';
 import { SLOTS_WEIGHTS, SLOTS_WEIGHT_TOTAL } from './config';
+import { NEON_SYMBOLS } from './types';
 import type { Symbol } from './types';
 
 describe('pickSymbol', () => {
@@ -43,5 +44,36 @@ describe('pickSymbol', () => {
     const seen = new Set<Symbol>();
     for (let i = 0; i < 1000; i++) seen.add(pickSymbol());
     expect(seen.size).toBe(5);
+  });
+});
+
+describe('SYMBOL_DISPLAY', () => {
+  it('has an entry for every symbol', () => {
+    for (const sym of ['cherry', 'lemon', 'bell', 'bar', 'seven'] as const) {
+      expect(SYMBOL_DISPLAY[sym]).toBeDefined();
+      expect(SYMBOL_DISPLAY[sym].key).toBe(sym);
+    }
+  });
+
+  it('marks bell/bar/seven as neon, cherry/lemon as not', () => {
+    expect(SYMBOL_DISPLAY.cherry.neon).toBe(false);
+    expect(SYMBOL_DISPLAY.lemon.neon).toBe(false);
+    expect(SYMBOL_DISPLAY.bell.neon).toBe(true);
+    expect(SYMBOL_DISPLAY.bar.neon).toBe(true);
+    expect(SYMBOL_DISPLAY.seven.neon).toBe(true);
+  });
+
+  it('SYMBOL_DISPLAY[sym].neon agrees with NEON_SYMBOLS membership', () => {
+    for (const sym of ['cherry', 'lemon', 'bell', 'bar', 'seven'] as const) {
+      expect(SYMBOL_DISPLAY[sym].neon).toBe(NEON_SYMBOLS.has(sym));
+    }
+  });
+
+  it('label for each symbol is human-readable', () => {
+    expect(SYMBOL_DISPLAY.cherry.label).toBe('Cherry');
+    expect(SYMBOL_DISPLAY.lemon.label).toBe('Lemon');
+    expect(SYMBOL_DISPLAY.bell.label).toBe('Bell');
+    expect(SYMBOL_DISPLAY.bar.label).toBe('BAR');
+    expect(SYMBOL_DISPLAY.seven.label).toBe('7');
   });
 });
