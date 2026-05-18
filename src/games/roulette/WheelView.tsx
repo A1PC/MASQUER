@@ -6,7 +6,7 @@ import type { PocketColor } from './types';
 export interface WheelProps {
   /** Winning number 0..36 when known; null during idle/betting. */
   targetNumber: number | null;
-  /** True during the spinning state. Triggers the wheel + ball animation. */
+  /** True during the spinning state. Drives the wheel + ball animation. */
   spinning: boolean;
   /** True after the round settles. Triggers the winning-pocket pulse. */
   settled: boolean;
@@ -17,12 +17,12 @@ export interface WheelProps {
   durationMs?: number;
   /**
    * True when `prefers-reduced-motion` is set. Used to skip non-rotation
-   * animations (pocket pulse, ball orbit transition).
+   * animations (pocket pulse).
    */
   reducedMotion?: boolean;
 }
 
-// ─── Pocket ring geometry ────────────────────────────────────────────────────
+// ─── Geometry constants ──────────────────────────────────────────────────────
 
 const POCKET_FILL: Record<PocketColor, string> = {
   red: '#a3122a',
@@ -30,15 +30,22 @@ const POCKET_FILL: Record<PocketColor, string> = {
   green: '#3dd17a',
 };
 
-const POCKET_RING_SIZE = 248;
+const WHEEL_SIZE = 320;
+const WHEEL_CENTER = WHEEL_SIZE / 2;
+
+const POCKET_RING_INSET = 36;
+const POCKET_RING_SIZE = WHEEL_SIZE - POCKET_RING_INSET * 2; // 248
 const CX = POCKET_RING_SIZE / 2;
 const CY = POCKET_RING_SIZE / 2;
 const R_OUTER = 124;
 const R_INNER = 76;
 const LABEL_R = 100;
 const ARC_DEG = 360 / 37;
-const R_BALL = (R_OUTER + R_INNER) / 2;
+const R_BALL = (R_OUTER + R_INNER) / 2; // 100 px from centre — sits inside the ball track
 const BALL_SIZE = 14;
+
+/** How many full turns the wheel does per spin. Locked at 5 by ADR-0031. */
+const SPIN_TURNS = 5;
 
 function polar(cx: number, cy: number, r: number, deg: number): { x: number; y: number } {
   const rad = ((deg - 90) * Math.PI) / 180;
@@ -62,41 +69,47 @@ function donutSlicePath(startDeg: number, endDeg: number): string {
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
-export default function Wheel({
+export default function WheelView({
   targetNumber,
   spinning,
   settled,
   durationMs = 5000,
   reducedMotion = false,
 }: WheelProps): JSX.Element {
-  // Rotation math
+  // ─── Rotation model ────────────────────────────────────────────────────────
   //
-  // Goal: when the wheel stops, the winning pocket sits under the fixed gold
-  // pointer at the top (viewport angle 0), so the pointer, the ball (rendered
-  // inside the rotating SVG below), and the RNG-decided number all visually
-  // agree.
+  // The wheel and the ball orbit independently in viewport space. Their final
+  // viewport positions must agree on the winning pocket. The math:
   //
-  // Pocket N starts at wheel-local angle θ_N (clockwise from top). After
-  // rotating the wheel by R, its viewport angle is (θ_N + R) mod 360. For
-  // pocket N to land at viewport 0 we need R ≡ −θ_N (mod 360), so use
-  // R = 5 × 360 + (360 − θ_N): the (360 − θ_N) puts the pocket under the
-  // pointer; the 5 full turns provide the spin drama.
+  //   • Pocket N's wheel-local angle is θ_N = idx * (360/37), measured
+  //     clockwise from the top.
+  //   • The wheel always ends a spin at rotation `SPIN_TURNS * 360 = 1800°`,
+  //     which is an integer multiple of 360 — pocket N therefore lands at
+  //     viewport angle θ_N (its original geometric position).
+  //   • The ball lives in its own wrapper outside the SVG. The wrapper rotates
+  //     to `θ_N - SPIN_TURNS * 360`, which mod 360 = θ_N. Visually the wrapper
+  //     spins counter-clockwise ~5 turns and lands with the ball at viewport
+  //     angle θ_N — directly over pocket N.
   //
-  // CRITICAL: rotateTarget must NOT drop the 5-turn term when the state
-  // transitions from `spinning` to `settled`. If it did, Framer Motion would
-  // see a new (smaller) target and animate the wheel backward by 5 turns
-  // during the settled state. Keeping the same value for spinning + settled
-  // means Framer Motion sees no change and the wheel stays put once the
-  // spin animation completes. The 5-turn term is dropped only when the round
-  // resets (targetNumber → null), at which point we snap to 0 instantly.
+  // Once the spin completes we drop the SPIN_TURNS term from BOTH targets:
+  //   • wheelTarget: 1800° → 0° (visually identical, snapped instantly)
+  //   • ballTarget:  (θ_N − 1800°) → θ_N (visually identical, snapped instantly)
+  //
+  // The snap uses `transition: { duration: 0 }`, so the next spin sees rest
+  // values of 0 (wheel) and θ_N_prev (ball) — letting Framer Motion run a
+  // clean forward animation for both elements.
   const targetIdx = targetNumber !== null ? POCKET_ORDER.indexOf(targetNumber) : 0;
   const thetaDeg = targetIdx * ARC_DEG;
-  const rotateTarget = targetNumber === null ? 0 : 5 * 360 + (360 - thetaDeg);
 
-  // Reduced-motion / snap path
+  const wheelTarget = spinning ? SPIN_TURNS * 360 : 0;
+  const ballTarget = targetNumber === null ? 0 : spinning ? thetaDeg - SPIN_TURNS * 360 : thetaDeg;
+
   const effectiveDurationSec = reducedMotion || durationMs === 0 ? 0 : durationMs / 1000;
+  const animateTransition =
+    spinning && effectiveDurationSec > 0
+      ? { duration: effectiveDurationSec, ease: [0.16, 1, 0.3, 1] as const }
+      : { duration: 0 };
 
-  // Pulse logic
   const pulseEnabled = settled && targetNumber !== null && !reducedMotion;
 
   return (
@@ -112,7 +125,8 @@ export default function Wheel({
       data-reduced-motion={reducedMotion}
       data-duration-ms={durationMs}
     >
-      {/* Pointer — fixed gold triangle at top */}
+      {/* Pointer — fixed gold triangle at top (decorative; the BALL indicates
+          the winner, the same way a real roulette table works). */}
       <div
         data-roulette-layer="pointer"
         className="absolute -top-3 left-1/2 z-30 -translate-x-1/2"
@@ -136,7 +150,7 @@ export default function Wheel({
         }}
       />
 
-      {/* Ball track */}
+      {/* Ball track — the recessed groove the ball runs in */}
       <div
         data-roulette-layer="ball-track"
         className="absolute inset-[22px] rounded-full"
@@ -146,21 +160,21 @@ export default function Wheel({
         }}
       />
 
-      {/* Pocket ring — 37 SVG arcs */}
-      <div data-roulette-layer="pocket-ring" className="absolute inset-[36px] rounded-full">
+      {/* Pocket ring — rotates clockwise during spin */}
+      <div
+        data-roulette-layer="pocket-ring"
+        className="absolute inset-[36px] rounded-full"
+        style={{ pointerEvents: 'none' }}
+      >
         <motion.svg
           viewBox={`0 0 ${POCKET_RING_SIZE} ${POCKET_RING_SIZE}`}
           width={POCKET_RING_SIZE}
           height={POCKET_RING_SIZE}
           className="overflow-visible"
-          data-rotate-target={rotateTarget}
+          data-rotate-target={wheelTarget}
           data-transition-duration={spinning ? effectiveDurationSec : 0}
-          animate={{ rotate: rotateTarget }}
-          transition={
-            spinning && effectiveDurationSec > 0
-              ? { duration: effectiveDurationSec, ease: [0.16, 1, 0.3, 1] }
-              : { duration: 0 }
-          }
+          animate={{ rotate: wheelTarget }}
+          transition={animateTransition}
           style={{ originX: '50%', originY: '50%', transformBox: 'fill-box' }}
         >
           <circle cx={CX} cy={CY} r={R_OUTER} fill="#0b1f17" />
@@ -216,42 +230,44 @@ export default function Wheel({
             );
           })}
           <circle cx={CX} cy={CY} r={R_INNER} fill="none" stroke="#d4af37" strokeWidth={2} />
-
-          {/* Pearl ball — rendered INSIDE the rotating SVG so it always
-              physically sits over the winning pocket regardless of rotation
-              math. Positioned at pocket N's wheel-local angular midpoint. */}
-          {targetNumber !== null &&
-            (() => {
-              const idx = POCKET_ORDER.indexOf(targetNumber);
-              const ballMidDeg = idx * ARC_DEG + ARC_DEG / 2;
-              const ballPos = polar(CX, CY, R_BALL, ballMidDeg);
-              return (
-                <g data-roulette-layer="ball" data-pocket={targetNumber} data-pocket-index={idx}>
-                  <defs>
-                    <radialGradient id="pearl-gradient" cx="0.3" cy="0.25" r="0.85">
-                      <stop offset="0%" stopColor="#ffffff" />
-                      <stop offset="30%" stopColor="#fff5e8" />
-                      <stop offset="60%" stopColor="#f0e0c8" />
-                      <stop offset="100%" stopColor="#c9b896" />
-                    </radialGradient>
-                  </defs>
-                  <circle
-                    cx={ballPos.x}
-                    cy={ballPos.y}
-                    r={BALL_SIZE / 2}
-                    fill="url(#pearl-gradient)"
-                    stroke="#fff"
-                    strokeWidth={0.5}
-                    style={{
-                      filter:
-                        'drop-shadow(0 0 4px rgba(255,255,255,0.9)) drop-shadow(0 0 8px rgba(255,220,180,0.5))',
-                    }}
-                  />
-                </g>
-              );
-            })()}
         </motion.svg>
       </div>
+
+      {/* Ball orbit wrapper — rotates counter-clockwise during spin, lives
+          OUTSIDE the SVG so its rotation is fully independent of the wheel's.
+          The ball element sits at the top of this wrapper (12-o'clock); as
+          the wrapper rotates around its centre, the ball orbits the wheel.
+
+          Final wrapper rotation = θ_N → ball lands at viewport angle θ_N,
+          which is exactly where the (rest-position) wheel renders pocket N. */}
+      {targetNumber !== null && (
+        <motion.div
+          data-roulette-layer="ball-orbit"
+          data-rotate-target={ballTarget}
+          data-transition-duration={spinning ? effectiveDurationSec : 0}
+          className="pointer-events-none absolute inset-0 z-20"
+          style={{ transformOrigin: '50% 50%' }}
+          animate={{ rotate: ballTarget }}
+          transition={animateTransition}
+        >
+          <div
+            data-roulette-layer="ball"
+            data-pocket={targetNumber}
+            data-pocket-index={targetIdx}
+            className="absolute rounded-full"
+            style={{
+              width: BALL_SIZE,
+              height: BALL_SIZE,
+              left: WHEEL_CENTER - BALL_SIZE / 2,
+              top: WHEEL_CENTER - R_BALL - BALL_SIZE / 2,
+              background:
+                'radial-gradient(circle at 30% 25%, #ffffff 0%, #fff5e8 30%, #f0e0c8 60%, #c9b896 100%)',
+              boxShadow:
+                '0 0 6px rgba(255,255,255,0.9), 0 0 12px rgba(255,220,180,0.5), 0 1px 2px rgba(0,0,0,0.4)',
+            }}
+          />
+        </motion.div>
+      )}
 
       {/* Hub */}
       <div
@@ -289,9 +305,6 @@ export default function Wheel({
           }}
         />
       </div>
-
-      {/* Ball is rendered inside the rotating <motion.svg> above so it shares
-          the pocket coordinate space. See that block for the ball element. */}
     </div>
   );
 }

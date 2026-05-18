@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useSessionStore, useCurrentUser } from '@/store/sessionStore';
 import { loginSchema, type LoginInput } from '@/systems/auth-schemas';
+import DevWipeButton from '@/components/DevWipeButton';
 
 export default function LoginPage() {
   const login = useSessionStore((s) => s.login);
@@ -97,6 +98,8 @@ export default function LoginPage() {
             Create an account
           </Link>
         </p>
+
+        <DevWipeButton />
       </form>
     </main>
   );
