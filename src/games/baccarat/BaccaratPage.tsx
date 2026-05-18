@@ -115,18 +115,21 @@ export default function BaccaratPage(): JSX.Element | null {
 
   // Wallet bridge — settle once per round when roundResult appears.
   // Uses a single placeBet + single settleRound (one rounds row per round, ADR-0016).
+  // Reads betsAtDeal (snapshot taken at DEAL time) because state.context.bets
+  // has been mutated by clearLosingBets by the time settling fires.
   const settledRef = useRef<number>(-1);
+  const betsAtDeal = state.context.betsAtDeal;
   useEffect(() => {
     if (!user) return;
     const result = state.context.roundResult;
     if (!result) return;
+    if (!betsAtDeal) return;
     if (settledRef.current === roundCount) return;
     settledRef.current = roundCount;
-    const bets = state.context.bets;
-    const payouts = computePayouts(bets, result);
-    const agg = aggregate(bets, payouts);
-    void persistRound(user.id, bets, result, payouts, agg, placeBet, settleRound);
-  }, [state.context.roundResult, roundCount, state.context.bets, user, placeBet, settleRound]);
+    const payouts = computePayouts(betsAtDeal, result);
+    const agg = aggregate(betsAtDeal, payouts);
+    void persistRound(user.id, betsAtDeal, result, payouts, agg, placeBet, settleRound);
+  }, [state.context.roundResult, roundCount, betsAtDeal, user, placeBet, settleRound]);
 
   // History for the scoreboard — from the rounds table.
   const rounds = useRecentRounds(user?.id, 'baccarat', 60);
@@ -273,7 +276,6 @@ async function persistRound(
     max: 99_999,
   });
   if (!placed.ok) {
-    // Caller checked sum vs balance before DEAL, so this should be unreachable.
     console.warn('Baccarat persistRound: placeBet failed', placed.error);
     return;
   }
