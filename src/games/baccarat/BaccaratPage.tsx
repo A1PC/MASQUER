@@ -3,11 +3,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useMachine } from '@xstate/react';
 import { useReducedMotion } from 'framer-motion';
 import GameShell from '@/games/_shared/GameShell';
+import type { RecentResultItem } from '@/games/_shared/RecentResults';
 import { useCurrentUser } from '@/store/sessionStore';
 import { useBalance, useWalletStore } from '@/store/walletStore';
 import { useRecentRounds } from '@/systems/hooks/useRecentRounds';
 import { baccaratMachine } from './machine';
-import { BET_LIMITS } from './config';
+import { BET_LIMITS, DEFAULT_CHIP, type ChipDenomination } from './config';
 import { computePayouts } from './logic';
 import { BET_ZONE_KEYS, type BetZoneKey, type Bets, type Payouts, type RoundResult } from './types';
 import HandView from './HandView';
@@ -15,6 +16,7 @@ import BetArea from './BetArea';
 import ShoeIndicator from './ShoeIndicator';
 import Scoreboard from './Scoreboard';
 import WinCelebration from './WinCelebration';
+import ChipSelector from './ChipSelector';
 
 const ANIMATIONS = `
   @keyframes baccaratJackpot { 0% { opacity: 0; } 20% { opacity: 1; } 100% { opacity: 0; } }
@@ -29,9 +31,6 @@ const ANIMATIONS = `
     100% { transform: translateY(320px); opacity: 0; }
   }
 `;
-
-// Default chip increment when clicking a zone. UI chip-denom selector can replace this later.
-const CHIP_INCREMENT = 5;
 
 interface AggregatedSettlement {
   betAmount: number;
@@ -66,6 +65,7 @@ export default function BaccaratPage(): JSX.Element | null {
   const reducedMotion = useReducedMotion() ?? false;
 
   const [state, send] = useMachine(baccaratMachine, { input: { reducedMotion } });
+  const [selectedChip, setSelectedChip] = useState<ChipDenomination>(DEFAULT_CHIP);
 
   const placeBet = useWalletStore((s) => s.placeBet);
   const settleRound = useWalletStore((s) => s.settleRound);
@@ -153,6 +153,28 @@ export default function BaccaratPage(): JSX.Element | null {
     [rounds],
   );
 
+  // Recent results for GameShell's right-rail (newest-first, matches other games).
+  const recentItems: RecentResultItem[] = useMemo(
+    () =>
+      rounds.map((r) => {
+        const d = (r.details ?? {}) as { winner?: RoundResult['winner'] };
+        const winner = d.winner ?? 'tie';
+        const badgeText = winner === 'player' ? 'P' : winner === 'banker' ? 'B' : 'T';
+        const badgeColor =
+          winner === 'player' ? '#a3122a' : winner === 'banker' ? '#5b6ed1' : '#3dd17a';
+        return {
+          key: r.id,
+          badgeText,
+          badgeColor,
+          badgeTextColor: '#fff',
+          betLabel: String(r.betAmount),
+          netChips: r.netChange,
+          accent: r.outcome,
+        };
+      }),
+    [rounds],
+  );
+
   const inBetting = state.matches('betting');
 
   const handleAddChip = useCallback(
@@ -160,12 +182,13 @@ export default function BaccaratPage(): JSX.Element | null {
       if (!inBetting) return;
       const limit = BET_LIMITS[zone];
       const current = state.context.bets[zone];
-      const next = Math.min(limit.max, current === 0 ? limit.min : current + CHIP_INCREMENT);
+      // Add the selected chip's value, clamped to the zone's max.
+      const next = Math.min(limit.max, current + selectedChip);
       const delta = next - current;
       if (delta <= 0) return;
       send({ type: 'PLACE_CHIP', zone, amount: delta });
     },
-    [inBetting, send, state.context.bets],
+    [inBetting, send, state.context.bets, selectedChip],
   );
 
   const handleClearZone = useCallback(
@@ -203,23 +226,30 @@ export default function BaccaratPage(): JSX.Element | null {
         title="🎴 BACCARAT"
         meta="8-deck shoe · 9 zones"
         game="baccarat"
+        recentItems={recentItems}
         bettingPanel={
-          <div className="mx-auto flex max-w-[800px] items-center justify-between gap-3 px-2">
-            <ShoeIndicator
-              shoe={state.context.shoe}
-              freshShoeBanner={state.context.freshShoeBanner}
-            />
-            <div className="text-xs text-white/60">
-              Bet: <span className="font-display text-gold">{totalBet}</span>
+          <div className="mx-auto flex max-w-[900px] flex-col gap-2 px-2">
+            <div className="flex items-center justify-between gap-3">
+              <ShoeIndicator
+                shoe={state.context.shoe}
+                freshShoeBanner={state.context.freshShoeBanner}
+              />
+              <div className="text-xs text-white/60">
+                Bet: <span className="font-display text-gold">{totalBet}</span> · Balance:{' '}
+                <span className="font-mono text-white/80">{balance.toLocaleString()}</span>
+              </div>
             </div>
-            <button
-              type="button"
-              onClick={handleDeal}
-              disabled={!inBetting || totalBet === 0 || totalBet > balance}
-              className="rounded bg-gold px-6 py-2 font-display text-sm tracking-wider text-felt-deep hover:bg-gold-bright disabled:opacity-40"
-            >
-              DEAL
-            </button>
+            <div className="flex items-center justify-between gap-3">
+              <ChipSelector value={selectedChip} onChange={setSelectedChip} disabled={!inBetting} />
+              <button
+                type="button"
+                onClick={handleDeal}
+                disabled={!inBetting || totalBet === 0 || totalBet > balance}
+                className="rounded bg-gold px-6 py-2 font-display text-sm tracking-wider text-felt-deep hover:bg-gold-bright disabled:opacity-40"
+              >
+                DEAL
+              </button>
+            </div>
           </div>
         }
       >

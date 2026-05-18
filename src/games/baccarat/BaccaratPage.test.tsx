@@ -48,19 +48,22 @@ describe('BaccaratPage — integration', () => {
       expect(useWalletStore.getState().balance).toBeGreaterThan(0);
     });
 
-    // Click the PLAYER bet zone — first click → 5 (min), subsequent → +5 increments.
+    // Pick the 5-chip denomination so a single click bets exactly 5.
+    const chip5 = screen.getByRole('radio', { name: /chip 5$/i });
+    await user.click(chip5);
+
+    // Click the PLAYER bet zone twice — each click adds the selected chip (5).
     // Multiple "PLAYER" texts exist (HandView label + bet zone label); target by data attribute.
     const playerZone = document.querySelector<HTMLButtonElement>(
       'button[data-zone-label="PLAYER"]',
     )!;
     await user.click(playerZone);
     await user.click(playerZone);
-    await user.click(playerZone);
 
     // Verify the bet went onto the zone.
     await waitFor(() => {
       const z = document.querySelector<HTMLButtonElement>('button[data-zone-label="PLAYER"]');
-      expect(z!.getAttribute('data-zone-amount')).toBe('15');
+      expect(z!.getAttribute('data-zone-amount')).toBe('10');
     });
 
     // Press DEAL.
