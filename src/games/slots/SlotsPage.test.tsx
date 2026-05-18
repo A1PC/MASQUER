@@ -1,5 +1,6 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import SlotsPage from './SlotsPage';
 import { seed, unseed } from '@/systems/rng';
@@ -7,6 +8,17 @@ import { useSessionStore } from '@/store/sessionStore';
 import { useWalletStore } from '@/store/walletStore';
 import { db } from '@/db';
 import type { User } from '@/db/schema';
+
+// Mock useReducedMotion to return true so totalSpinDurationMs=0 in tests,
+// making the XState machine settle immediately (no real/fake timer wait needed).
+vi.mock('framer-motion', async (importOriginal) => {
+  // eslint-disable-next-line @typescript-eslint/consistent-type-imports
+  const actual = await importOriginal<typeof import('framer-motion')>();
+  return {
+    ...actual,
+    useReducedMotion: () => true,
+  };
+});
 
 const TEST_USER: User = {
   id: 'u-test',
@@ -60,5 +72,50 @@ describe('<SlotsPage /> skeleton', () => {
       </MemoryRouter>,
     );
     expect(screen.getByRole('button', { name: /^spin$/i })).toBeDisabled();
+  });
+});
+
+describe('<SlotsPage /> wallet bridge', () => {
+  beforeEach(async () => {
+    seed(1);
+    await resetDb();
+    await hydrateUser(500);
+  });
+  afterEach(() => {
+    unseed();
+  });
+
+  it('placing a bet + spinning deducts chips and credits payout if win, records a round', async () => {
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <SlotsPage />
+      </MemoryRouter>,
+    );
+
+    // BettingPanel: chip selector + PLACE BET
+    await user.click(screen.getByRole('button', { name: /add 25 chips to bet/i }));
+    await user.click(screen.getByRole('button', { name: /place bet/i }));
+    await user.click(screen.getByRole('button', { name: /^spin$/i }));
+
+    // After placeBet: 500 - 25 = 475
+    await waitFor(() => {
+      expect(useWalletStore.getState().balance).toBe(475);
+    });
+
+    // With reducedMotion=true, totalSpinDurationMs=0, so machine settles immediately.
+    // Wait for settle to complete.
+    await waitFor(async () => {
+      const r = await db.rounds.where('userId').equals(TEST_USER.id).toArray();
+      expect(r).toHaveLength(1);
+    });
+
+    const finalRounds = await db.rounds.where('userId').equals(TEST_USER.id).toArray();
+    expect(finalRounds[0]!.game).toBe('slots');
+    expect(finalRounds[0]!.betAmount).toBe(25);
+    // Final balance = 475 + rounds[0].payout (consistency check)
+    await waitFor(() => {
+      expect(useWalletStore.getState().balance).toBe(475 + finalRounds[0]!.payout);
+    });
   });
 });
