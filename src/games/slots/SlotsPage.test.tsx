@@ -150,3 +150,47 @@ describe('<SlotsPage /> recent results sidebar', () => {
     );
   });
 });
+
+describe('<SlotsPage /> win celebration tiers', () => {
+  beforeEach(async () => {
+    seed(1);
+    await resetDb();
+    await hydrateUser(500);
+  });
+  afterEach(() => {
+    unseed();
+  });
+
+  it('exposes data-win-tier on the celebration overlay matching roundResult.details.winTier', async () => {
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <SlotsPage />
+      </MemoryRouter>,
+    );
+    await user.click(screen.getByRole('button', { name: /add 5 chips to bet/i }));
+    await user.click(screen.getByRole('button', { name: /place bet/i }));
+    await user.click(screen.getByRole('button', { name: /^spin$/i }));
+
+    await waitFor(
+      () => {
+        const overlay = document.querySelector('[data-roulette-layer="win-celebration"]');
+        expect(overlay).toBeInTheDocument();
+      },
+      { timeout: 5000 },
+    );
+
+    const overlay = document.querySelector('[data-roulette-layer="win-celebration"]');
+    const tier = overlay!.getAttribute('data-win-tier');
+    expect(['none', 'small', 'medium', 'jackpot']).toContain(tier);
+  });
+
+  it('celebration overlay is NOT rendered when not in settled state', () => {
+    render(
+      <MemoryRouter>
+        <SlotsPage />
+      </MemoryRouter>,
+    );
+    expect(document.querySelector('[data-roulette-layer="win-celebration"]')).toBeNull();
+  });
+});

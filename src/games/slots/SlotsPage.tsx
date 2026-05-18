@@ -143,67 +143,167 @@ export default function SlotsPage(): JSX.Element | null {
   if (!user) return null;
 
   return (
-    <GameShell
-      title="🎰 SLOTS"
-      meta="3 reels · 5–1000"
-      recentItems={recentItems}
-      bettingPanel={
-        <div className="mx-auto flex max-w-[640px] flex-col gap-3 px-2">
-          <BettingPanel
-            key={bettingPanelKey}
-            min={SLOTS_CONFIG.MIN_BET}
-            max={SLOTS_CONFIG.MAX_BET}
-            balance={balance}
-            onCommit={(amount) => {
-              if (inSettled) {
-                send({ type: 'NEW_ROUND' });
-                setBettingPanelKey((k) => k + 1);
-              }
-              send({ type: 'PLACE_BET', bet: amount, betHandleId: '' });
-            }}
-            callButtons={() => (
-              <div className="flex justify-center gap-3">
-                <button
-                  type="button"
-                  onClick={handleSpinClick}
-                  disabled={!inBetting || !hasBet}
-                  className="rounded-md bg-casino-red px-4 py-2 font-display text-sm tracking-wider text-white shadow-gold-glow hover:bg-casino-red-deep disabled:opacity-40"
-                >
-                  SPIN
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    send({ type: 'NEW_ROUND' });
-                    setBettingPanelKey((k) => k + 1);
-                  }}
-                  disabled={!inSettled}
-                  className="rounded-md border border-gold/40 bg-transparent px-3 py-2 text-xs text-gold-bright hover:bg-gold/10 disabled:opacity-40"
-                >
-                  New round
-                </button>
-              </div>
-            )}
-          />
-        </div>
+    <>
+      {}
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
+      @keyframes slotsJackpotTint {
+        0% { opacity: 0; }
+        20% { opacity: 1; }
+        100% { opacity: 0; }
       }
-    >
-      <div className="relative flex flex-1 flex-col items-center justify-center gap-5 px-6 py-4">
-        <Paytable winningKey={payout?.key ?? null} />
-        <div className="flex gap-3">
-          {[0, 1, 2].map((i) => (
-            <ReelView
-              key={i}
-              reelIndex={i as 0 | 1 | 2}
-              symbol={spinResult?.reels[i] ?? null}
-              spinning={inSpinning}
-              stopAtMs={SLOTS_CONFIG.REEL_STOP_TIMES_MS[i]!}
-              reducedMotion={reducedMotion}
-              winning={winning(i)}
+      @keyframes slotsMediumBurst {
+        0% { opacity: 0; transform: scale(0.6); }
+        40% { opacity: 1; transform: scale(1.1); }
+        100% { opacity: 0; transform: scale(1.3); }
+      }
+      @keyframes slotsCoinFall {
+        0% { transform: translateY(-30px); opacity: 0; }
+        20% { opacity: 1; }
+        100% { transform: translateY(260px); opacity: 0; }
+      }
+    `,
+        }}
+      />
+      <GameShell
+        title="🎰 SLOTS"
+        meta="3 reels · 5–1000"
+        recentItems={recentItems}
+        bettingPanel={
+          <div className="mx-auto flex max-w-[640px] flex-col gap-3 px-2">
+            <BettingPanel
+              key={bettingPanelKey}
+              min={SLOTS_CONFIG.MIN_BET}
+              max={SLOTS_CONFIG.MAX_BET}
+              balance={balance}
+              onCommit={(amount) => {
+                if (inSettled) {
+                  send({ type: 'NEW_ROUND' });
+                  setBettingPanelKey((k) => k + 1);
+                }
+                send({ type: 'PLACE_BET', bet: amount, betHandleId: '' });
+              }}
+              callButtons={() => (
+                <div className="flex justify-center gap-3">
+                  <button
+                    type="button"
+                    onClick={handleSpinClick}
+                    disabled={!inBetting || !hasBet}
+                    className="rounded-md bg-casino-red px-4 py-2 font-display text-sm tracking-wider text-white shadow-gold-glow hover:bg-casino-red-deep disabled:opacity-40"
+                  >
+                    SPIN
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      send({ type: 'NEW_ROUND' });
+                      setBettingPanelKey((k) => k + 1);
+                    }}
+                    disabled={!inSettled}
+                    className="rounded-md border border-gold/40 bg-transparent px-3 py-2 text-xs text-gold-bright hover:bg-gold/10 disabled:opacity-40"
+                  >
+                    New round
+                  </button>
+                </div>
+              )}
             />
-          ))}
+          </div>
+        }
+      >
+        <div className="relative flex flex-1 flex-col items-center justify-center gap-5 px-6 py-4">
+          <Paytable winningKey={payout?.key ?? null} />
+          <div className="flex gap-3">
+            {[0, 1, 2].map((i) => (
+              <ReelView
+                key={i}
+                reelIndex={i as 0 | 1 | 2}
+                symbol={spinResult?.reels[i] ?? null}
+                spinning={inSpinning}
+                stopAtMs={SLOTS_CONFIG.REEL_STOP_TIMES_MS[i]!}
+                reducedMotion={reducedMotion}
+                winning={winning(i)}
+              />
+            ))}
+          </div>
+          {inSettled && (
+            <WinCelebration
+              tier={roundResult?.details.winTier ?? 'none'}
+              netChange={roundResult?.netChange ?? 0}
+              reducedMotion={reducedMotion}
+            />
+          )}
         </div>
-      </div>
-    </GameShell>
+      </GameShell>
+    </>
+  );
+}
+
+function WinCelebration({
+  tier,
+  netChange,
+  reducedMotion,
+}: {
+  tier: 'none' | 'small' | 'medium' | 'jackpot';
+  netChange: number;
+  reducedMotion: boolean;
+}): JSX.Element {
+  // Always render the container (so tests can find it by data-roulette-layer).
+  // Only render visual content for non-none tiers.
+  const isJackpot = tier === 'jackpot';
+  const hasVisual = tier !== 'none';
+  const verdict =
+    netChange > 0
+      ? `You won $${netChange}`
+      : netChange < 0
+        ? `You lost $${Math.abs(netChange)}`
+        : 'Even';
+
+  return (
+    <div
+      data-roulette-layer="win-celebration"
+      data-win-tier={tier}
+      className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center"
+    >
+      {isJackpot && !reducedMotion && (
+        <div
+          aria-hidden
+          className="absolute inset-0"
+          style={{
+            background: 'radial-gradient(circle, rgba(255,92,242,0.18) 0%, transparent 70%)',
+            animation: 'slotsJackpotTint 1500ms ease-out',
+          }}
+        />
+      )}
+
+      {tier === 'medium' && !reducedMotion && (
+        <div
+          aria-hidden
+          className="absolute"
+          style={{
+            width: 320,
+            height: 80,
+            background:
+              'radial-gradient(ellipse at center, rgba(255,224,102,0.5) 0%, transparent 70%)',
+            animation: 'slotsMediumBurst 800ms ease-out',
+          }}
+        />
+      )}
+
+      {hasVisual && (
+        <div
+          className="rounded-md border px-5 py-2 font-display text-sm tracking-wider"
+          style={{
+            borderColor: isJackpot ? '#ff5cf2' : '#d4af37',
+            background: '#06120c',
+            color: isJackpot ? '#ff5cf2' : '#ffe066',
+            textShadow: isJackpot ? '0 0 8px rgba(255,92,242,0.8)' : 'none',
+            marginTop: -200,
+          }}
+        >
+          {isJackpot ? `JACKPOT! $${netChange}` : verdict}
+        </div>
+      )}
+    </div>
   );
 }
