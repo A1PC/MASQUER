@@ -1,6 +1,6 @@
 import { pickSymbol } from './symbols';
-import { SLOTS_CONFIG, SLOTS_PAYTABLE } from './config';
-import type { PayoutHit, SpinResult, WinTier } from './types';
+import { SLOTS_CONFIG, SLOTS_PAYTABLE, SLOTS_WEIGHTS } from './config';
+import type { PayoutHit, SlotsRoundDetails, SpinResult, WinTier } from './types';
 
 /** Spin all 3 reels independently. Pure modulo `rng`. */
 export function spin(): SpinResult {
@@ -42,4 +42,37 @@ export function settleSpin(spinResult: SpinResult): PayoutHit | null {
   }
 
   return null;
+}
+
+export function buildRoundResult(input: { spin: SpinResult; bet: number }): {
+  outcome: 'win' | 'loss' | 'push';
+  betAmount: number;
+  payout: number;
+  netChange: number;
+  details: SlotsRoundDetails;
+} {
+  const hit = settleSpin(input.spin);
+  const grossReturn = hit ? input.bet * hit.multiple : 0;
+  const netChange = grossReturn - input.bet;
+  // Slots can never push exactly (multiples are 0/2/5/8/12/20/50). The 'push'
+  // branch exists for RoundResult.outcome type compatibility only.
+  const outcome: 'win' | 'loss' | 'push' = netChange > 0 ? 'win' : netChange < 0 ? 'loss' : 'push';
+
+  return {
+    outcome,
+    betAmount: input.bet,
+    payout: grossReturn,
+    netChange,
+    details: {
+      spin: input.spin,
+      payout: hit,
+      bet: input.bet,
+      winTier: winTierOf(hit?.multiple ?? null),
+      config: {
+        weights: SLOTS_WEIGHTS,
+        minBet: SLOTS_CONFIG.MIN_BET,
+        maxBet: SLOTS_CONFIG.MAX_BET,
+      },
+    },
+  };
 }

@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { seed, unseed } from '@/systems/rng';
-import { spin, winTierOf, settleSpin } from './logic';
+import { spin, winTierOf, settleSpin, buildRoundResult } from './logic';
+import { SLOTS_WEIGHTS, SLOTS_CONFIG } from './config';
 import type { Symbol } from './types';
 
 function spinOf(a: Symbol, b: Symbol, c: Symbol) {
@@ -128,5 +129,62 @@ describe('settleSpin', () => {
       multiple: mult,
       winningReelIndices: [0, 1, 2],
     });
+  });
+});
+
+describe('buildRoundResult', () => {
+  it('losing spin: outcome=loss, payout=0, netChange = -bet', () => {
+    const r = buildRoundResult({ spin: spinOf('cherry', 'lemon', 'bell'), bet: 10 });
+    expect(r.outcome).toBe('loss');
+    expect(r.betAmount).toBe(10);
+    expect(r.payout).toBe(0);
+    expect(r.netChange).toBe(-10);
+    expect(r.details.spin.reels).toEqual(['cherry', 'lemon', 'bell']);
+    expect(r.details.payout).toBeNull();
+    expect(r.details.winTier).toBe('none');
+  });
+
+  it('2-cherry win: outcome=win, payout=bet×2', () => {
+    const r = buildRoundResult({ spin: spinOf('cherry', 'cherry', 'lemon'), bet: 25 });
+    expect(r.outcome).toBe('win');
+    expect(r.betAmount).toBe(25);
+    expect(r.payout).toBe(50);
+    expect(r.netChange).toBe(25);
+    expect(r.details.payout?.key).toBe('two-cherry');
+    expect(r.details.winTier).toBe('small');
+  });
+
+  it('3-of-kind lemon: outcome=win, payout=bet×8, winTier=medium', () => {
+    const r = buildRoundResult({ spin: spinOf('lemon', 'lemon', 'lemon'), bet: 10 });
+    expect(r.outcome).toBe('win');
+    expect(r.payout).toBe(80);
+    expect(r.netChange).toBe(70);
+    expect(r.details.payout?.key).toBe('lemon-lemon-lemon');
+    expect(r.details.winTier).toBe('medium');
+  });
+
+  it('3-of-kind bar: payout=bet×20, winTier=medium (at boundary)', () => {
+    const r = buildRoundResult({ spin: spinOf('bar', 'bar', 'bar'), bet: 10 });
+    expect(r.payout).toBe(200);
+    expect(r.details.winTier).toBe('medium');
+  });
+
+  it('3-of-kind seven: payout=bet×50, winTier=jackpot', () => {
+    const r = buildRoundResult({ spin: spinOf('seven', 'seven', 'seven'), bet: 100 });
+    expect(r.payout).toBe(5_000);
+    expect(r.netChange).toBe(4_900);
+    expect(r.details.winTier).toBe('jackpot');
+  });
+
+  it('snapshots the config (weights + bet limits) into details', () => {
+    const r = buildRoundResult({ spin: spinOf('cherry', 'lemon', 'bell'), bet: 5 });
+    expect(r.details.config.weights).toEqual(SLOTS_WEIGHTS);
+    expect(r.details.config.minBet).toBe(SLOTS_CONFIG.MIN_BET);
+    expect(r.details.config.maxBet).toBe(SLOTS_CONFIG.MAX_BET);
+  });
+
+  it('details.bet matches the input bet', () => {
+    const r = buildRoundResult({ spin: spinOf('lemon', 'lemon', 'lemon'), bet: 42 });
+    expect(r.details.bet).toBe(42);
   });
 });
