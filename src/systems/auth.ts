@@ -13,8 +13,8 @@ import { WALLET_CONFIG } from '@/systems/wallet';
 
 const SESSION_KEY = 'localGamble.session.userId';
 
-export type RegisterError = 'username_taken' | 'unknown';
-export type LoginError = 'invalid_credentials' | 'unknown';
+export type RegisterError = 'username_taken' | 'reserved_username' | 'unknown';
+export type LoginError = 'invalid_credentials' | 'banned' | 'unknown';
 
 export type RegisterResult = { ok: true; user: User } | { ok: false; error: RegisterError };
 
@@ -25,6 +25,9 @@ export async function register(input: {
   password: string;
 }): Promise<RegisterResult> {
   const trimmed = input.username.trim();
+  if (trimmed.toLowerCase() === 'admin') {
+    return { ok: false, error: 'reserved_username' };
+  }
   const usernameLower = trimmed.toLowerCase();
   const salt = generateSalt();
   const hash = await deriveKey(input.password, salt, PASSWORD_HASHING.iterations);
@@ -60,6 +63,14 @@ export async function register(input: {
 
 export async function login(input: { username: string; password: string }): Promise<LoginResult> {
   const usernameLower = input.username.trim().toLowerCase();
+  if (usernameLower === 'admin') {
+    // Reserved — short-circuit to invalid_credentials without leaking the
+    // reservation via a distinct error. Run the KDF anyway to keep timing
+    // consistent with the normal-failure path.
+    const salt = generateSalt();
+    await deriveKey(input.password, salt, PASSWORD_HASHING.iterations);
+    return { ok: false, error: 'invalid_credentials' };
+  }
   const user = await db.users.where('usernameLower').equals(usernameLower).first();
   const salt = user ? base64ToBytes(user.passwordSalt) : generateSalt();
   const iters = user?.pbkdf2Iterations ?? PASSWORD_HASHING.iterations;
@@ -70,6 +81,10 @@ export async function login(input: { username: string; password: string }): Prom
   const storedHash = base64ToBytes(user.passwordHash);
   if (!timingSafeEqual(candidateHash, storedHash)) {
     return { ok: false, error: 'invalid_credentials' };
+  }
+
+  if (user.isBanned === true) {
+    return { ok: false, error: 'banned' };
   }
 
   setStoredSession(user.id);

@@ -208,6 +208,7 @@ export default function BlackjackPage(): JSX.Element | null {
     <GameShell
       title="🃏 BLACKJACK"
       meta="3:2 BJ · H17 · 5–1000"
+      game="blackjack"
       recentItems={items}
       bettingPanel={bottomPanel}
     >

@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import type { JSX } from 'react';
 import { useEffect } from 'react';
+import { db } from '@/db';
 import { useSessionStore } from '@/store/sessionStore';
 import { useWalletStore } from '@/store/walletStore';
 
@@ -23,6 +24,26 @@ export default function AppBootstrap({ children }: Props): JSX.Element {
     if (currentUser) void hydrateWallet(currentUser.id);
     else clearWallet();
   }, [currentUser, hydrateWallet, clearWallet]);
+
+  useEffect(() => {
+    const handler = () => {
+      const sid = useSessionStore.getState().currentSessionId;
+      if (!sid) return;
+      const now = Date.now();
+      // Fire-and-forget — beforeunload cannot await. The orphan-cleanup path
+      // in sessionStore.login is the safety net if this write is aborted.
+      void db.sessions.get(sid).then((s) => {
+        if (s && s.logoutAt === null) {
+          return db.sessions.update(sid, {
+            logoutAt: now,
+            durationMs: now - s.loginAt,
+          });
+        }
+      });
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, []);
 
   if (bootstrapping) {
     return (

@@ -1,6 +1,10 @@
 import type { JSX, ReactNode } from 'react';
 import { Link } from 'react-router';
+import type { Round } from '@/db';
 import RecentResults, { type RecentResultItem } from './RecentResults';
+import { useGameVisit } from './useGameVisit';
+
+type Game = Round['game'];
 
 interface Props {
   title: string;
@@ -8,6 +12,8 @@ interface Props {
   recentItems?: RecentResultItem[];
   bettingPanel: ReactNode;
   children: ReactNode;
+  /** Required for visit tracking. Pass the same key used in db.rounds.game. */
+  game: Game;
 }
 
 export default function GameShell({
@@ -16,7 +22,9 @@ export default function GameShell({
   recentItems,
   bettingPanel,
   children,
+  game,
 }: Props): JSX.Element {
+  useGameVisit(game);
   return (
     <div className="flex h-full flex-col">
       <div className="flex flex-1 overflow-hidden">
