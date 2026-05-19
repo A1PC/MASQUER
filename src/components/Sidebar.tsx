@@ -1,6 +1,9 @@
 import type { JSX } from 'react';
+import { useEffect } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
-import { NavLink } from 'react-router';
+import { NavLink, useLocation } from 'react-router';
+import { useCurrentUser } from '@/store/sessionStore';
+import { markDrawSeen, useLatestDrawId, useUnreadDot } from '@/systems/lottery-unread';
 
 interface Props {
   collapsed: boolean;
@@ -29,6 +32,17 @@ const YOU: NavItemDef[] = [
 
 export default function Sidebar({ collapsed }: Props): JSX.Element {
   const reduce = useReducedMotion();
+  const user = useCurrentUser();
+  const lastDrawId = useLatestDrawId();
+  const hasUnread = useUnreadDot(user?.id ?? null);
+  const location = useLocation();
+
+  useEffect(() => {
+    if (location.pathname === '/lottery' && user?.id && lastDrawId) {
+      markDrawSeen(user.id, lastDrawId);
+    }
+  }, [location.pathname, user?.id, lastDrawId]);
+
   return (
     <motion.aside
       animate={{ width: collapsed ? 0 : 200 }}
@@ -42,6 +56,25 @@ export default function Sidebar({ collapsed }: Props): JSX.Element {
         {GAMES.map((item) => (
           <NavItem key={item.to} item={item} />
         ))}
+        <NavLink
+          to="/lottery"
+          className={({ isActive }) =>
+            `flex items-center justify-between px-4 py-2 text-[13px] transition-colors ${
+              isActive
+                ? 'border-l-[3px] border-gold-bright bg-gold-bright/10 text-gold-bright'
+                : 'text-white hover:bg-white/5'
+            }`
+          }
+        >
+          <span>🎟️ LOTTERY</span>
+          {hasUnread && (
+            <span
+              data-testid="unread-dot"
+              className="ml-1 inline-block h-2 w-2 rounded-full bg-casino-red"
+              aria-label="New lottery draw"
+            />
+          )}
+        </NavLink>
         <Divider />
         <SectionLabel>YOU</SectionLabel>
         {YOU.map((item) => (
