@@ -2,9 +2,12 @@ import type { JSX } from 'react';
 import { useParams } from 'react-router';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useCurrentUser } from '@/store/sessionStore';
+import { useStatsViewMode } from '@/store/uiStore';
 import type { Round } from '@/db';
 import { getLeaderboard, type LeaderboardRow } from '@/systems/stats';
 import EmptyState from '@/pages/stats/EmptyState';
+import BoardBar from '@/components/charts/BoardBar';
+import { formatChips, formatSignedChips } from '@/pages/stats/formatters';
 import Board from './Board';
 
 type Game = Round['game'];
@@ -43,6 +46,8 @@ export default function LeaderboardPerGamePage(): JSX.Element | null {
     EMPTY,
   );
 
+  const mode = useStatsViewMode();
+
   if (!user || !game) return null;
 
   const allEmpty =
@@ -53,6 +58,36 @@ export default function LeaderboardPerGamePage(): JSX.Element | null {
   }
 
   const label = GAME_LABELS[game] ?? game;
+
+  if (mode === 'graphs') {
+    return (
+      <div className="flex flex-col gap-6">
+        <section>
+          <h2 className="mb-2 font-display text-xs tracking-wider text-white/60">
+            {label} — BEST PLAYER
+          </h2>
+          <BoardBar rows={netWinner} currentUserId={user.id} formatValue={formatSignedChips} />
+        </section>
+        <section>
+          <h2 className="mb-2 font-display text-xs tracking-wider text-white/60">
+            {label} — BIGGEST SINGLE WIN
+          </h2>
+          <BoardBar
+            rows={biggestSingleWin}
+            currentUserId={user.id}
+            formatValue={formatSignedChips}
+          />
+        </section>
+        <section>
+          <h2 className="mb-2 font-display text-xs tracking-wider text-white/60">
+            {label} — MOST ROUNDS PLAYED
+          </h2>
+          <BoardBar rows={mostRounds} currentUserId={user.id} formatValue={formatChips} />
+        </section>
+      </div>
+    );
+  }
+
   return (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
       <Board title={`${label} — BEST PLAYER`} rows={netWinner} currentUserId={user.id} />
