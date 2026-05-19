@@ -1,5 +1,5 @@
 import type { JSX } from 'react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useCurrentUser } from '@/store/sessionStore';
 import { useBalance } from '@/store/walletStore';
 import { buyTicket } from '@/systems/lottery';
@@ -8,6 +8,10 @@ import TicketCart from './TicketCart';
 import FavoritesDropdown from './FavoritesDropdown';
 import { useLotteryCart } from './useLotteryCart';
 import DrawAnimationModal, { type PurchaseRevealLine } from './DrawAnimationModal';
+import HeroSection from './HeroSection';
+import { useLotteryBackfill } from './useLotteryBackfill';
+import { db } from '@/db';
+import type { LotteryDraw, LotteryLine } from '@/db';
 
 const LINE_COST = 10;
 
@@ -20,6 +24,29 @@ export default function LotteryPage(): JSX.Element | null {
   const [addError, setAddError] = useState<string | null>(null);
   const [purchaseMessage, setPurchaseMessage] = useState<string | null>(null);
   const [revealLines, setRevealLines] = useState<PurchaseRevealLine[] | null>(null);
+
+  const { freshDraws } = useLotteryBackfill();
+  const [drawModalDraws, setDrawModalDraws] = useState<
+    Array<{ draw: LotteryDraw; userLines: LotteryLine[] }>
+  >([]);
+
+  useEffect(() => {
+    if (freshDraws.length === 0) return;
+    if (!user) return;
+    const userId = user.id;
+    void (async () => {
+      const enriched = await Promise.all(
+        freshDraws.map(async (d) => {
+          const userLines = await db.lotteryLines
+            .where('[userId+drawId]')
+            .equals([userId, d.id])
+            .toArray();
+          return { draw: d, userLines };
+        }),
+      );
+      setDrawModalDraws(enriched);
+    })();
+  }, [freshDraws, user]);
 
   if (!user) return null;
 
@@ -90,12 +117,7 @@ export default function LotteryPage(): JSX.Element | null {
           </span>
         </header>
 
-        <section
-          data-hero-placeholder
-          className="mb-6 rounded border border-dashed border-gold/40 bg-felt-deep p-6 text-center text-sm text-white/50"
-        >
-          HERO countdown ↔ winning balls — ships in PR D.
-        </section>
+        <HeroSection />
 
         <section className="grid grid-cols-1 gap-6 md:grid-cols-3">
           <div className="md:col-span-2 flex flex-col gap-4">
@@ -159,6 +181,12 @@ export default function LotteryPage(): JSX.Element | null {
           open={revealLines !== null}
           lines={revealLines ?? []}
           onClose={() => setRevealLines(null)}
+        />
+        <DrawAnimationModal
+          mode="draw"
+          open={drawModalDraws.length > 0}
+          draws={drawModalDraws}
+          onClose={() => setDrawModalDraws([])}
         />
       </main>
     </div>

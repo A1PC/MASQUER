@@ -41,7 +41,6 @@ describe('LotteryPage shell', () => {
       </MemoryRouter>,
     );
     expect(screen.getByRole('heading', { name: /daily lottery/i })).toBeInTheDocument();
-    expect(screen.getByText(/HERO countdown/i)).toBeInTheDocument();
     expect(screen.getByText(/History slide/i)).toBeInTheDocument();
   });
 
@@ -104,5 +103,46 @@ describe('LotteryPage shell', () => {
     await user.click(screen.getByRole('button', { name: /add lucky dip/i }));
     await user.click(screen.getByRole('button', { name: /buy ticket/i }));
     await waitFor(() => expect(screen.getByText(/ticket purchased/i)).toBeInTheDocument());
+  });
+
+  it('opens the draw reveal modal when there are fresh missed draws', async () => {
+    const r = await register({ username: 'backfill', password: 'password123' });
+    if (!r.ok) throw new Error();
+    useSessionStore.setState({ currentUser: r.user });
+    // Seed an unsettled line for yesterday by writing directly to Dexie
+    const yesterdayDate = new Date();
+    yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+    const y = yesterdayDate.getFullYear();
+    const m = String(yesterdayDate.getMonth() + 1).padStart(2, '0');
+    const d = String(yesterdayDate.getDate()).padStart(2, '0');
+    const drawId = `${y}-${m}-${d}`;
+    const ticketId = crypto.randomUUID();
+    await db.lotteryTickets.put({
+      id: ticketId,
+      userId: r.user.id,
+      drawId,
+      purchasedAt: yesterdayDate.getTime(),
+      totalCost: 10,
+      lineCount: 1,
+    });
+    await db.lotteryLines.put({
+      id: crypto.randomUUID(),
+      ticketId,
+      userId: r.user.id,
+      drawId,
+      mainNumbers: [1, 2, 3, 4, 5],
+      bonusNumber: 1,
+      isLuckyDip: false,
+      isFreeReentry: false,
+      settled: false,
+      matchTier: null,
+      payout: 0,
+    });
+    render(
+      <MemoryRouter>
+        <LotteryPage />
+      </MemoryRouter>,
+    );
+    await waitFor(() => expect(screen.getByText(/DRAW /i)).toBeInTheDocument(), { timeout: 3000 });
   });
 });
