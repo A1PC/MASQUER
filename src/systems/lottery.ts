@@ -504,3 +504,48 @@ export async function renameFavorite(id: string, name: string): Promise<void> {
 export async function deleteFavorite(id: string): Promise<void> {
   await db.lotteryFavorites.delete(id);
 }
+
+export interface LotteryAdminStats {
+  ticketsSoldToday: number;
+  linesSoldToday: number;
+  totalRevenue: number;
+  totalPayout: number;
+  netProfit: number;
+}
+
+export async function getLotteryAdminStats(now: number = Date.now()): Promise<LotteryAdminStats> {
+  const today = dateStringFor(now);
+  const todayTickets = await db.lotteryTickets.where('drawId').equals(today).toArray();
+  const ticketsSoldToday = todayTickets.length;
+  const linesSoldToday = todayTickets.reduce((s, t) => s + t.lineCount, 0);
+  const allDraws = await db.lotteryDraws.toArray();
+  let totalRevenue = 0;
+  let totalPayout = 0;
+  for (const d of allDraws) {
+    totalRevenue += d.totalRevenue;
+    totalPayout += d.totalPayout;
+  }
+  return {
+    ticketsSoldToday,
+    linesSoldToday,
+    totalRevenue,
+    totalPayout,
+    netProfit: totalRevenue - totalPayout,
+  };
+}
+
+/** Returns array of length MAIN_POOL_SIZE (or BONUS_POOL_SIZE) where index i = times
+ *  number (i+1) appeared in a draw, historically. */
+export async function getNumberFrequency(pool: 'main' | 'bonus'): Promise<number[]> {
+  const size = pool === 'main' ? MAIN_POOL_SIZE : BONUS_POOL_SIZE;
+  const freq = new Array<number>(size).fill(0);
+  const draws = await db.lotteryDraws.toArray();
+  for (const d of draws) {
+    if (pool === 'main') {
+      for (const n of d.mainNumbers) freq[n - 1]! += 1;
+    } else {
+      freq[d.bonus - 1]! += 1;
+    }
+  }
+  return freq;
+}

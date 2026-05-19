@@ -16,6 +16,8 @@ import {
   listFavorites,
   renameFavorite,
   deleteFavorite,
+  getLotteryAdminStats,
+  getNumberFrequency,
 } from './lottery';
 
 const SESSION_KEY = 'localGamble.session.userId';
@@ -484,5 +486,58 @@ describe('Favorites CRUD', () => {
     });
     const fav = (await listFavorites(r.user.id))[0]!;
     expect(fav.mainNumbers).toEqual([1, 2, 3, 4, 5]);
+  });
+});
+
+describe('admin queries', () => {
+  beforeEach(async () => {
+    await resetDb();
+    localStorage.removeItem(SESSION_KEY);
+  });
+
+  it('getLotteryAdminStats reports today + lifetime totals', async () => {
+    const r = await register({ username: 'a', password: 'password123' });
+    if (!r.ok) throw new Error();
+    await buyTicket({
+      userId: r.user.id,
+      lines: [
+        { kind: 'manual', mainNumbers: [1, 2, 3, 4, 5], bonusNumber: 1 },
+        { kind: 'manual', mainNumbers: [6, 7, 8, 9, 10], bonusNumber: 2 },
+      ],
+      now: new Date(2026, 4, 19, 12, 0, 0).getTime(),
+    });
+    await settleMissedDraws({ now: new Date(2026, 4, 19, 20, 30, 0).getTime() });
+    const stats = await getLotteryAdminStats(new Date(2026, 4, 19, 21, 0, 0).getTime());
+    expect(stats.ticketsSoldToday).toBe(1);
+    expect(stats.linesSoldToday).toBe(2);
+    expect(stats.totalRevenue).toBe(20);
+    expect(stats.netProfit).toBe(stats.totalRevenue - stats.totalPayout);
+  });
+
+  it('getNumberFrequency returns 0s when no draws have happened', async () => {
+    const freq = await getNumberFrequency('main');
+    expect(freq).toHaveLength(50);
+    expect(freq.every((n) => n === 0)).toBe(true);
+  });
+
+  it('getNumberFrequency increments for each drawn number across history', async () => {
+    const r = await register({ username: 'b', password: 'password123' });
+    if (!r.ok) throw new Error();
+    await buyTicket({
+      userId: r.user.id,
+      lines: [{ kind: 'manual', mainNumbers: [1, 2, 3, 4, 5], bonusNumber: 1 }],
+      now: new Date(2026, 4, 18, 12, 0, 0).getTime(),
+    });
+    await buyTicket({
+      userId: r.user.id,
+      lines: [{ kind: 'manual', mainNumbers: [1, 2, 3, 4, 5], bonusNumber: 1 }],
+      now: new Date(2026, 4, 19, 12, 0, 0).getTime(),
+    });
+    await settleMissedDraws({ now: new Date(2026, 4, 19, 20, 30, 0).getTime() });
+    const freq = await getNumberFrequency('main');
+    const total = freq.reduce((s, n) => s + n, 0);
+    expect(total).toBe(10); // 2 draws × 5 main numbers
+    const bonusFreq = await getNumberFrequency('bonus');
+    expect(bonusFreq.reduce((s, n) => s + n, 0)).toBe(2);
   });
 });
