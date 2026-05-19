@@ -34,6 +34,31 @@ describe('LeaderboardPerGamePage', () => {
     expect(await screen.findByText(/no blackjack rounds yet/i)).toBeInTheDocument();
   });
 
+  it('renders 3 bar-chart sections in Graphs view for the scoped game', async () => {
+    const r = await register({ username: 'gview2', password: 'password123' });
+    if (!r.ok) throw new Error();
+    useSessionStore.setState({ currentUser: r.user });
+    const { useUIStore } = await import('@/store/uiStore');
+    useUIStore.setState({ statsViewMode: 'graphs' });
+    await db.rounds.add({
+      id: 'r-1',
+      userId: r.user.id,
+      game: 'roulette',
+      betAmount: 25,
+      payout: 50,
+      netChange: 25,
+      outcome: 'win',
+      details: {},
+      balanceAfter: 1025,
+      playedAt: 1000,
+    });
+    renderAt('roulette');
+    await waitFor(() => expect(screen.getByText(/ROULETTE — BEST PLAYER/i)).toBeInTheDocument());
+    expect(screen.getByText(/ROULETTE — BIGGEST SINGLE WIN/i)).toBeInTheDocument();
+    expect(screen.getByText(/ROULETTE — MOST ROUNDS PLAYED/i)).toBeInTheDocument();
+    useUIStore.setState({ statsViewMode: 'cards' });
+  });
+
   it('renders 3 game-scoped boards when data exists', async () => {
     const r = await register({ username: 'me', password: 'password123' });
     if (!r.ok) throw new Error();

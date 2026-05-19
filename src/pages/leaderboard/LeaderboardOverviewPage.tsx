@@ -1,8 +1,11 @@
 import type { JSX } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useCurrentUser } from '@/store/sessionStore';
+import { useStatsViewMode } from '@/store/uiStore';
 import { getLeaderboard, type LeaderboardRow } from '@/systems/stats';
 import EmptyState from '@/pages/stats/EmptyState';
+import BoardBar from '@/components/charts/BoardBar';
+import { formatChips, formatSignedChips } from '@/pages/stats/formatters';
 import Board from './Board';
 
 const EMPTY: readonly LeaderboardRow[] = [];
@@ -24,6 +27,8 @@ export default function LeaderboardOverviewPage(): JSX.Element | null {
   );
   const mostVariety = useLiveQuery(() => getLeaderboard('mostVariety', undefined, 100), [], EMPTY);
 
+  const mode = useStatsViewMode();
+
   if (!user) return null;
 
   const allEmpty =
@@ -33,6 +38,45 @@ export default function LeaderboardOverviewPage(): JSX.Element | null {
     longestWinStreak.length === 0 &&
     mostVariety.length === 0;
   if (allEmpty) return <EmptyState />;
+
+  if (mode === 'graphs') {
+    return (
+      <div className="flex flex-col gap-6">
+        <section>
+          <h2 className="mb-2 font-display text-xs tracking-wider text-white/60">
+            BIGGEST NET WINNER
+          </h2>
+          <BoardBar rows={netWinner} currentUserId={user.id} formatValue={formatSignedChips} />
+        </section>
+        <section>
+          <h2 className="mb-2 font-display text-xs tracking-wider text-white/60">
+            MOST ROUNDS PLAYED
+          </h2>
+          <BoardBar rows={mostRounds} currentUserId={user.id} formatValue={formatChips} />
+        </section>
+        <section>
+          <h2 className="mb-2 font-display text-xs tracking-wider text-white/60">
+            BIGGEST SINGLE WIN
+          </h2>
+          <BoardBar
+            rows={biggestSingleWin}
+            currentUserId={user.id}
+            formatValue={formatSignedChips}
+          />
+        </section>
+        <section>
+          <h2 className="mb-2 font-display text-xs tracking-wider text-white/60">
+            LONGEST WIN STREAK
+          </h2>
+          <BoardBar rows={longestWinStreak} currentUserId={user.id} formatValue={formatChips} />
+        </section>
+        <section>
+          <h2 className="mb-2 font-display text-xs tracking-wider text-white/60">MOST VARIETY</h2>
+          <BoardBar rows={mostVariety} currentUserId={user.id} />
+        </section>
+      </div>
+    );
+  }
 
   return (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">

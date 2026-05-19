@@ -59,6 +59,39 @@ describe('LeaderboardOverviewPage', () => {
     expect(screen.getByText('MOST VARIETY')).toBeInTheDocument();
   });
 
+  it('renders 5 bar-chart sections in Graphs view', async () => {
+    const r = await register({ username: 'gview', password: 'password123' });
+    if (!r.ok) throw new Error();
+    useSessionStore.setState({ currentUser: r.user });
+    // Switch to graphs mode
+    const { useUIStore } = await import('@/store/uiStore');
+    useUIStore.setState({ statsViewMode: 'graphs' });
+    await db.rounds.add({
+      id: 'r-1',
+      userId: r.user.id,
+      game: 'blackjack',
+      betAmount: 50,
+      payout: 100,
+      netChange: 50,
+      outcome: 'win',
+      details: {},
+      balanceAfter: 1050,
+      playedAt: 1000,
+    });
+    render(
+      <MemoryRouter>
+        <LeaderboardOverviewPage />
+      </MemoryRouter>,
+    );
+    await waitFor(() => expect(screen.getByText('BIGGEST NET WINNER')).toBeInTheDocument());
+    expect(screen.getByText('MOST ROUNDS PLAYED')).toBeInTheDocument();
+    expect(screen.getByText('BIGGEST SINGLE WIN')).toBeInTheDocument();
+    expect(screen.getByText('LONGEST WIN STREAK')).toBeInTheDocument();
+    expect(screen.getByText('MOST VARIETY')).toBeInTheDocument();
+    // Reset for other tests
+    useUIStore.setState({ statsViewMode: 'cards' });
+  });
+
   it('excludes banned users from boards', async () => {
     const me = await register({ username: 'me', password: 'password123' });
     const cheater = await register({ username: 'cheater', password: 'password123' });
