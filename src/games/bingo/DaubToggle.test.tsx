@@ -1,28 +1,24 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import DaubToggle from './DaubToggle';
 
 describe('DaubToggle', () => {
-  it('renders two radios with the current mode checked', () => {
-    render(<DaubToggle mode="auto" onToggle={() => {}} />);
-    expect(screen.getByRole('radio', { name: /auto/i })).toHaveAttribute('aria-checked', 'true');
-    expect(screen.getByRole('radio', { name: /manual/i })).toHaveAttribute('aria-checked', 'false');
+  it('renders auto label', () => {
+    render(<DaubToggle mode="auto" onToggle={vi.fn()} />);
+    expect(screen.getByText('AUTO')).toBeInTheDocument();
   });
 
-  it('fires onToggle when clicking the inactive radio', async () => {
+  it('fires onToggle when clicked', async () => {
     const onToggle = vi.fn();
-    const user = userEvent.setup();
     render(<DaubToggle mode="auto" onToggle={onToggle} />);
-    await user.click(screen.getByRole('radio', { name: /manual/i }));
-    expect(onToggle).toHaveBeenCalledOnce();
+    await userEvent.click(screen.getByRole('switch'));
+    expect(onToggle).toHaveBeenCalled();
   });
 
-  it('does not fire onToggle when clicking the active radio', async () => {
-    const onToggle = vi.fn();
-    const user = userEvent.setup();
-    render(<DaubToggle mode="auto" onToggle={onToggle} />);
-    await user.click(screen.getByRole('radio', { name: /auto/i }));
-    expect(onToggle).not.toHaveBeenCalled();
+  it('disabled state renders MANUAL (locked) and is not a button', () => {
+    render(<DaubToggle mode="manual" onToggle={vi.fn()} disabled disabledReason="Hard locked" />);
+    expect(screen.getByText(/MANUAL \(locked\)/)).toBeInTheDocument();
+    expect(screen.queryByRole('switch')).toBeNull();
   });
 });

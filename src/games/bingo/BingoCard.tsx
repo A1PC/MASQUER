@@ -1,82 +1,99 @@
-// STUB: BingoCard is intentionally simplified for PR A.
-// PR C will rewrite this for variant-aware rendering (3×9 and 5×5).
 import type { JSX } from 'react';
-import type { BingoCard as BingoCardType } from './logic';
+import type { BingoCard as BingoCardType, Variant } from './logic';
+import { VARIANTS } from './logic';
 
 interface Props {
   card: BingoCardType;
   daubed: boolean[][];
-  achievedTiers: ReadonlySet<string>;
-  /** Called when a cell is clicked. Only enabled in manual mode. */
+  variant: Variant;
+  size?: 'large' | 'mini';
   onCellClick?: (row: number, col: number) => void;
-  /** Whether manual mode is active (shows the click hint). */
   manualMode?: boolean;
+  /** Visual highlight when this card has been the latest claimant. */
+  highlight?: 'tier1' | 'tier2' | 'tier3' | null;
 }
 
 export default function BingoCard({
   card,
   daubed,
-  achievedTiers,
+  variant,
+  size = 'large',
   onCellClick,
-  manualMode,
+  manualMode = false,
+  highlight = null,
 }: Props): JSX.Element {
+  const { rows, cols } = VARIANTS[variant];
+  const isLarge = size === 'large';
+  const cellSize = isLarge ? 'w-12 h-12 text-base' : 'w-3 h-3 text-[0px]';
+  const gap = isLarge ? 'gap-1.5' : 'gap-0.5';
+  const padding = isLarge ? 'p-3' : 'p-1';
+  const highlightBorder =
+    highlight === 'tier3'
+      ? 'border-gold-bright shadow-[0_0_12px_rgba(255,215,0,0.6)]'
+      : highlight === 'tier2'
+        ? 'border-neon-cyan'
+        : highlight === 'tier1'
+          ? 'border-green-400'
+          : 'border-white/20';
+
   return (
-    <div className="flex flex-col gap-2" data-bingo-card data-card-id={card.id}>
-      <div
-        className="grid grid-cols-9 gap-0.5 rounded border border-gold/40 bg-felt-deep p-1"
-        role="grid"
-        aria-label="Bingo card"
-      >
-        {card.cells.map((row, r) =>
-          row.map((cell, c) => {
-            const isDaubed = daubed[r]![c]!;
-            if (cell.value === null) {
-              return (
-                <div
-                  key={`${r}-${c}`}
-                  role="gridcell"
-                  className="flex h-10 w-10 items-center justify-center bg-black/40"
-                  data-blank
-                />
-              );
-            }
-            const value = cell.value;
-            const classes = isDaubed
-              ? 'flex h-10 w-10 items-center justify-center rounded-sm bg-gold font-display text-base font-bold text-felt-deep'
-              : 'flex h-10 w-10 items-center justify-center rounded-sm bg-felt-deep text-sm tabular-nums text-white';
+    <div
+      className={`grid ${gap} ${padding} bg-felt-deep border-2 rounded ${highlightBorder}`}
+      style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
+      data-bingo-card
+      data-variant={variant}
+      data-size={size}
+    >
+      {card.cells.map((row, r) =>
+        row.map((cell, c) => {
+          const isDaubed = daubed[r]?.[c] ?? false;
+          const isFree = cell.free === true;
+          const isEmpty = cell.value === null && !isFree;
+          const interactive =
+            manualMode && !isDaubed && !isFree && cell.value !== null && onCellClick;
+          const bg = isFree
+            ? 'bg-gold/30 text-gold-bright'
+            : isDaubed
+              ? 'bg-gold text-felt-deep'
+              : isEmpty
+                ? 'bg-transparent text-transparent'
+                : 'bg-white/5 text-white';
+
+          if (isEmpty) {
+            return <div key={`${r}-${c}`} className={`${cellSize} ${bg}`} data-cell-empty />;
+          }
+
+          const content = isFree ? (isLarge ? '★' : '') : cell.value;
+          const className = `${cellSize} ${bg} font-display flex items-center justify-center rounded tabular-nums ${
+            interactive ? 'cursor-pointer hover:ring-2 hover:ring-gold' : ''
+          }`;
+
+          if (interactive && onCellClick) {
+            const handleClick = () => onCellClick(r, c);
             return (
               <button
                 key={`${r}-${c}`}
                 type="button"
-                role="gridcell"
-                aria-label={`${value}${isDaubed ? ' daubed' : ''}`}
-                aria-pressed={isDaubed}
-                disabled={!onCellClick}
-                onClick={() => onCellClick?.(r, c)}
-                className={classes}
-                data-value={value}
-                data-daubed={isDaubed || undefined}
+                onClick={handleClick}
+                className={className}
+                data-cell-value={cell.value}
               >
-                {value}
+                {content}
               </button>
             );
-          }),
-        )}
-      </div>
-      {achievedTiers.size > 0 && (
-        <div className="flex gap-1 text-[10px]" data-tier-indicators>
-          {Array.from(achievedTiers).map((tier) => (
-            <span
-              key={tier}
-              className="rounded bg-gold/30 px-1.5 py-0.5 text-gold-bright"
-              data-tier={tier}
+          }
+          return (
+            <div
+              key={`${r}-${c}`}
+              className={className}
+              data-cell-value={cell.value ?? 'free'}
+              data-daubed={isDaubed}
             >
-              {tier}
-            </span>
-          ))}
-        </div>
+              {rows && cols && content}
+            </div>
+          );
+        }),
       )}
-      {manualMode && <p className="text-[10px] text-white/40">Click called numbers to daub</p>}
     </div>
   );
 }
