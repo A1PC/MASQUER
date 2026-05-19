@@ -214,3 +214,27 @@ export function payoutFor(tier: BingoTier): number {
       return 5000;
   }
 }
+
+/** Returns a 3×9 grid of false values (no cells daubed). */
+export function emptyDaubGrid(): boolean[][] {
+  const grid: boolean[][] = [];
+  for (let r = 0; r < 3; r += 1) {
+    const row: boolean[] = [];
+    for (let c = 0; c < 9; c += 1) row.push(false);
+    grid.push(row);
+  }
+  return grid;
+}
+
+/** Given a card and a number, returns the (row, col) of that number, or null if not on card. */
+export function findCellByValue(
+  card: BingoCard,
+  value: number,
+): { row: number; col: number } | null {
+  for (let r = 0; r < 3; r += 1) {
+    for (let c = 0; c < 9; c += 1) {
+      if (card.cells[r]![c]!.value === value) return { row: r, col: c };
+    }
+  }
+  return null;
+}

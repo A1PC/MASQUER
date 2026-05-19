@@ -7,6 +7,8 @@ import {
   evaluateCardWins,
   BINGO_CONFIG,
   payoutFor,
+  emptyDaubGrid,
+  findCellByValue,
 } from './logic';
 
 describe('columnRange', () => {
@@ -268,5 +270,43 @@ describe('payoutFor', () => {
     ['fast-full-house', 5000],
   ] as const)('tier %s → %d chips', (tier, expected) => {
     expect(payoutFor(tier)).toBe(expected);
+  });
+});
+
+describe('emptyDaubGrid', () => {
+  it('returns a 3×9 grid of false', () => {
+    const grid = emptyDaubGrid();
+    expect(grid).toHaveLength(3);
+    for (const row of grid) {
+      expect(row).toHaveLength(9);
+      expect(row.every((cell) => cell === false)).toBe(true);
+    }
+  });
+});
+
+describe('findCellByValue', () => {
+  it('returns the {row, col} of a number that exists on the card', () => {
+    const card = generateCard('card-find-1');
+    const filled = card.cells.flat().find((cell) => cell.value !== null)!;
+    const result = findCellByValue(card, filled.value!);
+    expect(result).not.toBeNull();
+  });
+
+  it('returns null when the number is not on the card', () => {
+    const card = generateCard('card-find-2');
+    const used = new Set(
+      card.cells
+        .flat()
+        .filter((cell) => cell.value !== null)
+        .map((cell) => cell.value!),
+    );
+    let absent = 0;
+    for (let n = 1; n <= 90; n += 1) {
+      if (!used.has(n)) {
+        absent = n;
+        break;
+      }
+    }
+    expect(findCellByValue(card, absent)).toBeNull();
   });
 });
