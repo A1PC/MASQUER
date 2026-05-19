@@ -92,4 +92,37 @@ describe('BingoPage end-to-end', () => {
     );
     expect(rounds).toHaveLength(1);
   });
+
+  it('shows DaubToggle in the header once playing starts', async () => {
+    const r = await register({ username: 'toggle', password: 'password123' });
+    if (!r.ok) throw new Error();
+    useSessionStore.setState({ currentUser: r.user });
+    await useWalletStore.getState().hydrate(r.user.id);
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    render(
+      <MemoryRouter>
+        <BingoPage />
+      </MemoryRouter>,
+    );
+    await user.click(screen.getByRole('button', { name: /buy & start/i }));
+    await waitFor(() => expect(screen.getByRole('radio', { name: /auto/i })).toBeInTheDocument());
+    expect(screen.getByRole('radio', { name: /manual/i })).toBeInTheDocument();
+  });
+
+  it('shows EndScreen with Play Again when game completes', async () => {
+    const r = await register({ username: 'finish', password: 'password123' });
+    if (!r.ok) throw new Error();
+    useSessionStore.setState({ currentUser: r.user });
+    await useWalletStore.getState().hydrate(r.user.id);
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    render(
+      <MemoryRouter>
+        <BingoPage />
+      </MemoryRouter>,
+    );
+    await user.click(screen.getByRole('button', { name: /buy & start/i }));
+    await vi.advanceTimersByTimeAsync(2000 * 90);
+    await waitFor(() => expect(screen.getByText(/game over/i)).toBeInTheDocument());
+    expect(screen.getByRole('button', { name: /play again/i })).toBeInTheDocument();
+  });
 });
