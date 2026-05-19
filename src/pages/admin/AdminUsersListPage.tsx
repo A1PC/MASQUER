@@ -1,7 +1,7 @@
 import type { JSX } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Link } from 'react-router';
-import { getAllUserStats, type UserStatsRow } from './queries';
+import { getAllUserStats, type UserStatsRow } from '@/systems/stats';
 
 const EMPTY_ROWS: UserStatsRow[] = [];
 

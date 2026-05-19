@@ -14,7 +14,7 @@ import {
   type NetFlowPoint,
   type GameDistributionPoint,
   type UserStatsRow,
-} from './queries';
+} from '@/systems/stats';
 
 const ZERO_STATS: SiteWideStats = {
   userCount: 0,

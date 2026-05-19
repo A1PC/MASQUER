@@ -17,7 +17,7 @@ import {
   type GameDistributionPoint,
   type NetFlowPoint,
   type UserStatsRow,
-} from './queries';
+} from '@/systems/stats';
 
 type GameTime = { game: Round['game']; durationMs: number };
 
