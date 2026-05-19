@@ -11,6 +11,7 @@ import {
   nextDrawAt,
   dateStringFor,
   buyTicket,
+  settleMissedDraws,
 } from './lottery';
 
 const SESSION_KEY = 'localGamble.session.userId';
@@ -263,5 +264,130 @@ describe('buyTicket', () => {
     const dip = lines.find((l) => l.isLuckyDip);
     expect(manual).toBeDefined();
     expect(dip).toBeDefined();
+  });
+});
+
+describe('settleMissedDraws', () => {
+  beforeEach(async () => {
+    await resetDb();
+    localStorage.removeItem(SESSION_KEY);
+  });
+
+  it('does nothing when there are no unsettled lines and no pending draws', async () => {
+    const { settledDrawIds } = await settleMissedDraws({
+      now: new Date(2026, 4, 19, 21, 0, 0).getTime(),
+    });
+    expect(settledDrawIds).toEqual([]);
+  });
+
+  it('runs a single missed draw and writes a draw row', async () => {
+    const r = await register({ username: 'a', password: 'password123' });
+    if (!r.ok) throw new Error();
+    await buyTicket({
+      userId: r.user.id,
+      lines: [{ kind: 'manual', mainNumbers: [1, 2, 3, 4, 5], bonusNumber: 1 }],
+      now: new Date(2026, 4, 19, 12, 0, 0).getTime(),
+    });
+    const { settledDrawIds } = await settleMissedDraws({
+      now: new Date(2026, 4, 19, 20, 30, 0).getTime(),
+    });
+    expect(settledDrawIds).toEqual(['2026-05-19']);
+    const draw = await db.lotteryDraws.get('2026-05-19');
+    expect(draw).toBeDefined();
+    expect(draw!.mainNumbers).toEqual(drawForDate('2026-05-19').mainNumbers);
+  });
+
+  it('settles all lines for the missed draw', async () => {
+    const r = await register({ username: 'b', password: 'password123' });
+    if (!r.ok) throw new Error();
+    await buyTicket({
+      userId: r.user.id,
+      lines: [
+        { kind: 'manual', mainNumbers: [1, 2, 3, 4, 5], bonusNumber: 1 },
+        { kind: 'manual', mainNumbers: [6, 7, 8, 9, 10], bonusNumber: 2 },
+      ],
+      now: new Date(2026, 4, 19, 12, 0, 0).getTime(),
+    });
+    await settleMissedDraws({ now: new Date(2026, 4, 19, 20, 30, 0).getTime() });
+    const lines = await db.lotteryLines.toArray();
+    expect(lines.every((l) => l.settled)).toBe(true);
+  });
+
+  it('backfills multiple missed days in date order', async () => {
+    const r = await register({ username: 'c', password: 'password123' });
+    if (!r.ok) throw new Error();
+    await buyTicket({
+      userId: r.user.id,
+      lines: [{ kind: 'manual', mainNumbers: [1, 2, 3, 4, 5], bonusNumber: 1 }],
+      now: new Date(2026, 4, 17, 12, 0, 0).getTime(),
+    });
+    await buyTicket({
+      userId: r.user.id,
+      lines: [{ kind: 'manual', mainNumbers: [10, 20, 30, 40, 50], bonusNumber: 9 }],
+      now: new Date(2026, 4, 18, 12, 0, 0).getTime(),
+    });
+    await buyTicket({
+      userId: r.user.id,
+      lines: [{ kind: 'manual', mainNumbers: [11, 22, 33, 44, 5], bonusNumber: 7 }],
+      now: new Date(2026, 4, 19, 12, 0, 0).getTime(),
+    });
+    const { settledDrawIds } = await settleMissedDraws({
+      now: new Date(2026, 4, 19, 20, 30, 0).getTime(),
+    });
+    expect(settledDrawIds).toEqual(['2026-05-17', '2026-05-18', '2026-05-19']);
+  });
+
+  it('creates a free re-entry ticket for the next draw when a paid line gets match-2', async () => {
+    const r = await register({ username: 'd', password: 'password123' });
+    if (!r.ok) throw new Error();
+    const { mainNumbers, bonus } = drawForDate('2026-05-19');
+    // Craft a line that matches exactly 2 of the draw's main numbers + wrong bonus.
+    const drawSet = new Set(mainNumbers);
+    const matchTwo: number[] = [mainNumbers[0]!, mainNumbers[1]!];
+    let n = 1;
+    while (matchTwo.length < 5) {
+      if (!drawSet.has(n)) matchTwo.push(n);
+      n += 1;
+    }
+    const wrongBonus = bonus === 10 ? 1 : bonus + 1;
+    await buyTicket({
+      userId: r.user.id,
+      lines: [{ kind: 'manual', mainNumbers: matchTwo, bonusNumber: wrongBonus }],
+      now: new Date(2026, 4, 19, 12, 0, 0).getTime(),
+    });
+    await settleMissedDraws({ now: new Date(2026, 4, 19, 20, 30, 0).getTime() });
+    const tomorrowLines = await db.lotteryLines.where('drawId').equals('2026-05-20').toArray();
+    expect(tomorrowLines.some((l) => l.isFreeReentry)).toBe(true);
+  });
+
+  it('writes a rounds row for a paid line that loses', async () => {
+    const r = await register({ username: 'e', password: 'password123' });
+    if (!r.ok) throw new Error();
+    await buyTicket({
+      userId: r.user.id,
+      lines: [{ kind: 'manual', mainNumbers: [1, 2, 3, 4, 5], bonusNumber: 1 }],
+      now: new Date(2026, 4, 19, 12, 0, 0).getTime(),
+    });
+    await settleMissedDraws({ now: new Date(2026, 4, 19, 20, 30, 0).getTime() });
+    const rounds = (await db.rounds.where('userId').equals(r.user.id).toArray()).filter(
+      (r) => r.game === 'lottery',
+    );
+    expect(rounds).toHaveLength(1);
+  });
+
+  it('is idempotent: a second call after a draw is settled does nothing', async () => {
+    const r = await register({ username: 'f', password: 'password123' });
+    if (!r.ok) throw new Error();
+    await buyTicket({
+      userId: r.user.id,
+      lines: [{ kind: 'manual', mainNumbers: [1, 2, 3, 4, 5], bonusNumber: 1 }],
+      now: new Date(2026, 4, 19, 12, 0, 0).getTime(),
+    });
+    await settleMissedDraws({ now: new Date(2026, 4, 19, 20, 30, 0).getTime() });
+    const firstRounds = (await db.rounds.toArray()).length;
+    const firstDraws = (await db.lotteryDraws.toArray()).length;
+    await settleMissedDraws({ now: new Date(2026, 4, 19, 20, 35, 0).getTime() });
+    expect((await db.rounds.toArray()).length).toBe(firstRounds);
+    expect((await db.lotteryDraws.toArray()).length).toBe(firstDraws);
   });
 });

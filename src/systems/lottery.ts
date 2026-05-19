@@ -5,8 +5,9 @@ import {
   type LotteryTicket,
   type LotteryLine,
 } from '@/db';
+import type { Round } from '@/db';
 import { randomInt } from '@/systems/rng';
-import { placeBet } from '@/systems/wallet';
+import { placeBet, settleRound } from '@/systems/wallet';
 
 const MAIN_POOL_SIZE = 50;
 const MAIN_PICK_COUNT = 5;
@@ -263,4 +264,205 @@ function isValidLine(line: { mainNumbers: number[]; bonusNumber: number }): bool
   if (!Number.isInteger(line.bonusNumber)) return false;
   if (line.bonusNumber < 1 || line.bonusNumber > BONUS_POOL_SIZE) return false;
   return true;
+}
+
+const REENTRY_VALUE = LINE_COST; // 10 chips — implied refund credit for a paid match-2
+
+export async function settleMissedDraws(options: { now?: number } = {}): Promise<{
+  settledDrawIds: string[];
+  freshDraws: LotteryDraw[];
+}> {
+  const now = options.now ?? Date.now();
+  const today = dateStringFor(now);
+  // The last fully-passed 20:00 boundary determines the upper bound on dates to settle.
+  // If now < today's 20:00, upper is yesterday; otherwise upper is today.
+  const todayScheduled = scheduledForDate(today);
+  const upperDate = now < todayScheduled ? prevDate(today) : today;
+
+  const datesToSettle = await pendingDrawDates(upperDate);
+  const settledDrawIds: string[] = [];
+  const freshDraws: LotteryDraw[] = [];
+
+  for (const date of datesToSettle) {
+    const { mainNumbers, bonus } = drawForDate(date);
+    const drawAt = scheduledForDate(date);
+    const draw: LotteryDraw = {
+      id: date,
+      drawAt,
+      mainNumbers,
+      bonus,
+      totalLines: 0,
+      totalRevenue: 0,
+      totalPayout: 0,
+    };
+
+    // Evaluate all unsettled lines for this draw (in-memory filter for robustness).
+    const unsettled = (await db.lotteryLines.where('drawId').equals(date).toArray()).filter(
+      (l) => !l.settled,
+    );
+
+    for (const line of unsettled) {
+      const tier = evaluateLine(line, { mainNumbers, bonus });
+      const payout = payoutFor(tier);
+      line.settled = true;
+      line.matchTier = tier;
+      line.payout = payout;
+      draw.totalLines += 1;
+      if (!line.isFreeReentry) draw.totalRevenue += LINE_COST;
+      draw.totalPayout += payout;
+    }
+
+    // Transactional write: draw + settled lines + free-re-entry tickets/lines + rounds rows.
+    await db.transaction(
+      'rw',
+      [db.lotteryDraws, db.lotteryLines, db.lotteryTickets, db.rounds, db.balances],
+      async () => {
+        await db.lotteryDraws.put(draw);
+        await db.lotteryLines.bulkPut(unsettled);
+
+        for (const line of unsettled) {
+          await writeRoundForLine(line, draw);
+        }
+
+        // Match-2 → free re-entry for the next draw.
+        const nextDateStr = nextDate(date);
+        const reentryLines = unsettled.filter(
+          (l) => l.matchTier === '2' || l.matchTier === '2+bonus',
+        );
+        for (const src of reentryLines) {
+          const fresh = generateLuckyDipLine([]);
+          const ticketId = crypto.randomUUID();
+          const newLine: LotteryLine = {
+            id: crypto.randomUUID(),
+            ticketId,
+            userId: src.userId,
+            drawId: nextDateStr,
+            mainNumbers: fresh.mainNumbers,
+            bonusNumber: fresh.bonusNumber,
+            isLuckyDip: true,
+            isFreeReentry: true,
+            settled: false,
+            matchTier: null,
+            payout: 0,
+            sourceLineId: src.id,
+          };
+          const ticket: LotteryTicket = {
+            id: ticketId,
+            userId: src.userId,
+            drawId: nextDateStr,
+            purchasedAt: drawAt,
+            totalCost: 0,
+            lineCount: 1,
+          };
+          await db.lotteryTickets.put(ticket);
+          await db.lotteryLines.put(newLine);
+        }
+      },
+    );
+
+    settledDrawIds.push(date);
+    freshDraws.push(draw);
+  }
+
+  return { settledDrawIds, freshDraws };
+}
+
+/** Per §7.4: writes a rounds row (or skips) for a settled line. */
+async function writeRoundForLine(line: LotteryLine, draw: LotteryDraw): Promise<void> {
+  const isPaid = !line.isFreeReentry;
+  const tier = line.matchTier;
+
+  // Free re-entry that didn't win cash → no rounds row.
+  if (!isPaid && (tier === null || tier === '2' || tier === '2+bonus')) return;
+
+  let betAmount: number;
+  let payout: number;
+  let outcome: Round['outcome'];
+  if (isPaid) {
+    betAmount = LINE_COST;
+    if (tier === null) {
+      payout = 0;
+      outcome = 'loss';
+    } else if (tier === '2' || tier === '2+bonus') {
+      payout = REENTRY_VALUE;
+      outcome = 'push';
+    } else {
+      payout = payoutFor(tier);
+      outcome = 'win';
+    }
+  } else {
+    // Free re-entry that DID win cash.
+    betAmount = 0;
+    payout = payoutFor(tier);
+    outcome = 'win';
+  }
+  const netChange = payout - betAmount;
+
+  await settleRound({
+    handle: {
+      betId: line.id,
+      userId: line.userId,
+      game: 'lottery',
+      amount: betAmount,
+      placedAt: draw.drawAt,
+    },
+    result: {
+      outcome,
+      betAmount,
+      payout,
+      netChange,
+      details: {
+        drawId: draw.id,
+        mainNumbers: line.mainNumbers,
+        bonusNumber: line.bonusNumber,
+        drawMainNumbers: draw.mainNumbers,
+        drawBonus: draw.bonus,
+        matchTier: tier,
+        isLuckyDip: line.isLuckyDip,
+        isFreeReentry: line.isFreeReentry,
+      },
+    },
+  });
+}
+
+function scheduledForDate(date: string): number {
+  const [y, m, day] = date.split('-').map(Number);
+  return new Date(y!, m! - 1, day, DRAW_HOUR, 0, 0, 0).getTime();
+}
+
+function prevDate(date: string): string {
+  const [y, m, day] = date.split('-').map(Number);
+  const d = new Date(y!, m! - 1, day! - 1);
+  return dateStringFor(d.getTime());
+}
+
+function nextDate(date: string): string {
+  const [y, m, day] = date.split('-').map(Number);
+  const d = new Date(y!, m! - 1, day! + 1);
+  return dateStringFor(d.getTime());
+}
+
+/** Returns the chronological list of date strings between earliest-pending and upperDate
+ *  (inclusive). Earliest-pending = day after the latest settled draw, or the earliest
+ *  unsettled line's drawId, whichever is earlier. Returns [] if nothing is pending. */
+async function pendingDrawDates(upperDate: string): Promise<string[]> {
+  const lastDraw = (await db.lotteryDraws.orderBy('id').last())?.id;
+  const earliestLine = (await db.lotteryLines.orderBy('drawId').first())?.drawId;
+  let candidate: string | undefined;
+  if (lastDraw && earliestLine) {
+    candidate = lastDraw >= earliestLine ? nextDate(lastDraw) : earliestLine;
+  } else if (lastDraw) {
+    candidate = nextDate(lastDraw);
+  } else if (earliestLine) {
+    candidate = earliestLine;
+  }
+  if (!candidate) return [];
+  if (candidate > upperDate) return [];
+  const out: string[] = [];
+  let cur = candidate;
+  while (cur <= upperDate) {
+    out.push(cur);
+    cur = nextDate(cur);
+  }
+  return out;
 }
