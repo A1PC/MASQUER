@@ -26,7 +26,7 @@ beforeEach(() => {
 });
 
 describe('LobbyPage', () => {
-  it('renders heading and all 5 cabinets', () => {
+  it('renders heading and all 5 game cabinets', () => {
     render(
       <MemoryRouter>
         <LobbyPage />
@@ -49,33 +49,69 @@ describe('LobbyPage', () => {
     expect(screen.getByText(/No rounds played yet/)).toBeInTheDocument();
   });
 
-  it('renders the lottery tile with a countdown when no draw exists', async () => {
+  it('renders LOTTERY cabinet in the carousel', () => {
     render(
       <MemoryRouter>
         <LobbyPage />
       </MemoryRouter>,
     );
-    expect(screen.getByText(/daily lottery/i)).toBeInTheDocument();
-    await waitFor(() => expect(screen.getByText(/draw in/i)).toBeInTheDocument());
+    expect(screen.getByText('LOTTERY')).toBeInTheDocument();
   });
 
-  it('shows the drawn numbers when today has a draw', async () => {
-    const today = new Date();
-    const id = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-    await db.lotteryDraws.put({
-      id,
-      drawAt: Date.now(),
-      mainNumbers: [3, 12, 25, 41, 49],
-      bonus: 7,
-      totalLines: 0,
-      totalRevenue: 0,
-      totalPayout: 0,
-    });
+  it('shows BUY A TICKET on the lottery cabinet when user has no tickets', async () => {
     render(
       <MemoryRouter>
         <LobbyPage />
       </MemoryRouter>,
     );
-    await waitFor(() => expect(screen.getByText(/3 · 12 · 25 · 41 · 49/)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText(/BUY A TICKET/)).toBeInTheDocument());
+  });
+
+  it('shows ticket and line counts on lottery cabinet when user has tickets for today', async () => {
+    const today = new Date();
+    const drawId = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    await db.lotteryTickets.add({
+      id: 'tk-1',
+      userId: testUser.id,
+      drawId,
+      purchasedAt: Date.now(),
+      totalCost: 20,
+      lineCount: 2,
+    });
+    await db.lotteryLines.bulkAdd([
+      {
+        id: 'ln-1',
+        ticketId: 'tk-1',
+        userId: testUser.id,
+        drawId,
+        mainNumbers: [1, 2, 3, 4, 5],
+        bonusNumber: 1,
+        isLuckyDip: false,
+        isFreeReentry: false,
+        settled: false,
+        matchTier: null,
+        payout: 0,
+      },
+      {
+        id: 'ln-2',
+        ticketId: 'tk-1',
+        userId: testUser.id,
+        drawId,
+        mainNumbers: [6, 7, 8, 9, 10],
+        bonusNumber: 2,
+        isLuckyDip: false,
+        isFreeReentry: false,
+        settled: false,
+        matchTier: null,
+        payout: 0,
+      },
+    ]);
+    render(
+      <MemoryRouter>
+        <LobbyPage />
+      </MemoryRouter>,
+    );
+    await waitFor(() => expect(screen.getByText(/1 TICKET/)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText(/2 LINES/)).toBeInTheDocument());
   });
 });

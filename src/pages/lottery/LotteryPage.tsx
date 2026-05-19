@@ -11,6 +11,7 @@ import DrawAnimationModal, { type PurchaseRevealLine } from './DrawAnimationModa
 import HeroSection from './HeroSection';
 import { useLotteryBackfill } from './useLotteryBackfill';
 import HistorySlide from './HistorySlide';
+import YourTicketsSlide from './YourTicketsSlide';
 import { db } from '@/db';
 import type { LotteryDraw, LotteryLine } from '@/db';
 
@@ -169,6 +170,10 @@ export default function LotteryPage(): JSX.Element | null {
             />
           </div>
         </section>
+
+        <div className="mt-6">
+          <YourTicketsSlide userId={user.id} />
+        </div>
 
         <div className="mt-6">
           <HistorySlide userId={user.id} />
