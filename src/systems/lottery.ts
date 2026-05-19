@@ -1,4 +1,5 @@
 import { type LotteryDraw, type LotteryMatchTier } from '@/db';
+import { randomInt } from '@/systems/rng';
 
 const MAIN_POOL_SIZE = 50;
 const MAIN_PICK_COUNT = 5;
@@ -99,3 +100,51 @@ export function payoutFor(tier: LotteryMatchTier | null): number {
 
 /** Marker re-export so callers can import LotteryDraw from the same module. */
 export type { LotteryDraw };
+
+// (Append after the existing exports)
+
+const DRAW_HOUR = 20; // 20:00 local time
+const LUCKY_DIP_RETRY_BUDGET = 500;
+
+/** Generates a fresh 5+1 line that's distinct from `existing`. Throws if the
+ *  retry budget is exhausted (practically impossible at sane line counts). */
+export function generateLuckyDipLine(
+  existing: ReadonlyArray<{ mainNumbers: number[]; bonusNumber: number }>,
+): { mainNumbers: number[]; bonusNumber: number } {
+  const existingKeys = new Set(existing.map(lineKey));
+  for (let attempt = 0; attempt < LUCKY_DIP_RETRY_BUDGET; attempt += 1) {
+    const pool: number[] = [];
+    for (let i = 1; i <= MAIN_POOL_SIZE; i += 1) pool.push(i);
+    for (let i = 0; i < MAIN_PICK_COUNT; i += 1) {
+      const j = i + randomInt(0, pool.length - i - 1);
+      [pool[i], pool[j]] = [pool[j]!, pool[i]!];
+    }
+    const mainNumbers = pool.slice(0, MAIN_PICK_COUNT).sort((a, b) => a - b);
+    const bonusNumber = randomInt(1, BONUS_POOL_SIZE);
+    const candidate = { mainNumbers, bonusNumber };
+    if (!existingKeys.has(lineKey(candidate))) return candidate;
+  }
+  throw new Error(
+    `Lucky-dip generation exhausted ${LUCKY_DIP_RETRY_BUDGET} attempts. ` +
+      `Existing lines: ${existing.length}.`,
+  );
+}
+
+/** Returns epoch ms of the next scheduled draw boundary at DRAW_HOUR local.
+ *  If now is before today's DRAW_HOUR, returns today's. Otherwise tomorrow's. */
+export function nextDrawAt(now: number): number {
+  const d = new Date(now);
+  const candidate = new Date(d.getFullYear(), d.getMonth(), d.getDate(), DRAW_HOUR, 0, 0, 0);
+  if (candidate.getTime() > now) return candidate.getTime();
+  const next = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1, DRAW_HOUR, 0, 0, 0);
+  return next.getTime();
+}
+
+/** Returns the date string `YYYY-MM-DD` (user local timezone) for a given timestamp. */
+export function dateStringFor(ts: number): string {
+  const d = new Date(ts);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}

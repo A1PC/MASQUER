@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { drawForDate, lineKey, evaluateLine, payoutFor } from './lottery';
+import {
+  drawForDate,
+  lineKey,
+  evaluateLine,
+  payoutFor,
+  generateLuckyDipLine,
+  nextDrawAt,
+  dateStringFor,
+} from './lottery';
 
 describe('drawForDate', () => {
   it('is deterministic for the same date', () => {
@@ -81,5 +89,71 @@ describe('payoutFor', () => {
     [null, 0],
   ] as const)('tier %s → %d', (tier, expected) => {
     expect(payoutFor(tier)).toBe(expected);
+  });
+});
+
+describe('generateLuckyDipLine', () => {
+  it('generates a valid 5+1 line', () => {
+    const line = generateLuckyDipLine([]);
+    expect(line.mainNumbers).toHaveLength(5);
+    expect(new Set(line.mainNumbers).size).toBe(5);
+    expect(line.bonusNumber).toBeGreaterThanOrEqual(1);
+    expect(line.bonusNumber).toBeLessThanOrEqual(10);
+  });
+
+  it('avoids generating a line that matches an existing line', () => {
+    const existing = [{ mainNumbers: [1, 2, 3, 4, 5], bonusNumber: 1 }];
+    for (let i = 0; i < 50; i += 1) {
+      const line = generateLuckyDipLine(existing);
+      // Compare via lineKey-style canonical form
+      const canon = [...line.mainNumbers].sort((a, b) => a - b).join(',') + '|' + line.bonusNumber;
+      expect(canon).not.toBe('1,2,3,4,5|1');
+    }
+  });
+
+  it('avoids many existing lines without exhausting the budget', () => {
+    const lines: { mainNumbers: number[]; bonusNumber: number }[] = [];
+    for (let i = 0; i < 20; i += 1) {
+      const line = generateLuckyDipLine(lines);
+      lines.push(line);
+    }
+    const keys = lines.map(
+      (l) => [...l.mainNumbers].sort((a, b) => a - b).join(',') + '|' + l.bonusNumber,
+    );
+    expect(new Set(keys).size).toBe(20);
+  });
+});
+
+describe('nextDrawAt', () => {
+  it('returns today 20:00 when now is before today 20:00', () => {
+    const now = new Date(2026, 4, 19, 12, 0, 0, 0).getTime();
+    const next = nextDrawAt(now);
+    expect(new Date(next).getDate()).toBe(19);
+    expect(new Date(next).getHours()).toBe(20);
+  });
+
+  it('returns tomorrow 20:00 when now is at or past today 20:00', () => {
+    const now = new Date(2026, 4, 19, 20, 0, 0, 0).getTime();
+    const next = nextDrawAt(now);
+    expect(new Date(next).getDate()).toBe(20);
+    expect(new Date(next).getHours()).toBe(20);
+  });
+
+  it('returns tomorrow 20:00 at 20:00:01', () => {
+    const now = new Date(2026, 4, 19, 20, 0, 1, 0).getTime();
+    const next = nextDrawAt(now);
+    expect(new Date(next).getDate()).toBe(20);
+  });
+});
+
+describe('dateStringFor', () => {
+  it('returns YYYY-MM-DD for a given timestamp (local)', () => {
+    const ts = new Date(2026, 4, 19, 12, 0, 0).getTime();
+    expect(dateStringFor(ts)).toBe('2026-05-19');
+  });
+
+  it('pads month and day with leading zeros', () => {
+    const ts = new Date(2026, 0, 3, 12, 0, 0).getTime();
+    expect(dateStringFor(ts)).toBe('2026-01-03');
   });
 });
