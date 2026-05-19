@@ -138,6 +138,72 @@ export const bingoMachine = setup({
       daubMode: 'auto' as const,
       wins: [],
     })),
+    toggleDaub: assign(({ context }) => {
+      if (context.daubMode === 'manual') {
+        // manual → auto: daub all called cells on every card, evaluate new wins
+        const calledSet = new Set(context.callSequence.slice(0, context.callIndex));
+        const newWins = [...context.wins];
+        const updatedCards = context.cards.map((cardState) => {
+          let changed = false;
+          const newDaubed = cardState.daubed.map((row, r) =>
+            row.map((d, c) => {
+              if (d) return d;
+              const value = cardState.card.cells[r]![c]!.value;
+              if (value !== null && calledSet.has(value)) {
+                changed = true;
+                return true;
+              }
+              return d;
+            }),
+          );
+          if (!changed) return { ...cardState, daubed: newDaubed };
+          const fired = evaluateCardWins({
+            card: cardState.card,
+            daubed: newDaubed,
+            callCount: context.callIndex,
+            previouslyAchieved: cardState.achievedTiers,
+          });
+          const nextTiers = new Set(cardState.achievedTiers);
+          for (const tier of fired) {
+            nextTiers.add(tier);
+            newWins.push({ cardId: cardState.card.id, tier, payout: payoutFor(tier) });
+          }
+          return { ...cardState, daubed: newDaubed, achievedTiers: nextTiers };
+        });
+        return { daubMode: 'auto' as const, cards: updatedCards, wins: newWins };
+      }
+      // auto → manual: just flip the mode (called cells stay daubed)
+      return { daubMode: 'manual' as const };
+    }),
+    manualDaub: assign(({ context, event }) => {
+      if (event.type !== 'MANUAL_DAUB') return {};
+      if (context.daubMode !== 'manual') return {};
+      const calledSet = new Set(context.callSequence.slice(0, context.callIndex));
+      const newWins = [...context.wins];
+      const updatedCards = context.cards.map((cardState) => {
+        if (cardState.card.id !== event.cardId) return cardState;
+        const cell = cardState.card.cells[event.row]![event.col]!;
+        if (cell.value === null) return cardState;
+        if (!calledSet.has(cell.value)) return cardState;
+        if (cardState.daubed[event.row]![event.col]!) return cardState;
+        const newDaubed = cardState.daubed.map((row, r) =>
+          r === event.row ? row.map((d, c) => (c === event.col ? true : d)) : row,
+        );
+        const fired = evaluateCardWins({
+          card: cardState.card,
+          daubed: newDaubed,
+          callCount: context.callIndex,
+          previouslyAchieved: cardState.achievedTiers,
+        });
+        const nextTiers = new Set(cardState.achievedTiers);
+        for (const tier of fired) {
+          nextTiers.add(tier);
+          newWins.push({ cardId: cardState.card.id, tier, payout: payoutFor(tier) });
+        }
+        return { ...cardState, daubed: newDaubed, achievedTiers: nextTiers };
+      });
+      return { cards: updatedCards, wins: newWins };
+    }),
   },
 }).createMachine({
   id: 'bingo',
@@ -193,6 +259,38 @@ export const bingoMachine = setup({
             },
           },
           { actions: 'processCall' },
+        ],
+        TOGGLE_DAUB: { actions: 'toggleDaub' },
+        MANUAL_DAUB: [
+          {
+            target: 'settling',
+            actions: 'manualDaub',
+            guard: ({ context, event }) => {
+              if (event.type !== 'MANUAL_DAUB') return false;
+              const calledSet = new Set(context.callSequence.slice(0, context.callIndex));
+              const card = context.cards.find((c) => c.card.id === event.cardId);
+              if (!card) return false;
+              const cell = card.card.cells[event.row]![event.col]!;
+              if (
+                cell.value === null ||
+                !calledSet.has(cell.value) ||
+                card.daubed[event.row]![event.col]!
+              ) {
+                return false;
+              }
+              const tempDaubed = card.daubed.map((row, r) =>
+                r === event.row ? row.map((d, c) => (c === event.col ? true : d)) : row,
+              );
+              const fired = evaluateCardWins({
+                card: card.card,
+                daubed: tempDaubed,
+                callCount: context.callIndex,
+                previouslyAchieved: card.achievedTiers,
+              });
+              return fired.includes('full-house') || fired.includes('fast-full-house');
+            },
+          },
+          { actions: 'manualDaub' },
         ],
       },
     },
