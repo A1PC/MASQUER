@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { register } from '@/systems/auth';
 import { db } from '@/db';
 import { resetDb } from '@/test/db-helpers';
+import { WALLET_CONFIG } from '@/systems/wallet';
 import {
   getAllUserStats,
   getGameDistribution,
@@ -10,6 +11,7 @@ import {
   getTopLosers,
   getTopWinners,
   getUserMetrics,
+  getUserPeaks,
   getUserStreaks,
 } from './stats';
 
@@ -433,5 +435,126 @@ describe('getUserStreaks', () => {
     expect(bj).toEqual({ longestWin: 2, longestLoss: 0 });
     const slots = await getUserStreaks(r.user.id, 'slots');
     expect(slots).toEqual({ longestWin: 0, longestLoss: 1 });
+  });
+});
+
+describe('getUserPeaks', () => {
+  beforeEach(async () => {
+    await resetDb();
+    localStorage.removeItem(SESSION_KEY);
+  });
+
+  it('no rounds → all 0 / starting balance', async () => {
+    const r = await register({ username: 'empty', password: 'password123' });
+    if (!r.ok) throw new Error();
+    expect(await getUserPeaks(r.user.id)).toEqual({
+      biggestWin: 0,
+      biggestWinAt: null,
+      biggestLoss: 0,
+      biggestLossAt: null,
+      highestBalance: WALLET_CONFIG.STARTING_CHIPS,
+    });
+  });
+
+  it('biggest win + loss captured with timestamps', async () => {
+    const r = await register({ username: 'peaks', password: 'password123' });
+    if (!r.ok) throw new Error();
+    await db.rounds.bulkAdd([
+      {
+        id: 'r-1',
+        userId: r.user.id,
+        game: 'blackjack',
+        betAmount: 100,
+        payout: 200,
+        netChange: 100,
+        outcome: 'win',
+        details: {},
+        balanceAfter: 1100,
+        playedAt: 1000,
+      },
+      {
+        id: 'r-2',
+        userId: r.user.id,
+        game: 'blackjack',
+        betAmount: 500,
+        payout: 0,
+        netChange: -500,
+        outcome: 'loss',
+        details: {},
+        balanceAfter: 600,
+        playedAt: 2000,
+      },
+      {
+        id: 'r-3',
+        userId: r.user.id,
+        game: 'blackjack',
+        betAmount: 100,
+        payout: 400,
+        netChange: 300,
+        outcome: 'win',
+        details: {},
+        balanceAfter: 900,
+        playedAt: 3000,
+      },
+    ]);
+    const p = await getUserPeaks(r.user.id);
+    expect(p.biggestWin).toBe(300);
+    expect(p.biggestWinAt).toBe(3000);
+    expect(p.biggestLoss).toBe(500);
+    expect(p.biggestLossAt).toBe(2000);
+    expect(p.highestBalance).toBe(1100);
+  });
+
+  it('highest balance never goes below starting chips', async () => {
+    const r = await register({ username: 'down', password: 'password123' });
+    if (!r.ok) throw new Error();
+    await db.rounds.add({
+      id: 'r-1',
+      userId: r.user.id,
+      game: 'blackjack',
+      betAmount: 100,
+      payout: 0,
+      netChange: -100,
+      outcome: 'loss',
+      details: {},
+      balanceAfter: 900,
+      playedAt: 1000,
+    });
+    const p = await getUserPeaks(r.user.id);
+    expect(p.highestBalance).toBe(WALLET_CONFIG.STARTING_CHIPS);
+  });
+
+  it('ties on biggest win: first-encountered wins (oldest)', async () => {
+    const r = await register({ username: 'tie', password: 'password123' });
+    if (!r.ok) throw new Error();
+    await db.rounds.bulkAdd([
+      {
+        id: 'r-1',
+        userId: r.user.id,
+        game: 'blackjack',
+        betAmount: 100,
+        payout: 200,
+        netChange: 100,
+        outcome: 'win',
+        details: {},
+        balanceAfter: 1100,
+        playedAt: 1000,
+      },
+      {
+        id: 'r-2',
+        userId: r.user.id,
+        game: 'blackjack',
+        betAmount: 100,
+        payout: 200,
+        netChange: 100,
+        outcome: 'win',
+        details: {},
+        balanceAfter: 1200,
+        playedAt: 2000,
+      },
+    ]);
+    const p = await getUserPeaks(r.user.id);
+    expect(p.biggestWin).toBe(100);
+    expect(p.biggestWinAt).toBe(1000); // older wins ties
   });
 });

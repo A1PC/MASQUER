@@ -1,5 +1,6 @@
 import { db } from '@/db';
 import type { Round } from '@/db';
+import { WALLET_CONFIG } from '@/systems/wallet';
 
 export type UserStatsRow = {
   userId: string;
@@ -241,6 +242,51 @@ async function fetchUserRounds(userId: string, game?: Game): Promise<Round[]> {
     .between([userId, 0], [userId, Number.MAX_SAFE_INTEGER])
     .toArray();
   return game ? all.filter((r) => r.game === game) : all;
+}
+
+// ----- getUserPeaks (Phase 7 — A.4) -----
+
+export type Peaks = {
+  /** Most-positive single-round netChange. 0 when no rounds. */
+  biggestWin: number;
+  /** playedAt of the round that holds biggestWin. null when no rounds. */
+  biggestWinAt: number | null;
+  /** Most-negative single-round netChange (returned as a positive number). 0 when no rounds. */
+  biggestLoss: number;
+  /** playedAt of the round that holds biggestLoss. null when no rounds. */
+  biggestLossAt: number | null;
+  /** Max value of balanceAfter across all rounds + the starting chips. */
+  highestBalance: number;
+};
+
+export async function getUserPeaks(userId: string, game?: Game): Promise<Peaks> {
+  if (!userId) {
+    return {
+      biggestWin: 0,
+      biggestWinAt: null,
+      biggestLoss: 0,
+      biggestLossAt: null,
+      highestBalance: WALLET_CONFIG.STARTING_CHIPS,
+    };
+  }
+  const rounds = await fetchUserRounds(userId, game);
+  let biggestWin = 0;
+  let biggestWinAt: number | null = null;
+  let biggestLoss = 0;
+  let biggestLossAt: number | null = null;
+  let highestBalance: number = WALLET_CONFIG.STARTING_CHIPS;
+  for (const r of rounds) {
+    if (r.netChange > biggestWin) {
+      biggestWin = r.netChange;
+      biggestWinAt = r.playedAt;
+    }
+    if (r.netChange < -biggestLoss) {
+      biggestLoss = -r.netChange;
+      biggestLossAt = r.playedAt;
+    }
+    if (r.balanceAfter > highestBalance) highestBalance = r.balanceAfter;
+  }
+  return { biggestWin, biggestWinAt, biggestLoss, biggestLossAt, highestBalance };
 }
 
 // ----- getUserStreaks (Phase 7 — Stats Cards) -----
