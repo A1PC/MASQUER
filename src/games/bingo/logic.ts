@@ -132,3 +132,62 @@ export function drawCallSequence(gameId: string): number[] {
   }
   return pool;
 }
+
+export type BingoTier = '1-line' | '2-line' | 'full-house' | 'fast-full-house';
+
+const FAST_FH_THRESHOLD = 40; // FH on call <= 40 (1-indexed) → fast bonus
+
+/** Returns the set of NEW tiers achieved on this card given the current daubed state
+ *  and the 1-indexed call count. `previouslyAchieved` is the tiers already credited
+ *  on prior calls (so the evaluator doesn't re-fire them).
+ *
+ *  Tier rules:
+ *  - 1-line: any one row fully daubed (5 of 5 filled cells daubed)
+ *  - 2-line: any two rows fully daubed
+ *  - full-house: all three rows fully daubed
+ *  - fast-full-house: full-house achieved with callCount <= FAST_FH_THRESHOLD; replaces
+ *    the regular full-house tier (mutually exclusive). */
+export function evaluateCardWins(input: {
+  card: BingoCard;
+  /** 3×9 grid of daub state. */
+  daubed: boolean[][];
+  /** 1-indexed number of balls called so far. */
+  callCount: number;
+  /** Tiers already credited on prior calls. */
+  previouslyAchieved: ReadonlySet<BingoTier>;
+}): BingoTier[] {
+  const { card, daubed, callCount, previouslyAchieved } = input;
+  const completedRows: number[] = [];
+  for (let r = 0; r < 3; r += 1) {
+    let allDaubed = true;
+    for (let c = 0; c < 9; c += 1) {
+      const cell = card.cells[r]![c]!;
+      if (cell.value === null) continue;
+      if (!daubed[r]![c]) {
+        allDaubed = false;
+        break;
+      }
+    }
+    if (allDaubed) completedRows.push(r);
+  }
+
+  const newTiers: BingoTier[] = [];
+  const got1Line =
+    previouslyAchieved.has('1-line') ||
+    previouslyAchieved.has('2-line') ||
+    previouslyAchieved.has('full-house') ||
+    previouslyAchieved.has('fast-full-house');
+  const got2Line =
+    previouslyAchieved.has('2-line') ||
+    previouslyAchieved.has('full-house') ||
+    previouslyAchieved.has('fast-full-house');
+  const gotFH = previouslyAchieved.has('full-house') || previouslyAchieved.has('fast-full-house');
+
+  if (!got1Line && completedRows.length >= 1) newTiers.push('1-line');
+  if (!got2Line && completedRows.length >= 2) newTiers.push('2-line');
+  if (!gotFH && completedRows.length === 3) {
+    if (callCount <= FAST_FH_THRESHOLD) newTiers.push('fast-full-house');
+    else newTiers.push('full-house');
+  }
+  return newTiers;
+}

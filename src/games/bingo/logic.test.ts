@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { generateCard, columnRange, drawCallSequence } from './logic';
+import type { BingoCard, BingoTier } from './logic';
+import { generateCard, columnRange, drawCallSequence, evaluateCardWins } from './logic';
 
 describe('columnRange', () => {
   it.each([
@@ -130,5 +131,115 @@ describe('drawCallSequence', () => {
     const a = drawCallSequence('game-1');
     const b = drawCallSequence('game-2');
     expect(a).not.toEqual(b);
+  });
+});
+
+function buildCard(rows: Array<Array<number | null>>): BingoCard {
+  return {
+    id: 'test',
+    cells: rows.map((row) => row.map((v) => ({ value: v }))),
+  };
+}
+
+const EMPTY_TIERS = new Set<BingoTier>();
+
+describe('evaluateCardWins', () => {
+  const card = buildCard([
+    [1, 11, 21, null, 41, 51, null, null, 81],
+    [2, 12, null, 31, 42, null, 61, 71, null],
+    [null, 13, 22, 32, null, 52, 62, null, 82],
+  ]);
+  const daubAll: boolean[][] = [
+    [true, true, true, true, true, true, true, true, true],
+    [true, true, true, true, true, true, true, true, true],
+    [true, true, true, true, true, true, true, true, true],
+  ];
+  const daubNone: boolean[][] = [
+    [false, false, false, false, false, false, false, false, false],
+    [false, false, false, false, false, false, false, false, false],
+    [false, false, false, false, false, false, false, false, false],
+  ];
+
+  it('returns no tiers when nothing daubed', () => {
+    expect(
+      evaluateCardWins({ card, daubed: daubNone, callCount: 5, previouslyAchieved: EMPTY_TIERS }),
+    ).toEqual([]);
+  });
+
+  it('fires 1-line when first row fully daubed', () => {
+    const daub: boolean[][] = JSON.parse(JSON.stringify(daubNone));
+    for (let c = 0; c < 9; c += 1) {
+      if (card.cells[0]![c]!.value !== null) daub[0]![c] = true;
+    }
+    const result = evaluateCardWins({
+      card,
+      daubed: daub,
+      callCount: 25,
+      previouslyAchieved: EMPTY_TIERS,
+    });
+    expect(result).toEqual(['1-line']);
+  });
+
+  it('fires 2-line when two rows fully daubed', () => {
+    const daub: boolean[][] = JSON.parse(JSON.stringify(daubNone));
+    for (let r = 0; r < 2; r += 1) {
+      for (let c = 0; c < 9; c += 1) {
+        if (card.cells[r]![c]!.value !== null) daub[r]![c] = true;
+      }
+    }
+    const result = evaluateCardWins({
+      card,
+      daubed: daub,
+      callCount: 50,
+      previouslyAchieved: new Set(['1-line']),
+    });
+    expect(result).toEqual(['2-line']);
+  });
+
+  it('fires full-house when all rows daubed and callCount > FAST_FH_THRESHOLD', () => {
+    const result = evaluateCardWins({
+      card,
+      daubed: daubAll,
+      callCount: 85,
+      previouslyAchieved: new Set(['1-line', '2-line']),
+    });
+    expect(result).toEqual(['full-house']);
+  });
+
+  it('fires fast-full-house when all rows daubed and callCount <= FAST_FH_THRESHOLD', () => {
+    const result = evaluateCardWins({
+      card,
+      daubed: daubAll,
+      callCount: 40,
+      previouslyAchieved: new Set(['1-line', '2-line']),
+    });
+    expect(result).toEqual(['fast-full-house']);
+  });
+
+  it('fast-FH threshold is inclusive at 40, exclusive at 41', () => {
+    const r40 = evaluateCardWins({
+      card,
+      daubed: daubAll,
+      callCount: 40,
+      previouslyAchieved: new Set(['1-line', '2-line']),
+    });
+    expect(r40).toEqual(['fast-full-house']);
+    const r41 = evaluateCardWins({
+      card,
+      daubed: daubAll,
+      callCount: 41,
+      previouslyAchieved: new Set(['1-line', '2-line']),
+    });
+    expect(r41).toEqual(['full-house']);
+  });
+
+  it('does not re-fire a previously achieved tier', () => {
+    const result = evaluateCardWins({
+      card,
+      daubed: daubAll,
+      callCount: 85,
+      previouslyAchieved: new Set(['1-line', '2-line', 'full-house']),
+    });
+    expect(result).toEqual([]);
   });
 });
