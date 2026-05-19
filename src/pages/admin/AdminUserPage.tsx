@@ -5,8 +5,8 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db, type Adjustment, type Round } from '@/db';
 import { banUser, unbanUser } from '@/systems/admin';
 import StatCard from './StatCard';
-import UserActivityLine from './charts/UserActivityLine';
-import GameDistributionDonut from './charts/GameDistributionDonut';
+import UserActivityLine from '@/components/charts/UserActivityLine';
+import GameDistributionDonut from '@/components/charts/GameDistributionDonut';
 import AdjustCreditsModal from './AdjustCreditsModal';
 import {
   getUserGameDistribution,

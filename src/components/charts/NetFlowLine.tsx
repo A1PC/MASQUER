@@ -1,20 +1,20 @@
 import type { JSX } from 'react';
 import {
-  Area,
-  AreaChart,
   CartesianGrid,
+  Line,
+  LineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from 'recharts';
-import type { NetFlowPoint } from '@/pages/admin/queries';
+import type { NetFlowPoint } from '@/systems/stats';
 
 type Props = { data: NetFlowPoint[]; height?: number };
 
-export default function UserActivityLine({ data, height = 180 }: Props): JSX.Element {
+export default function NetFlowLine({ data, height = 220 }: Props): JSX.Element {
   if (data.length === 0) {
-    return <div className="text-xs text-white/40">No rounds yet for this user.</div>;
+    return <div className="text-xs text-white/40">No data yet — play a round to populate.</div>;
   }
   const chartData = data.map((p) => ({
     day: new Date(p.dayStartMs).toISOString().slice(0, 10),
@@ -22,7 +22,7 @@ export default function UserActivityLine({ data, height = 180 }: Props): JSX.Ele
   }));
   return (
     <ResponsiveContainer width="100%" height={height}>
-      <AreaChart data={chartData}>
+      <LineChart data={chartData}>
         <CartesianGrid stroke="rgba(212,175,55,0.12)" />
         <XAxis dataKey="day" stroke="rgba(255,255,255,0.4)" fontSize={10} />
         <YAxis stroke="rgba(255,255,255,0.4)" fontSize={10} />
@@ -34,14 +34,14 @@ export default function UserActivityLine({ data, height = 180 }: Props): JSX.Ele
             color: '#f0c64a',
           }}
         />
-        <Area
+        <Line
           type="monotone"
           dataKey="netChange"
-          stroke="#5b6ed1"
-          fill="rgba(91,110,209,0.25)"
+          stroke="#d4af37"
           strokeWidth={2}
+          dot={{ r: 2, fill: '#d4af37' }}
         />
-      </AreaChart>
+      </LineChart>
     </ResponsiveContainer>
   );
 }
