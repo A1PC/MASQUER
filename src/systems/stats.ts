@@ -289,6 +289,65 @@ export async function getUserPeaks(userId: string, game?: Game): Promise<Peaks> 
   return { biggestWin, biggestWinAt, biggestLoss, biggestLossAt, highestBalance };
 }
 
+// ----- getUserSessionStats (Phase 7 — A.5) -----
+
+export type SessionStats = {
+  /** Highest sum of netChange across rounds within one session row. */
+  best: number;
+  /** Lowest sum (most negative). */
+  worst: number;
+  /** Number of sessions with at least one round. */
+  count: number;
+};
+
+/** Best/worst session by net change. Game-scoped if provided. */
+export async function getUserSessionStats(userId: string, game?: Game): Promise<SessionStats> {
+  if (!userId) return { best: 0, worst: 0, count: 0 };
+  const [sessions, rounds] = await Promise.all([
+    db.sessions.where('userId').equals(userId).toArray(),
+    fetchUserRounds(userId, game),
+  ]);
+  if (sessions.length === 0 || rounds.length === 0) {
+    return { best: 0, worst: 0, count: 0 };
+  }
+  let best = 0;
+  let worst = 0;
+  let count = 0;
+  for (const s of sessions) {
+    const end = s.logoutAt ?? Number.MAX_SAFE_INTEGER;
+    const sessionRounds = rounds.filter((r) => r.playedAt >= s.loginAt && r.playedAt <= end);
+    if (sessionRounds.length === 0) continue;
+    count += 1;
+    const net = sessionRounds.reduce((sum, r) => sum + r.netChange, 0);
+    if (net > best) best = net;
+    if (net < worst) worst = net;
+  }
+  return { best, worst, count };
+}
+
+// ----- getUserExtras (Phase 7 — A.5) -----
+
+export type ExtraStats = {
+  /** Mean bet size (rounded to integer chips). 0 when no rounds. */
+  avgBetSize: number;
+  /** Win rate %, excluding pushes from denominator. null when no non-push rounds. */
+  winRate: number | null;
+};
+
+export async function getUserExtras(userId: string, game?: Game): Promise<ExtraStats> {
+  if (!userId) return { avgBetSize: 0, winRate: null };
+  const rounds = await fetchUserRounds(userId, game);
+  if (rounds.length === 0) return { avgBetSize: 0, winRate: null };
+  const totalWagered = rounds.reduce((s, r) => s + r.betAmount, 0);
+  const avgBetSize = Math.round(totalWagered / rounds.length);
+  const nonPush = rounds.filter((r) => r.outcome !== 'push');
+  const winRate =
+    nonPush.length === 0
+      ? null
+      : (nonPush.filter((r) => r.outcome === 'win').length / nonPush.length) * 100;
+  return { avgBetSize, winRate };
+}
+
 // ----- getUserStreaks (Phase 7 — Stats Cards) -----
 
 export type StreakStats = { longestWin: number; longestLoss: number };

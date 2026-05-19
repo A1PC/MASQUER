@@ -10,8 +10,10 @@ import {
   getSiteWideStats,
   getTopLosers,
   getTopWinners,
+  getUserExtras,
   getUserMetrics,
   getUserPeaks,
+  getUserSessionStats,
   getUserStreaks,
 } from './stats';
 
@@ -556,5 +558,204 @@ describe('getUserPeaks', () => {
     const p = await getUserPeaks(r.user.id);
     expect(p.biggestWin).toBe(100);
     expect(p.biggestWinAt).toBe(1000); // older wins ties
+  });
+});
+
+describe('getUserSessionStats', () => {
+  beforeEach(async () => {
+    await resetDb();
+    localStorage.removeItem(SESSION_KEY);
+  });
+
+  it('returns zeros when there are no sessions OR no rounds', async () => {
+    const r = await register({ username: 'a', password: 'password123' });
+    if (!r.ok) throw new Error();
+    expect(await getUserSessionStats(r.user.id)).toEqual({ best: 0, worst: 0, count: 0 });
+  });
+
+  it('groups rounds by session window and returns best/worst sums', async () => {
+    const r = await register({ username: 'b', password: 'password123' });
+    if (!r.ok) throw new Error();
+    await db.sessions.bulkAdd([
+      { id: 's-1', userId: r.user.id, loginAt: 1000, logoutAt: 5000, durationMs: 4000 },
+      { id: 's-2', userId: r.user.id, loginAt: 10000, logoutAt: 20000, durationMs: 10000 },
+    ]);
+    await db.rounds.bulkAdd([
+      // Session 1: net +30
+      {
+        id: 'r-1',
+        userId: r.user.id,
+        game: 'blackjack',
+        betAmount: 10,
+        payout: 30,
+        netChange: 20,
+        outcome: 'win',
+        details: {},
+        balanceAfter: 1020,
+        playedAt: 1500,
+      },
+      {
+        id: 'r-2',
+        userId: r.user.id,
+        game: 'blackjack',
+        betAmount: 10,
+        payout: 20,
+        netChange: 10,
+        outcome: 'win',
+        details: {},
+        balanceAfter: 1030,
+        playedAt: 2500,
+      },
+      // Session 2: net -50
+      {
+        id: 'r-3',
+        userId: r.user.id,
+        game: 'blackjack',
+        betAmount: 50,
+        payout: 0,
+        netChange: -50,
+        outcome: 'loss',
+        details: {},
+        balanceAfter: 980,
+        playedAt: 12000,
+      },
+    ]);
+    const s = await getUserSessionStats(r.user.id);
+    expect(s.best).toBe(30);
+    expect(s.worst).toBe(-50);
+    expect(s.count).toBe(2);
+  });
+
+  it('open (logoutAt=null) sessions are treated as running to infinity', async () => {
+    const r = await register({ username: 'open', password: 'password123' });
+    if (!r.ok) throw new Error();
+    await db.sessions.add({
+      id: 's-1',
+      userId: r.user.id,
+      loginAt: 1000,
+      logoutAt: null,
+      durationMs: null,
+    });
+    await db.rounds.add({
+      id: 'r-1',
+      userId: r.user.id,
+      game: 'blackjack',
+      betAmount: 100,
+      payout: 200,
+      netChange: 100,
+      outcome: 'win',
+      details: {},
+      balanceAfter: 1100,
+      playedAt: 9_999_999_999,
+    });
+    expect((await getUserSessionStats(r.user.id)).count).toBe(1);
+  });
+});
+
+describe('getUserExtras', () => {
+  beforeEach(async () => {
+    await resetDb();
+    localStorage.removeItem(SESSION_KEY);
+  });
+
+  it('returns 0/null for no rounds', async () => {
+    const r = await register({ username: 'a', password: 'password123' });
+    if (!r.ok) throw new Error();
+    expect(await getUserExtras(r.user.id)).toEqual({ avgBetSize: 0, winRate: null });
+  });
+
+  it('avgBetSize = mean bet, rounded', async () => {
+    const r = await register({ username: 'b', password: 'password123' });
+    if (!r.ok) throw new Error();
+    await db.rounds.bulkAdd([
+      {
+        id: 'r-1',
+        userId: r.user.id,
+        game: 'blackjack',
+        betAmount: 10,
+        payout: 0,
+        netChange: -10,
+        outcome: 'loss',
+        details: {},
+        balanceAfter: 990,
+        playedAt: 1000,
+      },
+      {
+        id: 'r-2',
+        userId: r.user.id,
+        game: 'blackjack',
+        betAmount: 25,
+        payout: 50,
+        netChange: 25,
+        outcome: 'win',
+        details: {},
+        balanceAfter: 1015,
+        playedAt: 2000,
+      },
+    ]);
+    expect((await getUserExtras(r.user.id)).avgBetSize).toBe(18); // round((10+25)/2)=18
+  });
+
+  it('winRate excludes pushes from denominator', async () => {
+    const r = await register({ username: 'wr', password: 'password123' });
+    if (!r.ok) throw new Error();
+    await db.rounds.bulkAdd([
+      {
+        id: 'r-1',
+        userId: r.user.id,
+        game: 'blackjack',
+        betAmount: 10,
+        payout: 20,
+        netChange: 10,
+        outcome: 'win',
+        details: {},
+        balanceAfter: 1010,
+        playedAt: 1000,
+      },
+      {
+        id: 'r-2',
+        userId: r.user.id,
+        game: 'blackjack',
+        betAmount: 10,
+        payout: 10,
+        netChange: 0,
+        outcome: 'push',
+        details: {},
+        balanceAfter: 1010,
+        playedAt: 2000,
+      },
+      {
+        id: 'r-3',
+        userId: r.user.id,
+        game: 'blackjack',
+        betAmount: 10,
+        payout: 0,
+        netChange: -10,
+        outcome: 'loss',
+        details: {},
+        balanceAfter: 1000,
+        playedAt: 3000,
+      },
+    ]);
+    // 1 win / (1 win + 1 loss) = 50%
+    expect((await getUserExtras(r.user.id)).winRate).toBeCloseTo(50, 1);
+  });
+
+  it('winRate is null when there are no non-push rounds', async () => {
+    const r = await register({ username: 'only-pushes', password: 'password123' });
+    if (!r.ok) throw new Error();
+    await db.rounds.add({
+      id: 'r-1',
+      userId: r.user.id,
+      game: 'blackjack',
+      betAmount: 10,
+      payout: 10,
+      netChange: 0,
+      outcome: 'push',
+      details: {},
+      balanceAfter: 1000,
+      playedAt: 1000,
+    });
+    expect((await getUserExtras(r.user.id)).winRate).toBeNull();
   });
 });
