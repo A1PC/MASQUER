@@ -4,6 +4,9 @@ import {
   generateCard,
   drawCallSequence,
   emptyDaubGrid,
+  evaluateCardWins,
+  findCellByValue,
+  payoutFor,
   type BingoCard,
   type BingoSpeed,
   type BingoTier,
@@ -92,6 +95,49 @@ export const bingoMachine = setup({
       if (event.type !== 'BET_PLACED') return {};
       return { betHandleId: event.betHandleId };
     }),
+    processCall: assign(({ context }) => {
+      if (context.callIndex >= context.callSequence.length) return {};
+      const ballNumber = context.callSequence[context.callIndex]!;
+      const newCallIndex = context.callIndex + 1;
+      const newWins = [...context.wins];
+      const updatedCards = context.cards.map((cardState) => {
+        let nextDaubed = cardState.daubed;
+        if (context.daubMode === 'auto') {
+          const cell = findCellByValue(cardState.card, ballNumber);
+          if (cell) {
+            nextDaubed = cardState.daubed.map((row, r) =>
+              r === cell.row ? row.map((d, c) => (c === cell.col ? true : d)) : row,
+            );
+          }
+        }
+        const fired = evaluateCardWins({
+          card: cardState.card,
+          daubed: nextDaubed,
+          callCount: newCallIndex,
+          previouslyAchieved: cardState.achievedTiers,
+        });
+        if (fired.length === 0 && nextDaubed === cardState.daubed) return cardState;
+        const nextTiers = new Set(cardState.achievedTiers);
+        for (const tier of fired) {
+          nextTiers.add(tier);
+          newWins.push({ cardId: cardState.card.id, tier, payout: payoutFor(tier) });
+        }
+        return { ...cardState, daubed: nextDaubed, achievedTiers: nextTiers };
+      });
+      return { callIndex: newCallIndex, cards: updatedCards, wins: newWins };
+    }),
+    resetForPlayAgain: assign(() => ({
+      gameId: crypto.randomUUID(),
+      cardCount: 1,
+      speed: 'normal' as const,
+      cards: [],
+      callSequence: [],
+      callIndex: 0,
+      betHandleId: null,
+      betAmount: 0,
+      daubMode: 'auto' as const,
+      wins: [],
+    })),
   },
 }).createMachine({
   id: 'bingo',
@@ -116,7 +162,52 @@ export const bingoMachine = setup({
       },
     },
     playing: {
-      // CALL + settling + done all land in PR C.
+      on: {
+        CALL: [
+          {
+            target: 'settling',
+            actions: 'processCall',
+            guard: ({ context }) => {
+              if (context.callIndex >= context.callSequence.length) return true;
+              const ballNumber = context.callSequence[context.callIndex]!;
+              const next = context.callIndex + 1;
+              for (const cardState of context.cards) {
+                let tempDaubed = cardState.daubed;
+                if (context.daubMode === 'auto') {
+                  const cell = findCellByValue(cardState.card, ballNumber);
+                  if (cell) {
+                    tempDaubed = cardState.daubed.map((row, r) =>
+                      r === cell.row ? row.map((d, c) => (c === cell.col ? true : d)) : row,
+                    );
+                  }
+                }
+                const fired = evaluateCardWins({
+                  card: cardState.card,
+                  daubed: tempDaubed,
+                  callCount: next,
+                  previouslyAchieved: cardState.achievedTiers,
+                });
+                if (fired.includes('full-house') || fired.includes('fast-full-house')) return true;
+              }
+              return false;
+            },
+          },
+          { actions: 'processCall' },
+        ],
+      },
+    },
+    settling: {
+      on: {
+        SETTLED: 'done',
+      },
+    },
+    done: {
+      on: {
+        PLAY_AGAIN: {
+          target: 'setup',
+          actions: 'resetForPlayAgain',
+        },
+      },
     },
   },
 });
