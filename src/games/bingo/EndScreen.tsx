@@ -1,20 +1,19 @@
+// STUB: EndScreen simplified for PR A (BingoTier removed).
+// PR C will rewrite with Tier type from new logic.
 import type { JSX } from 'react';
 import { Link } from 'react-router';
-import type { BingoCardState } from './machine';
-import type { BingoTier } from './logic';
 
-interface Props {
-  cards: ReadonlyArray<BingoCardState>;
-  wins: ReadonlyArray<{ cardId: string; tier: BingoTier; payout: number }>;
-  onPlayAgain: () => void;
+interface CardState {
+  card: { id: string };
+  daubed: boolean[][];
+  achievedTiers: ReadonlySet<string>;
 }
 
-const TIER_LABEL: Record<BingoTier, string> = {
-  '1-line': 'LINE',
-  '2-line': '2-LINE',
-  'full-house': 'BINGO',
-  'fast-full-house': 'FAST BINGO',
-};
+interface Props {
+  cards: ReadonlyArray<CardState>;
+  wins: ReadonlyArray<{ cardId: string; tier: string; payout: number }>;
+  onPlayAgain: () => void;
+}
 
 export default function EndScreen({ cards, wins, onPlayAgain }: Props): JSX.Element {
   const totalPayout = wins.reduce((s, w) => s + w.payout, 0);
@@ -53,7 +52,7 @@ export default function EndScreen({ cards, wins, onPlayAgain }: Props): JSX.Elem
                     key={tier}
                     className="rounded bg-gold/30 px-2 py-0.5 text-[10px] text-gold-bright"
                   >
-                    {TIER_LABEL[tier]}
+                    {tier}
                   </span>
                 ))}
               </div>

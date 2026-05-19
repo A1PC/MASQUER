@@ -1,22 +1,17 @@
+// STUB: BingoCard is intentionally simplified for PR A.
+// PR C will rewrite this for variant-aware rendering (3×9 and 5×5).
 import type { JSX } from 'react';
-import type { BingoCard as BingoCardType, BingoTier } from './logic';
+import type { BingoCard as BingoCardType } from './logic';
 
 interface Props {
   card: BingoCardType;
   daubed: boolean[][];
-  achievedTiers: ReadonlySet<BingoTier>;
-  /** Called when a cell is clicked. Only enabled in manual mode (PR D). */
+  achievedTiers: ReadonlySet<string>;
+  /** Called when a cell is clicked. Only enabled in manual mode. */
   onCellClick?: (row: number, col: number) => void;
   /** Whether manual mode is active (shows the click hint). */
   manualMode?: boolean;
 }
-
-const TIER_LABELS: Record<BingoTier, string> = {
-  '1-line': 'LINE',
-  '2-line': '2-LINE',
-  'full-house': 'BINGO',
-  'fast-full-house': 'FAST BINGO',
-};
 
 export default function BingoCard({
   card,
@@ -70,17 +65,15 @@ export default function BingoCard({
       </div>
       {achievedTiers.size > 0 && (
         <div className="flex gap-1 text-[10px]" data-tier-indicators>
-          {(['1-line', '2-line', 'full-house', 'fast-full-house'] as const).map((tier) =>
-            achievedTiers.has(tier) ? (
-              <span
-                key={tier}
-                className="rounded bg-gold/30 px-1.5 py-0.5 text-gold-bright"
-                data-tier={tier}
-              >
-                {TIER_LABELS[tier]}
-              </span>
-            ) : null,
-          )}
+          {Array.from(achievedTiers).map((tier) => (
+            <span
+              key={tier}
+              className="rounded bg-gold/30 px-1.5 py-0.5 text-gold-bright"
+              data-tier={tier}
+            >
+              {tier}
+            </span>
+          ))}
         </div>
       )}
       {manualMode && <p className="text-[10px] text-white/40">Click called numbers to daub</p>}
