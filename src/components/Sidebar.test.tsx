@@ -67,7 +67,7 @@ describe('Sidebar', () => {
     expect(screen.getByText(/Roulette/)).toBeInTheDocument();
     expect(screen.getByText(/Slots/)).toBeInTheDocument();
     expect(screen.getByText(/Baccarat/)).toBeInTheDocument();
-    expect(screen.getByText(/LOTTERY/)).toBeInTheDocument();
+    expect(screen.getByText(/Lottery/)).toBeInTheDocument();
     expect(screen.getByText(/Stats/)).toBeInTheDocument();
     expect(screen.getByText(/Leaderboard/)).toBeInTheDocument();
   });

@@ -66,7 +66,7 @@ export default function Sidebar({ collapsed }: Props): JSX.Element {
             }`
           }
         >
-          <span>🎟️ LOTTERY</span>
+          <span>🎟️ Lottery</span>
           {hasUnread && (
             <span
               data-testid="unread-dot"
