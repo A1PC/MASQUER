@@ -20,6 +20,8 @@ const StatsOverviewPage = lazy(() => import('@/pages/stats/StatsOverviewPage'));
 const StatsPerGamePage = lazy(() => import('@/pages/stats/StatsPerGamePage'));
 
 const LeaderboardPage = lazy(() => import('@/pages/leaderboard/LeaderboardPage'));
+
+const LotteryPage = lazy(() => import('@/pages/lottery/LotteryPage'));
 const LeaderboardOverviewPage = lazy(() => import('@/pages/leaderboard/LeaderboardOverviewPage'));
 const LeaderboardPerGamePage = lazy(() => import('@/pages/leaderboard/LeaderboardPerGamePage'));
 
@@ -104,6 +106,14 @@ export const router = createBrowserRouter([
           { index: true, element: <LeaderboardOverviewPage /> },
           { path: ':game', element: <LeaderboardPerGamePage /> },
         ],
+      },
+      {
+        path: 'lottery',
+        element: (
+          <Suspense fallback={statsFallback}>
+            <LotteryPage />
+          </Suspense>
+        ),
       },
       { path: 'profile', element: <ProfileStubPage feature="Your profile" /> },
       { path: 'profile/edit', element: <ProfileStubPage feature="Edit profile" /> },
