@@ -273,99 +273,106 @@ export async function settleMissedDraws(options: { now?: number } = {}): Promise
   settledDrawIds: string[];
   freshDraws: LotteryDraw[];
 }> {
-  const now = options.now ?? Date.now();
-  const today = dateStringFor(now);
-  // The last fully-passed 20:00 boundary determines the upper bound on dates to settle.
-  // If now < today's 20:00, upper is yesterday; otherwise upper is today.
-  const todayScheduled = scheduledForDate(today);
-  const upperDate = now < todayScheduled ? prevDate(today) : today;
+  try {
+    const now = options.now ?? Date.now();
+    const today = dateStringFor(now);
+    // The last fully-passed 20:00 boundary determines the upper bound on dates to settle.
+    // If now < today's 20:00, upper is yesterday; otherwise upper is today.
+    const todayScheduled = scheduledForDate(today);
+    const upperDate = now < todayScheduled ? prevDate(today) : today;
 
-  const datesToSettle = await pendingDrawDates(upperDate);
-  const settledDrawIds: string[] = [];
-  const freshDraws: LotteryDraw[] = [];
+    const datesToSettle = await pendingDrawDates(upperDate);
+    const settledDrawIds: string[] = [];
+    const freshDraws: LotteryDraw[] = [];
 
-  for (const date of datesToSettle) {
-    const { mainNumbers, bonus } = drawForDate(date);
-    const drawAt = scheduledForDate(date);
-    const draw: LotteryDraw = {
-      id: date,
-      drawAt,
-      mainNumbers,
-      bonus,
-      totalLines: 0,
-      totalRevenue: 0,
-      totalPayout: 0,
-    };
+    for (const date of datesToSettle) {
+      const { mainNumbers, bonus } = drawForDate(date);
+      const drawAt = scheduledForDate(date);
+      const draw: LotteryDraw = {
+        id: date,
+        drawAt,
+        mainNumbers,
+        bonus,
+        totalLines: 0,
+        totalRevenue: 0,
+        totalPayout: 0,
+      };
 
-    // Evaluate all unsettled lines for this draw (in-memory filter for robustness).
-    const unsettled = (await db.lotteryLines.where('drawId').equals(date).toArray()).filter(
-      (l) => !l.settled,
-    );
+      // Evaluate all unsettled lines for this draw (in-memory filter for robustness).
+      const unsettled = (await db.lotteryLines.where('drawId').equals(date).toArray()).filter(
+        (l) => !l.settled,
+      );
 
-    for (const line of unsettled) {
-      const tier = evaluateLine(line, { mainNumbers, bonus });
-      const payout = payoutFor(tier);
-      line.settled = true;
-      line.matchTier = tier;
-      line.payout = payout;
-      draw.totalLines += 1;
-      if (!line.isFreeReentry) draw.totalRevenue += LINE_COST;
-      draw.totalPayout += payout;
+      for (const line of unsettled) {
+        const tier = evaluateLine(line, { mainNumbers, bonus });
+        const payout = payoutFor(tier);
+        line.settled = true;
+        line.matchTier = tier;
+        line.payout = payout;
+        draw.totalLines += 1;
+        if (!line.isFreeReentry) draw.totalRevenue += LINE_COST;
+        draw.totalPayout += payout;
+      }
+
+      // Transactional write: draw + settled lines + free-re-entry tickets/lines + rounds rows.
+      await db.transaction(
+        'rw',
+        [db.lotteryDraws, db.lotteryLines, db.lotteryTickets, db.rounds, db.balances],
+        async () => {
+          await db.lotteryDraws.put(draw);
+          await db.lotteryLines.bulkPut(unsettled);
+
+          for (const line of unsettled) {
+            await writeRoundForLine(line, draw);
+          }
+
+          // Match-2 → free re-entry for the next draw.
+          const nextDateStr = nextDate(date);
+          const reentryLines = unsettled.filter(
+            (l) => l.matchTier === '2' || l.matchTier === '2+bonus',
+          );
+          for (const src of reentryLines) {
+            const fresh = generateLuckyDipLine([]);
+            const ticketId = crypto.randomUUID();
+            const newLine: LotteryLine = {
+              id: crypto.randomUUID(),
+              ticketId,
+              userId: src.userId,
+              drawId: nextDateStr,
+              mainNumbers: fresh.mainNumbers,
+              bonusNumber: fresh.bonusNumber,
+              isLuckyDip: true,
+              isFreeReentry: true,
+              settled: false,
+              matchTier: null,
+              payout: 0,
+              sourceLineId: src.id,
+            };
+            const ticket: LotteryTicket = {
+              id: ticketId,
+              userId: src.userId,
+              drawId: nextDateStr,
+              purchasedAt: drawAt,
+              totalCost: 0,
+              lineCount: 1,
+            };
+            await db.lotteryTickets.put(ticket);
+            await db.lotteryLines.put(newLine);
+          }
+        },
+      );
+
+      settledDrawIds.push(date);
+      freshDraws.push(draw);
     }
 
-    // Transactional write: draw + settled lines + free-re-entry tickets/lines + rounds rows.
-    await db.transaction(
-      'rw',
-      [db.lotteryDraws, db.lotteryLines, db.lotteryTickets, db.rounds, db.balances],
-      async () => {
-        await db.lotteryDraws.put(draw);
-        await db.lotteryLines.bulkPut(unsettled);
-
-        for (const line of unsettled) {
-          await writeRoundForLine(line, draw);
-        }
-
-        // Match-2 → free re-entry for the next draw.
-        const nextDateStr = nextDate(date);
-        const reentryLines = unsettled.filter(
-          (l) => l.matchTier === '2' || l.matchTier === '2+bonus',
-        );
-        for (const src of reentryLines) {
-          const fresh = generateLuckyDipLine([]);
-          const ticketId = crypto.randomUUID();
-          const newLine: LotteryLine = {
-            id: crypto.randomUUID(),
-            ticketId,
-            userId: src.userId,
-            drawId: nextDateStr,
-            mainNumbers: fresh.mainNumbers,
-            bonusNumber: fresh.bonusNumber,
-            isLuckyDip: true,
-            isFreeReentry: true,
-            settled: false,
-            matchTier: null,
-            payout: 0,
-            sourceLineId: src.id,
-          };
-          const ticket: LotteryTicket = {
-            id: ticketId,
-            userId: src.userId,
-            drawId: nextDateStr,
-            purchasedAt: drawAt,
-            totalCost: 0,
-            lineCount: 1,
-          };
-          await db.lotteryTickets.put(ticket);
-          await db.lotteryLines.put(newLine);
-        }
-      },
-    );
-
-    settledDrawIds.push(date);
-    freshDraws.push(draw);
+    return { settledDrawIds, freshDraws };
+  } catch (e) {
+    if (isDatabaseClosedError(e)) {
+      return { settledDrawIds: [], freshDraws: [] };
+    }
+    throw e;
   }
-
-  return { settledDrawIds, freshDraws };
 }
 
 /** Per §7.4: writes a rounds row (or skips) for a settled line. */
@@ -468,6 +475,13 @@ async function pendingDrawDates(upperDate: string): Promise<string[]> {
   return out;
 }
 
+/** True if `e` is a Dexie DatabaseClosedError (raised when an in-flight query
+ *  resolves after the DB has been closed — typically a test teardown race). */
+function isDatabaseClosedError(e: unknown): boolean {
+  if (!(e instanceof Error)) return false;
+  return e.name === 'DatabaseClosedError' || /database has been closed/i.test(e.message);
+}
+
 export async function saveFavorite(input: {
   userId: string;
   name: string;
@@ -514,38 +528,58 @@ export interface LotteryAdminStats {
 }
 
 export async function getLotteryAdminStats(now: number = Date.now()): Promise<LotteryAdminStats> {
-  const today = dateStringFor(now);
-  const todayTickets = await db.lotteryTickets.where('drawId').equals(today).toArray();
-  const ticketsSoldToday = todayTickets.length;
-  const linesSoldToday = todayTickets.reduce((s, t) => s + t.lineCount, 0);
-  const allDraws = await db.lotteryDraws.toArray();
-  let totalRevenue = 0;
-  let totalPayout = 0;
-  for (const d of allDraws) {
-    totalRevenue += d.totalRevenue;
-    totalPayout += d.totalPayout;
+  try {
+    const today = dateStringFor(now);
+    const todayTickets = await db.lotteryTickets.where('drawId').equals(today).toArray();
+    const ticketsSoldToday = todayTickets.length;
+    const linesSoldToday = todayTickets.reduce((s, t) => s + t.lineCount, 0);
+    const allDraws = await db.lotteryDraws.toArray();
+    let totalRevenue = 0;
+    let totalPayout = 0;
+    for (const d of allDraws) {
+      totalRevenue += d.totalRevenue;
+      totalPayout += d.totalPayout;
+    }
+    return {
+      ticketsSoldToday,
+      linesSoldToday,
+      totalRevenue,
+      totalPayout,
+      netProfit: totalRevenue - totalPayout,
+    };
+  } catch (e) {
+    if (isDatabaseClosedError(e)) {
+      return {
+        ticketsSoldToday: 0,
+        linesSoldToday: 0,
+        totalRevenue: 0,
+        totalPayout: 0,
+        netProfit: 0,
+      };
+    }
+    throw e;
   }
-  return {
-    ticketsSoldToday,
-    linesSoldToday,
-    totalRevenue,
-    totalPayout,
-    netProfit: totalRevenue - totalPayout,
-  };
 }
 
 /** Returns array of length MAIN_POOL_SIZE (or BONUS_POOL_SIZE) where index i = times
  *  number (i+1) appeared in a draw, historically. */
 export async function getNumberFrequency(pool: 'main' | 'bonus'): Promise<number[]> {
-  const size = pool === 'main' ? MAIN_POOL_SIZE : BONUS_POOL_SIZE;
-  const freq = new Array<number>(size).fill(0);
-  const draws = await db.lotteryDraws.toArray();
-  for (const d of draws) {
-    if (pool === 'main') {
-      for (const n of d.mainNumbers) freq[n - 1]! += 1;
-    } else {
-      freq[d.bonus - 1]! += 1;
+  try {
+    const size = pool === 'main' ? MAIN_POOL_SIZE : BONUS_POOL_SIZE;
+    const freq = new Array<number>(size).fill(0);
+    const draws = await db.lotteryDraws.toArray();
+    for (const d of draws) {
+      if (pool === 'main') {
+        for (const n of d.mainNumbers) freq[n - 1]! += 1;
+      } else {
+        freq[d.bonus - 1]! += 1;
+      }
     }
+    return freq;
+  } catch (e) {
+    if (isDatabaseClosedError(e)) {
+      return new Array<number>(pool === 'main' ? MAIN_POOL_SIZE : BONUS_POOL_SIZE).fill(0);
+    }
+    throw e;
   }
-  return freq;
 }
