@@ -45,7 +45,9 @@ PR E updates every admin import to the new path and deletes the shim.
 
 - One source of truth for derived stats. No drift between admin and player.
 - Admin tests continue to pass during PR A via the shim.
-- PR E is a small mechanical refactor (5 admin pages × 1 import each).
+- PR E is a small mechanical refactor (3 admin pages × 1 import each; the
+  3 chart wrappers in `src/pages/admin/charts/` relocate in PR C and pick
+  up the new path at that time).
 - `src/pages/admin/` becomes UI-only (chart wrappers move in PR C; the
   queries shim is gone after PR E).
 
