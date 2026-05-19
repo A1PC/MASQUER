@@ -257,6 +257,56 @@ describe('bingoMachine - CPU race', () => {
     actor.stop();
   });
 
+  it('CPU daubed grid actually updates after CALL + latency elapses (regression: SCHEDULE_CPU_EVALS forwarding)', () => {
+    // Regression test for the bug where SCHEDULE_CPU_EVALS was self.send-ed
+    // to the machine instead of sendTo'd to the cpuScheduler actor, so no
+    // setTimeouts were ever scheduled and CPUs never daubed.
+    const actor = createActor(bingoMachine).start();
+    actor.send({
+      type: 'BUY_AND_START',
+      variant: 'british',
+      difficulty: 'easy',
+      speed: 'fast',
+      daubMode: 'auto',
+      rngSeed: 1,
+    });
+    actor.send({ type: 'BET_PLACED', betHandleId: 'h1' });
+
+    // Pick CPU 0 and find a value on its card; then call exactly that value.
+    const cpu0 = actor.getSnapshot().context.cpuCards[0]!;
+    let targetValue: number | null = null;
+    let targetRow = -1;
+    let targetCol = -1;
+    outer: for (let r = 0; r < cpu0.card.cells.length; r += 1) {
+      for (let c = 0; c < cpu0.card.cells[r]!.length; c += 1) {
+        const v = cpu0.card.cells[r]![c]!.value;
+        if (v !== null) {
+          targetValue = v;
+          targetRow = r;
+          targetCol = c;
+          break outer;
+        }
+      }
+    }
+    expect(targetValue).not.toBeNull();
+
+    // Advance the callSequence so the next CALL hits the target value.
+    // Find the index of targetValue in callSequence and skip earlier balls.
+    const seq = actor.getSnapshot().context.callSequence;
+    const targetIdx = seq.indexOf(targetValue!);
+    expect(targetIdx).toBeGreaterThanOrEqual(0);
+    for (let i = 0; i <= targetIdx; i += 1) {
+      actor.send({ type: 'CALL' });
+    }
+
+    // Easy CPU latency is 200-500ms — advance well past it.
+    vi.advanceTimersByTime(600);
+
+    const cpu0After = actor.getSnapshot().context.cpuCards[0]!;
+    expect(cpu0After.daubed[targetRow]![targetCol]).toBe(true);
+    actor.stop();
+  });
+
   it('multiple CALL events schedule multiple rounds of CPU evaluations', () => {
     const actor = createActor(bingoMachine).start();
     actor.send({

@@ -1,4 +1,4 @@
-import { setup, assign, fromCallback } from 'xstate';
+import { setup, assign, fromCallback, sendTo } from 'xstate';
 import {
   BUY_IN,
   CALL_SPEEDS,
@@ -78,8 +78,7 @@ export type BingoEvent =
   | { type: 'CPU_DAUB'; cpuIdx: number }
   | { type: 'CLAIM'; tier: Tier; source: 'user' | 'cpu'; cpuIdx?: number }
   | { type: 'SETTLED' }
-  | { type: 'PLAY_AGAIN' }
-  | { type: 'SCHEDULE_CPU_EVALS' };
+  | { type: 'PLAY_AGAIN' };
 
 function makeInitialContext(): BingoContext {
   return {
@@ -353,14 +352,9 @@ export const bingoMachine = setup({
                 self.send({ type: 'CLAIM', tier, source: 'user' });
               }
             },
-            // Trigger CPU scheduler to schedule per-CPU evaluations.
-            ({ self }) => {
-              self.send({ type: 'SCHEDULE_CPU_EVALS' });
-            },
+            // Forward to the cpuScheduler actor so it schedules per-CPU setTimeouts.
+            sendTo('cpuScheduler', { type: 'SCHEDULE_CPU_EVALS' }),
           ],
-        },
-        SCHEDULE_CPU_EVALS: {
-          // Received by this state; XState v5 forwards events to invoked actors.
         },
         MANUAL_DAUB: {
           actions: [
