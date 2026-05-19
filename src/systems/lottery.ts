@@ -1,6 +1,7 @@
 import {
   db,
   type LotteryDraw,
+  type LotteryFavorite,
   type LotteryMatchTier,
   type LotteryTicket,
   type LotteryLine,
@@ -465,4 +466,41 @@ async function pendingDrawDates(upperDate: string): Promise<string[]> {
     cur = nextDate(cur);
   }
   return out;
+}
+
+export async function saveFavorite(input: {
+  userId: string;
+  name: string;
+  mainNumbers: number[];
+  bonusNumber: number;
+}): Promise<LotteryFavorite> {
+  if (!isValidLine({ mainNumbers: input.mainNumbers, bonusNumber: input.bonusNumber })) {
+    throw new Error('invalid favorite numbers');
+  }
+  const fav: LotteryFavorite = {
+    id: crypto.randomUUID(),
+    userId: input.userId,
+    name: input.name,
+    mainNumbers: [...input.mainNumbers].sort((a, b) => a - b),
+    bonusNumber: input.bonusNumber,
+    createdAt: Date.now(),
+  };
+  await db.lotteryFavorites.put(fav);
+  return fav;
+}
+
+export async function listFavorites(userId: string): Promise<LotteryFavorite[]> {
+  return db.lotteryFavorites
+    .where('[userId+createdAt]')
+    .between([userId, 0], [userId, Number.MAX_SAFE_INTEGER])
+    .reverse()
+    .toArray();
+}
+
+export async function renameFavorite(id: string, name: string): Promise<void> {
+  await db.lotteryFavorites.update(id, { name });
+}
+
+export async function deleteFavorite(id: string): Promise<void> {
+  await db.lotteryFavorites.delete(id);
 }

@@ -12,6 +12,10 @@ import {
   dateStringFor,
   buyTicket,
   settleMissedDraws,
+  saveFavorite,
+  listFavorites,
+  renameFavorite,
+  deleteFavorite,
 } from './lottery';
 
 const SESSION_KEY = 'localGamble.session.userId';
@@ -389,5 +393,96 @@ describe('settleMissedDraws', () => {
     await settleMissedDraws({ now: new Date(2026, 4, 19, 20, 35, 0).getTime() });
     expect((await db.rounds.toArray()).length).toBe(firstRounds);
     expect((await db.lotteryDraws.toArray()).length).toBe(firstDraws);
+  });
+});
+
+describe('Favorites CRUD', () => {
+  beforeEach(async () => {
+    await resetDb();
+    localStorage.removeItem(SESSION_KEY);
+  });
+
+  it('saves and lists favorites scoped to user, newest first', async () => {
+    const a = await register({ username: 'a', password: 'password123' });
+    const b = await register({ username: 'b', password: 'password123' });
+    if (!a.ok || !b.ok) throw new Error();
+    await saveFavorite({
+      userId: a.user.id,
+      name: 'My Numbers 1',
+      mainNumbers: [1, 2, 3, 4, 5],
+      bonusNumber: 1,
+    });
+    await new Promise((r) => setTimeout(r, 1));
+    await saveFavorite({
+      userId: a.user.id,
+      name: 'My Numbers 2',
+      mainNumbers: [6, 7, 8, 9, 10],
+      bonusNumber: 2,
+    });
+    await saveFavorite({
+      userId: b.user.id,
+      name: 'B Numbers',
+      mainNumbers: [11, 12, 13, 14, 15],
+      bonusNumber: 3,
+    });
+    const aFavs = await listFavorites(a.user.id);
+    expect(aFavs).toHaveLength(2);
+    expect(aFavs[0]!.name).toBe('My Numbers 2');
+    expect(aFavs[1]!.name).toBe('My Numbers 1');
+    const bFavs = await listFavorites(b.user.id);
+    expect(bFavs).toHaveLength(1);
+  });
+
+  it('rename updates the name', async () => {
+    const r = await register({ username: 'c', password: 'password123' });
+    if (!r.ok) throw new Error();
+    const fav = await saveFavorite({
+      userId: r.user.id,
+      name: 'Old',
+      mainNumbers: [1, 2, 3, 4, 5],
+      bonusNumber: 1,
+    });
+    await renameFavorite(fav.id, 'New');
+    const refreshed = (await listFavorites(r.user.id))[0]!;
+    expect(refreshed.name).toBe('New');
+  });
+
+  it('delete removes the favorite', async () => {
+    const r = await register({ username: 'd', password: 'password123' });
+    if (!r.ok) throw new Error();
+    const fav = await saveFavorite({
+      userId: r.user.id,
+      name: 'X',
+      mainNumbers: [1, 2, 3, 4, 5],
+      bonusNumber: 1,
+    });
+    await deleteFavorite(fav.id);
+    expect(await listFavorites(r.user.id)).toHaveLength(0);
+  });
+
+  it('rejects an invalid favorite (duplicate main numbers)', async () => {
+    const r = await register({ username: 'e', password: 'password123' });
+    if (!r.ok) throw new Error();
+    await expect(
+      saveFavorite({
+        userId: r.user.id,
+        name: 'bad',
+        mainNumbers: [1, 1, 2, 3, 4],
+        bonusNumber: 1,
+      }),
+    ).rejects.toThrow();
+  });
+
+  it('stores mainNumbers sorted ascending', async () => {
+    const r = await register({ username: 'f', password: 'password123' });
+    if (!r.ok) throw new Error();
+    await saveFavorite({
+      userId: r.user.id,
+      name: 'shuffled',
+      mainNumbers: [5, 2, 4, 1, 3],
+      bonusNumber: 1,
+    });
+    const fav = (await listFavorites(r.user.id))[0]!;
+    expect(fav.mainNumbers).toEqual([1, 2, 3, 4, 5]);
   });
 });
