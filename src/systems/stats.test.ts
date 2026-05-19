@@ -9,6 +9,7 @@ import {
   getSiteWideStats,
   getTopLosers,
   getTopWinners,
+  getUserMetrics,
 } from './stats';
 
 const SESSION_KEY = 'localGamble.session.userId';
@@ -194,5 +195,133 @@ describe('queries.getTopWinners / getTopLosers', () => {
     const l = await getTopLosers(5);
     expect(l[0]!.username).toBe('bob');
     expect(l[0]!.totalNetChange).toBe(-150);
+  });
+});
+
+describe('getUserMetrics — core', () => {
+  beforeEach(async () => {
+    await resetDb();
+    localStorage.removeItem(SESSION_KEY);
+  });
+
+  it('returns EMPTY_METRICS for a user with no rounds', async () => {
+    const r = await register({ username: 'alice', password: 'password123' });
+    if (!r.ok) throw new Error();
+    const m = await getUserMetrics(r.user.id);
+    expect(m).toEqual({
+      totalRounds: 0,
+      totalWagered: 0,
+      totalWon: 0,
+      totalLost: 0,
+      netChange: 0,
+      rtp: null,
+      timePlayedMs: 0,
+    });
+  });
+
+  it('aggregates wagered / won / lost / net across all rounds', async () => {
+    const r = await register({ username: 'bob', password: 'password123' });
+    if (!r.ok) throw new Error();
+    await db.rounds.bulkAdd([
+      {
+        id: 'r-1',
+        userId: r.user.id,
+        game: 'blackjack',
+        betAmount: 100,
+        payout: 200,
+        netChange: 100,
+        outcome: 'win',
+        details: {},
+        balanceAfter: 1100,
+        playedAt: 1000,
+      },
+      {
+        id: 'r-2',
+        userId: r.user.id,
+        game: 'blackjack',
+        betAmount: 50,
+        payout: 0,
+        netChange: -50,
+        outcome: 'loss',
+        details: {},
+        balanceAfter: 1050,
+        playedAt: 2000,
+      },
+    ]);
+    const m = await getUserMetrics(r.user.id);
+    expect(m.totalRounds).toBe(2);
+    expect(m.totalWagered).toBe(150);
+    expect(m.totalWon).toBe(200);
+    expect(m.totalLost).toBe(50);
+    expect(m.netChange).toBe(50);
+    expect(m.rtp).toBeCloseTo(133.33, 1);
+  });
+
+  it('RTP is null when wagered is 0', async () => {
+    const r = await register({ username: 'carol', password: 'password123' });
+    if (!r.ok) throw new Error();
+    const m = await getUserMetrics(r.user.id);
+    expect(m.rtp).toBeNull();
+  });
+
+  it('game-scoped query filters to that game only', async () => {
+    const r = await register({ username: 'dave', password: 'password123' });
+    if (!r.ok) throw new Error();
+    await db.rounds.bulkAdd([
+      {
+        id: 'b-1',
+        userId: r.user.id,
+        game: 'blackjack',
+        betAmount: 100,
+        payout: 200,
+        netChange: 100,
+        outcome: 'win',
+        details: {},
+        balanceAfter: 1100,
+        playedAt: 1000,
+      },
+      {
+        id: 's-1',
+        userId: r.user.id,
+        game: 'slots',
+        betAmount: 50,
+        payout: 0,
+        netChange: -50,
+        outcome: 'loss',
+        details: {},
+        balanceAfter: 1050,
+        playedAt: 2000,
+      },
+    ]);
+    const m = await getUserMetrics(r.user.id, 'blackjack');
+    expect(m.totalRounds).toBe(1);
+    expect(m.netChange).toBe(100);
+  });
+
+  it('timePlayedMs sums gameVisits.durationMs (game-scoped if provided)', async () => {
+    const r = await register({ username: 'eve', password: 'password123' });
+    if (!r.ok) throw new Error();
+    await db.gameVisits.bulkAdd([
+      {
+        id: 'v-1',
+        userId: r.user.id,
+        sessionId: 's-1',
+        game: 'blackjack',
+        enteredAt: 1000,
+        exitedAt: 4000,
+        durationMs: 3000,
+      },
+      {
+        id: 'v-2',
+        userId: r.user.id,
+        sessionId: 's-1',
+        game: 'roulette',
+        enteredAt: 5000,
+        exitedAt: 12000,
+        durationMs: 7000,
+      },
+    ]);
+    expect((await getUserMetrics(r.user.id)).timePlayedMs).toBe(10000);
+    expect((await getUserMetrics(r.user.id, 'blackjack')).timePlayedMs).toBe(3000);
   });
 });

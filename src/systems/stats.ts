@@ -178,3 +178,67 @@ function startOfUtcDay(ms: number): number {
   const d = new Date(ms);
   return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
 }
+
+// ----- getUserMetrics (Phase 7 — Stats Cards) -----
+
+type Game = Round['game'];
+
+export type UserMetrics = {
+  totalRounds: number;
+  totalWagered: number;
+  totalWon: number;
+  totalLost: number;
+  netChange: number;
+  /** Returns-to-player percentage, or null when totalWagered is 0. */
+  rtp: number | null;
+  /** Time spent on this game's page (or all pages if game omitted), ms. */
+  timePlayedMs: number;
+};
+
+const EMPTY_METRICS: UserMetrics = {
+  totalRounds: 0,
+  totalWagered: 0,
+  totalWon: 0,
+  totalLost: 0,
+  netChange: 0,
+  rtp: null,
+  timePlayedMs: 0,
+};
+
+/** 16-metric core. Game-scoped if `game` provided; otherwise all-games aggregate. */
+export async function getUserMetrics(userId: string, game?: Game): Promise<UserMetrics> {
+  if (!userId) return EMPTY_METRICS;
+  const rounds = await fetchUserRounds(userId, game);
+  const visits = await db.gameVisits.where('userId').equals(userId).toArray();
+  const scopedVisits = game ? visits.filter((v) => v.game === game) : visits;
+
+  let totalWagered = 0;
+  let totalWon = 0;
+  let totalLost = 0;
+  let netChange = 0;
+  for (const r of rounds) {
+    totalWagered += r.betAmount;
+    totalWon += r.payout;
+    netChange += r.netChange;
+    if (r.netChange < 0) totalLost += -r.netChange;
+  }
+  const timePlayedMs = scopedVisits.reduce((s, v) => s + (v.durationMs ?? 0), 0);
+  const rtp = totalWagered === 0 ? null : (totalWon / totalWagered) * 100;
+  return {
+    totalRounds: rounds.length,
+    totalWagered,
+    totalWon,
+    totalLost,
+    netChange,
+    rtp,
+    timePlayedMs,
+  };
+}
+
+async function fetchUserRounds(userId: string, game?: Game): Promise<Round[]> {
+  const all = await db.rounds
+    .where('[userId+playedAt]')
+    .between([userId, 0], [userId, Number.MAX_SAFE_INTEGER])
+    .toArray();
+  return game ? all.filter((r) => r.game === game) : all;
+}
