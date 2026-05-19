@@ -19,6 +19,7 @@ const GAME_LABELS: Record<Game, string> = {
   baccarat: 'BACCARAT',
   'coin-flip': 'COIN FLIP',
   lottery: 'LOTTERY', // A.8 will complete full wiring
+  bingo: 'BINGO', // PR D will complete full wiring
 };
 
 const EMPTY: readonly LeaderboardRow[] = [];
