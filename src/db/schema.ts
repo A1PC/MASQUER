@@ -29,7 +29,7 @@ export interface Balance {
 export interface Round {
   id: string;
   userId: string;
-  game: 'blackjack' | 'roulette' | 'slots' | 'baccarat' | 'coin-flip' | 'lottery';
+  game: 'blackjack' | 'roulette' | 'slots' | 'baccarat' | 'coin-flip' | 'lottery' | 'bingo';
   betAmount: number;
   payout: number;
   netChange: number;

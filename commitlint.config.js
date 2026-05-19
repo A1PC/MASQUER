@@ -16,6 +16,7 @@ export default {
         'stats',
         'leaderboard',
         'lottery',
+        'bingo',
         'theme',
         'db',
         'session',
