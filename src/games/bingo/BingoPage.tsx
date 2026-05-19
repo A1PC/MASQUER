@@ -1,15 +1,19 @@
 import type { JSX } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useMachine } from '@xstate/react';
+import { AnimatePresence } from 'framer-motion';
 import { useCurrentUser } from '@/store/sessionStore';
 import { useBalance } from '@/store/walletStore';
 import { useGameRound } from '@/games/_shared/useGameRound';
 import { bingoMachine } from './machine';
-import { BINGO_CONFIG, type BingoSpeed } from './logic';
+import { BINGO_CONFIG, type BingoSpeed, type BingoTier } from './logic';
 import SetupPanel from './SetupPanel';
 import BingoCard from './BingoCard';
 import CallBoard from './CallBoard';
 import { useBingoBallCaller } from './useBingoBallCaller';
+import DaubToggle from './DaubToggle';
+import WinBanner from './WinBanner';
+import EndScreen from './EndScreen';
 
 export default function BingoPage(): JSX.Element | null {
   const user = useCurrentUser();
@@ -19,6 +23,44 @@ export default function BingoPage(): JSX.Element | null {
   const [pendingCardCount, setPendingCardCount] = useState(1);
   const [pendingSpeed, setPendingSpeed] = useState<BingoSpeed>('normal');
   const settledRef = useRef<string | null>(null);
+
+  // Win-banner state tracking.
+  const [activeBanners, setActiveBanners] = useState<
+    Array<{ key: string; tier: BingoTier; cardId: string }>
+  >([]);
+  const shownKeysRef = useRef<Set<string>>(new Set());
+
+  // Sync banner display with the XState machine's wins array.
+  // setState here is legitimate UI ↔ XState machine sync — the banner list
+  // is externally driven by the machine, not derived from other React state.
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    // When wins resets to empty (PLAY_AGAIN), clear banners.
+    if (snapshot.context.wins.length === 0) {
+      if (shownKeysRef.current.size > 0) {
+        shownKeysRef.current = new Set();
+        setActiveBanners([]);
+      }
+      return;
+    }
+    // Append any newly-added wins that have not been shown yet.
+    const newBanners: Array<{ key: string; tier: BingoTier; cardId: string }> = [];
+    for (let i = 0; i < snapshot.context.wins.length; i += 1) {
+      const w = snapshot.context.wins[i]!;
+      const key = `${w.cardId}-${w.tier}-${i}`;
+      if (shownKeysRef.current.has(key)) continue;
+      shownKeysRef.current.add(key);
+      newBanners.push({ key, tier: w.tier, cardId: w.cardId });
+    }
+    if (newBanners.length > 0) {
+      setActiveBanners((cur) => [...cur, ...newBanners]);
+    }
+  }, [snapshot.context.wins]);
+  /* eslint-enable react-hooks/set-state-in-effect */
+
+  const dismissBanner = useCallback((key: string) => {
+    setActiveBanners((cur) => cur.filter((b) => b.key !== key));
+  }, []);
 
   // Ball caller — fires while in playing state.
   const handleCall = useCallback(() => {
@@ -107,7 +149,17 @@ export default function BingoPage(): JSX.Element | null {
     <div className="flex min-h-screen bg-felt-deep text-white">
       <main className="flex-1 overflow-auto p-6">
         <header className="mb-4 flex items-center justify-between">
-          <h1 className="font-display text-base tracking-wider text-gold-bright">🎯 BINGO</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="font-display text-base tracking-wider text-gold-bright">🎯 BINGO</h1>
+            {(snapshot.matches('playing') ||
+              snapshot.matches('settling') ||
+              snapshot.matches('done')) && (
+              <DaubToggle
+                mode={snapshot.context.daubMode}
+                onToggle={() => send({ type: 'TOGGLE_DAUB' })}
+              />
+            )}
+          </div>
           <span className="font-display text-xs text-white/60">
             Balance:{' '}
             <span className="text-gold-bright tabular-nums">{balance.toLocaleString()}</span>
@@ -133,6 +185,20 @@ export default function BingoPage(): JSX.Element | null {
           snapshot.matches('settling') ||
           snapshot.matches('done')) && (
           <div className="flex flex-col gap-4">
+            {activeBanners.length > 0 && (
+              <div className="flex flex-col items-center gap-2" data-banner-stack>
+                <AnimatePresence>
+                  {activeBanners.map((b) => (
+                    <WinBanner
+                      key={b.key}
+                      tier={b.tier}
+                      cardId={b.cardId}
+                      onDismiss={() => dismissBanner(b.key)}
+                    />
+                  ))}
+                </AnimatePresence>
+              </div>
+            )}
             <CallBoard calledSoFar={calledSoFar} callCount={snapshot.context.callIndex} />
             <div
               className="grid gap-4"
@@ -146,6 +212,13 @@ export default function BingoPage(): JSX.Element | null {
                   card={cardState.card}
                   daubed={cardState.daubed}
                   achievedTiers={cardState.achievedTiers}
+                  {...(snapshot.context.daubMode === 'manual' && snapshot.matches('playing')
+                    ? {
+                        onCellClick: (row: number, col: number) =>
+                          send({ type: 'MANUAL_DAUB', cardId: cardState.card.id, row, col }),
+                      }
+                    : {})}
+                  manualMode={snapshot.context.daubMode === 'manual'}
                 />
               ))}
             </div>
@@ -153,25 +226,13 @@ export default function BingoPage(): JSX.Element | null {
         )}
 
         {snapshot.matches('done') && (
-          <section
-            className="mt-4 rounded border border-gold/40 bg-felt-deep p-4 text-center"
-            data-end-screen
-          >
-            <h2 className="mb-2 font-display text-lg tracking-wider text-gold-bright">GAME OVER</h2>
-            <p className="text-sm text-white/80">
-              Total won:{' '}
-              <span className="font-display text-gold-bright tabular-nums">
-                {snapshot.context.wins.reduce((s, w) => s + w.payout, 0).toLocaleString()} chips
-              </span>
-            </p>
-            <button
-              type="button"
-              onClick={() => send({ type: 'PLAY_AGAIN' })}
-              className="mt-3 rounded-md border-2 border-gold bg-casino-red px-6 py-2 font-display text-sm tracking-wider text-white"
-            >
-              PLAY AGAIN
-            </button>
-          </section>
+          <div className="mt-4">
+            <EndScreen
+              cards={snapshot.context.cards}
+              wins={snapshot.context.wins}
+              onPlayAgain={() => send({ type: 'PLAY_AGAIN' })}
+            />
+          </div>
         )}
       </main>
     </div>

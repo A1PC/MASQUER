@@ -21,6 +21,7 @@ const TABS: Omit<Item, 'to'>[] = [
   { icon: '🎴', label: 'Baccarat' },
   { icon: '🪙', label: 'Coin Flip' },
   { icon: '🎟️', label: 'Lottery' },
+  { icon: '🎯', label: 'Bingo' },
 ];
 
 const SLUG: Record<string, string> = {
@@ -31,6 +32,7 @@ const SLUG: Record<string, string> = {
   Baccarat: 'baccarat',
   'Coin Flip': 'coin-flip',
   Lottery: 'lottery',
+  Bingo: 'bingo',
 };
 
 export default function StatsLeftRail({ basePath }: Props): JSX.Element {
