@@ -1,5 +1,12 @@
-import { type LotteryDraw, type LotteryMatchTier } from '@/db';
+import {
+  db,
+  type LotteryDraw,
+  type LotteryMatchTier,
+  type LotteryTicket,
+  type LotteryLine,
+} from '@/db';
 import { randomInt } from '@/systems/rng';
+import { placeBet } from '@/systems/wallet';
 
 const MAIN_POOL_SIZE = 50;
 const MAIN_PICK_COUNT = 5;
@@ -147,4 +154,113 @@ export function dateStringFor(ts: number): string {
   const m = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
   return `${y}-${m}-${day}`;
+}
+
+const LINE_COST = 10;
+
+export type BuyTicketInput =
+  | { kind: 'manual'; mainNumbers: number[]; bonusNumber: number }
+  | { kind: 'lucky-dip' };
+
+export type BuyTicketResult =
+  | { ok: true; ticketId: string; lines: LotteryLine[] }
+  | { ok: false; error: 'duplicate-manual-lines' | 'insufficient-chips' | 'invalid-line' };
+
+/** Buys a ticket containing the given lines for the next scheduled draw.
+ *  Generates lucky-dip lines, ensuring within-ticket uniqueness.
+ *  Debits the wallet for paid lines (lineCount * LINE_COST). */
+export async function buyTicket(input: {
+  userId: string;
+  lines: BuyTicketInput[];
+  now?: number;
+}): Promise<BuyTicketResult> {
+  const now = input.now ?? Date.now();
+  const drawId = dateStringFor(nextDrawAt(now));
+
+  // 1. Validate manual lines: each is a valid 5+1, and no two are duplicates.
+  const manualLines: { mainNumbers: number[]; bonusNumber: number }[] = [];
+  for (const item of input.lines) {
+    if (item.kind === 'manual') {
+      if (!isValidLine(item)) return { ok: false, error: 'invalid-line' };
+      manualLines.push({ mainNumbers: item.mainNumbers, bonusNumber: item.bonusNumber });
+    }
+  }
+  const manualKeys = new Set<string>();
+  for (const line of manualLines) {
+    const key = lineKey(line);
+    if (manualKeys.has(key)) return { ok: false, error: 'duplicate-manual-lines' };
+    manualKeys.add(key);
+  }
+
+  // 2. Generate lucky-dip lines, growing the "existing" set with each one.
+  const generatedLines: { mainNumbers: number[]; bonusNumber: number }[] = [];
+  const allSoFar: { mainNumbers: number[]; bonusNumber: number }[] = [...manualLines];
+  for (const item of input.lines) {
+    if (item.kind === 'lucky-dip') {
+      const fresh = generateLuckyDipLine(allSoFar);
+      generatedLines.push(fresh);
+      allSoFar.push(fresh);
+    }
+  }
+
+  // 3. Debit wallet.
+  const totalCost = input.lines.length * LINE_COST;
+  const bet = await placeBet({
+    userId: input.userId,
+    game: 'lottery',
+    amount: totalCost,
+    min: LINE_COST,
+    max: Number.MAX_SAFE_INTEGER,
+  });
+  if (!bet.ok) return { ok: false, error: 'insufficient-chips' };
+
+  // 4. Build line rows in input order (manual + lucky-dip interleaved).
+  const ticketId = crypto.randomUUID();
+  const lines: LotteryLine[] = [];
+  let manualIdx = 0;
+  let dipIdx = 0;
+  for (const item of input.lines) {
+    const source = item.kind === 'manual' ? manualLines[manualIdx++]! : generatedLines[dipIdx++]!;
+    lines.push({
+      id: crypto.randomUUID(),
+      ticketId,
+      userId: input.userId,
+      drawId,
+      mainNumbers: source.mainNumbers,
+      bonusNumber: source.bonusNumber,
+      isLuckyDip: item.kind === 'lucky-dip',
+      isFreeReentry: false,
+      settled: false,
+      matchTier: null,
+      payout: 0,
+    });
+  }
+
+  const ticket: LotteryTicket = {
+    id: ticketId,
+    userId: input.userId,
+    drawId,
+    purchasedAt: now,
+    totalCost,
+    lineCount: lines.length,
+  };
+
+  await db.transaction('rw', db.lotteryTickets, db.lotteryLines, async () => {
+    await db.lotteryTickets.put(ticket);
+    await db.lotteryLines.bulkPut(lines);
+  });
+
+  return { ok: true, ticketId, lines };
+}
+
+function isValidLine(line: { mainNumbers: number[]; bonusNumber: number }): boolean {
+  if (line.mainNumbers.length !== MAIN_PICK_COUNT) return false;
+  const unique = new Set(line.mainNumbers);
+  if (unique.size !== MAIN_PICK_COUNT) return false;
+  for (const n of line.mainNumbers) {
+    if (!Number.isInteger(n) || n < 1 || n > MAIN_POOL_SIZE) return false;
+  }
+  if (!Number.isInteger(line.bonusNumber)) return false;
+  if (line.bonusNumber < 1 || line.bonusNumber > BONUS_POOL_SIZE) return false;
+  return true;
 }

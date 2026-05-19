@@ -1,4 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { db } from '@/db';
+import { resetDb } from '@/test/db-helpers';
+import { register } from '@/systems/auth';
 import {
   drawForDate,
   lineKey,
@@ -7,7 +10,10 @@ import {
   generateLuckyDipLine,
   nextDrawAt,
   dateStringFor,
+  buyTicket,
 } from './lottery';
+
+const SESSION_KEY = 'localGamble.session.userId';
 
 describe('drawForDate', () => {
   it('is deterministic for the same date', () => {
@@ -155,5 +161,107 @@ describe('dateStringFor', () => {
   it('pads month and day with leading zeros', () => {
     const ts = new Date(2026, 0, 3, 12, 0, 0).getTime();
     expect(dateStringFor(ts)).toBe('2026-01-03');
+  });
+});
+
+describe('buyTicket', () => {
+  beforeEach(async () => {
+    await resetDb();
+    localStorage.removeItem(SESSION_KEY);
+  });
+
+  it('inserts a ticket + lines for a manual-only purchase and debits the wallet', async () => {
+    const r = await register({ username: 'a', password: 'password123' });
+    if (!r.ok) throw new Error();
+    const before = (await db.balances.get(r.user.id))!.chips;
+    const result = await buyTicket({
+      userId: r.user.id,
+      lines: [
+        { kind: 'manual', mainNumbers: [1, 2, 3, 4, 5], bonusNumber: 1 },
+        { kind: 'manual', mainNumbers: [10, 20, 30, 40, 50], bonusNumber: 9 },
+      ],
+      now: new Date(2026, 4, 19, 12, 0, 0).getTime(),
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const lines = await db.lotteryLines.where('ticketId').equals(result.ticketId).toArray();
+    expect(lines).toHaveLength(2);
+    const after = (await db.balances.get(r.user.id))!.chips;
+    expect(after).toBe(before - 20);
+  });
+
+  it('rejects when two manual lines are duplicates', async () => {
+    const r = await register({ username: 'b', password: 'password123' });
+    if (!r.ok) throw new Error();
+    const result = await buyTicket({
+      userId: r.user.id,
+      lines: [
+        { kind: 'manual', mainNumbers: [1, 2, 3, 4, 5], bonusNumber: 1 },
+        { kind: 'manual', mainNumbers: [5, 4, 3, 2, 1], bonusNumber: 1 },
+      ],
+    });
+    expect(result).toEqual({ ok: false, error: 'duplicate-manual-lines' });
+    const bal = (await db.balances.get(r.user.id))!.chips;
+    expect(bal).toBe(1000);
+  });
+
+  it('rejects when wallet has insufficient chips', async () => {
+    const r = await register({ username: 'c', password: 'password123' });
+    if (!r.ok) throw new Error();
+    await db.balances.update(r.user.id, { chips: 5 });
+    const result = await buyTicket({
+      userId: r.user.id,
+      lines: [{ kind: 'manual', mainNumbers: [1, 2, 3, 4, 5], bonusNumber: 1 }],
+    });
+    expect(result).toEqual({ ok: false, error: 'insufficient-chips' });
+  });
+
+  it('generates unique lucky-dip lines distinct from manual lines on the same ticket', async () => {
+    const r = await register({ username: 'd', password: 'password123' });
+    if (!r.ok) throw new Error();
+    const result = await buyTicket({
+      userId: r.user.id,
+      lines: [
+        { kind: 'manual', mainNumbers: [1, 2, 3, 4, 5], bonusNumber: 1 },
+        { kind: 'lucky-dip' },
+        { kind: 'lucky-dip' },
+        { kind: 'lucky-dip' },
+      ],
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const lines = await db.lotteryLines.where('ticketId').equals(result.ticketId).toArray();
+    const keys = lines.map(
+      (l) => `${[...l.mainNumbers].sort((a, b) => a - b).join(',')}|${l.bonusNumber}`,
+    );
+    expect(new Set(keys).size).toBe(4);
+  });
+
+  it('rejects an invalid line (6 main numbers)', async () => {
+    const r = await register({ username: 'e', password: 'password123' });
+    if (!r.ok) throw new Error();
+    const result = await buyTicket({
+      userId: r.user.id,
+      lines: [{ kind: 'manual', mainNumbers: [1, 2, 3, 4, 5, 6], bonusNumber: 1 }],
+    });
+    expect(result).toEqual({ ok: false, error: 'invalid-line' });
+  });
+
+  it('marks lucky-dip lines with isLuckyDip=true', async () => {
+    const r = await register({ username: 'f', password: 'password123' });
+    if (!r.ok) throw new Error();
+    const result = await buyTicket({
+      userId: r.user.id,
+      lines: [
+        { kind: 'manual', mainNumbers: [1, 2, 3, 4, 5], bonusNumber: 1 },
+        { kind: 'lucky-dip' },
+      ],
+    });
+    if (!result.ok) throw new Error();
+    const lines = await db.lotteryLines.where('ticketId').equals(result.ticketId).toArray();
+    const manual = lines.find((l) => !l.isLuckyDip);
+    const dip = lines.find((l) => l.isLuckyDip);
+    expect(manual).toBeDefined();
+    expect(dip).toBeDefined();
   });
 });
