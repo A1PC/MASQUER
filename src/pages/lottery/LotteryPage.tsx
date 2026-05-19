@@ -7,6 +7,7 @@ import NumberGrid from './NumberGrid';
 import TicketCart from './TicketCart';
 import FavoritesDropdown from './FavoritesDropdown';
 import { useLotteryCart } from './useLotteryCart';
+import DrawAnimationModal, { type PurchaseRevealLine } from './DrawAnimationModal';
 
 const LINE_COST = 10;
 
@@ -18,6 +19,7 @@ export default function LotteryPage(): JSX.Element | null {
   const [bonusSelected, setBonusSelected] = useState<number | null>(null);
   const [addError, setAddError] = useState<string | null>(null);
   const [purchaseMessage, setPurchaseMessage] = useState<string | null>(null);
+  const [revealLines, setRevealLines] = useState<PurchaseRevealLine[] | null>(null);
 
   if (!user) return null;
 
@@ -60,6 +62,16 @@ export default function LotteryPage(): JSX.Element | null {
     setPurchaseMessage(
       `Bought ticket with ${result.lines.length} line${result.lines.length === 1 ? '' : 's'}.`,
     );
+    const luckyDipPresent = result.lines.some((l) => l.isLuckyDip);
+    if (luckyDipPresent) {
+      setRevealLines(
+        result.lines.map((l) => ({
+          isLuckyDip: l.isLuckyDip,
+          mainNumbers: l.mainNumbers,
+          bonusNumber: l.bonusNumber,
+        })),
+      );
+    }
   }
 
   const totalCost = cart.lines.length * LINE_COST;
@@ -115,9 +127,8 @@ export default function LotteryPage(): JSX.Element | null {
               </button>
               <button
                 type="button"
-                disabled
-                title="Lucky dip ships in PR C"
-                className="flex-1 rounded-md border border-gold/40 bg-felt-deep py-2 font-display text-xs tracking-wider text-white/40"
+                onClick={cart.addLuckyDip}
+                className="flex-1 rounded-md border border-gold bg-felt-deep py-2 font-display text-xs tracking-wider text-gold-bright hover:bg-gold/10"
               >
                 ADD LUCKY DIP
               </button>
@@ -142,6 +153,13 @@ export default function LotteryPage(): JSX.Element | null {
         >
           History slide — ships in PR E.
         </section>
+
+        <DrawAnimationModal
+          mode="purchase"
+          open={revealLines !== null}
+          lines={revealLines ?? []}
+          onClose={() => setRevealLines(null)}
+        />
       </main>
     </div>
   );

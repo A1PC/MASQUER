@@ -89,4 +89,20 @@ describe('LotteryPage shell', () => {
     await user.click(screen.getByRole('button', { name: /add line/i }));
     expect(screen.getByText(/already on the ticket/i)).toBeInTheDocument();
   });
+
+  it('shows the purchase reveal modal after buying a ticket with lucky-dip lines', async () => {
+    const r = await register({ username: 'dip', password: 'password123' });
+    if (!r.ok) throw new Error();
+    useSessionStore.setState({ currentUser: r.user });
+    await useWalletStore.getState().hydrate(r.user.id);
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <LotteryPage />
+      </MemoryRouter>,
+    );
+    await user.click(screen.getByRole('button', { name: /add lucky dip/i }));
+    await user.click(screen.getByRole('button', { name: /buy ticket/i }));
+    await waitFor(() => expect(screen.getByText(/ticket purchased/i)).toBeInTheDocument());
+  });
 });
