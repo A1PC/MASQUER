@@ -10,11 +10,13 @@ import {
   getSiteWideStats,
   getTopLosers,
   getTopWinners,
+  getUserBetSizeHistogram,
   getUserExtras,
   getUserMetrics,
   getUserPeaks,
   getUserSessionStats,
   getUserStreaks,
+  getUserWinLossTimeline,
 } from './stats';
 
 const SESSION_KEY = 'localGamble.session.userId';
@@ -757,5 +759,93 @@ describe('getUserExtras', () => {
       playedAt: 1000,
     });
     expect((await getUserExtras(r.user.id)).winRate).toBeNull();
+  });
+});
+
+describe('getUserWinLossTimeline', () => {
+  beforeEach(async () => {
+    await resetDb();
+    localStorage.removeItem(SESSION_KEY);
+  });
+
+  it('returns newest-first up to limit', async () => {
+    const r = await register({ username: 't', password: 'password123' });
+    if (!r.ok) throw new Error();
+    await db.rounds.bulkAdd(
+      Array.from({ length: 10 }, (_, i) => ({
+        id: `r-${i}`,
+        userId: r.user.id,
+        game: 'blackjack' as const,
+        betAmount: 10,
+        payout: 0,
+        netChange: -10,
+        outcome: 'loss' as const,
+        details: {},
+        balanceAfter: 1000 - 10 * (i + 1),
+        playedAt: (i + 1) * 1000,
+      })),
+    );
+    const tl = await getUserWinLossTimeline(r.user.id, undefined, 5);
+    expect(tl).toHaveLength(5);
+    expect(tl[0]!.playedAt).toBe(10000); // newest first
+  });
+});
+
+describe('getUserBetSizeHistogram', () => {
+  beforeEach(async () => {
+    await resetDb();
+    localStorage.removeItem(SESSION_KEY);
+  });
+
+  it('empty rounds → empty array', async () => {
+    const r = await register({ username: 'h', password: 'password123' });
+    if (!r.ok) throw new Error();
+    expect(await getUserBetSizeHistogram(r.user.id)).toEqual([]);
+  });
+
+  it('all bets equal → single bin with full count', async () => {
+    const r = await register({ username: 'h', password: 'password123' });
+    if (!r.ok) throw new Error();
+    await db.rounds.bulkAdd(
+      Array.from({ length: 3 }, (_, i) => ({
+        id: `r-${i}`,
+        userId: r.user.id,
+        game: 'blackjack' as const,
+        betAmount: 50,
+        payout: 0,
+        netChange: -50,
+        outcome: 'loss' as const,
+        details: {},
+        balanceAfter: 1000 - 50 * (i + 1),
+        playedAt: (i + 1) * 1000,
+      })),
+    );
+    const h = await getUserBetSizeHistogram(r.user.id);
+    expect(h).toHaveLength(1);
+    expect(h[0]!.count).toBe(3);
+    expect(h[0]!.binMin).toBe(50);
+  });
+
+  it('5 bins span min→max with counts summing to total rounds', async () => {
+    const r = await register({ username: 'h2', password: 'password123' });
+    if (!r.ok) throw new Error();
+    const bets = [5, 10, 25, 50, 100];
+    await db.rounds.bulkAdd(
+      bets.map((b, i) => ({
+        id: `r-${i}`,
+        userId: r.user.id,
+        game: 'blackjack' as const,
+        betAmount: b,
+        payout: 0,
+        netChange: -b,
+        outcome: 'loss' as const,
+        details: {},
+        balanceAfter: 0,
+        playedAt: (i + 1) * 1000,
+      })),
+    );
+    const h = await getUserBetSizeHistogram(r.user.id);
+    expect(h).toHaveLength(5);
+    expect(h.reduce((s, b) => s + b.count, 0)).toBe(5);
   });
 });

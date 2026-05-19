@@ -376,3 +376,60 @@ export async function getUserStreaks(userId: string, game?: Game): Promise<Strea
   }
   return { longestWin, longestLoss };
 }
+
+// ----- getUserWinLossTimeline + getUserBetSizeHistogram (Phase 7 — A.6) -----
+
+export type WinLossTimelinePoint = {
+  playedAt: number;
+  outcome: 'win' | 'loss' | 'push';
+  netChange: number;
+};
+
+/** Up to `limit` most-recent rounds, newest-first, scoped to game if provided. */
+export async function getUserWinLossTimeline(
+  userId: string,
+  game?: Game,
+  limit = 50,
+): Promise<WinLossTimelinePoint[]> {
+  if (!userId) return [];
+  const all = await fetchUserRounds(userId, game);
+  const trimmed = all.slice(-limit).reverse();
+  return trimmed.map((r) => ({
+    playedAt: r.playedAt,
+    outcome: r.outcome,
+    netChange: r.netChange,
+  }));
+}
+
+export type HistogramBin = { binMin: number; binMax: number; count: number };
+
+/** 5 equal-width bins from min(bet) to max(bet). Empty array when no rounds. */
+export async function getUserBetSizeHistogram(
+  userId: string,
+  game?: Game,
+): Promise<HistogramBin[]> {
+  if (!userId) return [];
+  const rounds = await fetchUserRounds(userId, game);
+  if (rounds.length === 0) return [];
+  const bets = rounds.map((r) => r.betAmount);
+  const min = Math.min(...bets);
+  const max = Math.max(...bets);
+  if (min === max) {
+    // Single bin if all bets equal.
+    return [{ binMin: min, binMax: max, count: bets.length }];
+  }
+  const binCount = 5;
+  const binWidth = (max - min) / binCount;
+  const bins: HistogramBin[] = Array.from({ length: binCount }, (_, i) => ({
+    binMin: Math.round(min + i * binWidth),
+    binMax: Math.round(min + (i + 1) * binWidth),
+    count: 0,
+  }));
+  for (const b of bets) {
+    // Inclusive-low, exclusive-high (except for the last bin which captures max).
+    let idx = Math.floor((b - min) / binWidth);
+    if (idx >= binCount) idx = binCount - 1;
+    bins[idx]!.count += 1;
+  }
+  return bins;
+}
