@@ -242,3 +242,32 @@ async function fetchUserRounds(userId: string, game?: Game): Promise<Round[]> {
     .toArray();
   return game ? all.filter((r) => r.game === game) : all;
 }
+
+// ----- getUserStreaks (Phase 7 — Stats Cards) -----
+
+export type StreakStats = { longestWin: number; longestLoss: number };
+
+/** Longest consecutive run of wins / losses, scanned oldest-to-newest.
+ *  Pushes break neither streak (they're "neutral"). Game-scoped if provided. */
+export async function getUserStreaks(userId: string, game?: Game): Promise<StreakStats> {
+  if (!userId) return { longestWin: 0, longestLoss: 0 };
+  const rounds = await fetchUserRounds(userId, game);
+  // fetchUserRounds returns oldest-first via the [userId+playedAt] index.
+  let longestWin = 0;
+  let longestLoss = 0;
+  let curWin = 0;
+  let curLoss = 0;
+  for (const r of rounds) {
+    if (r.outcome === 'win') {
+      curWin += 1;
+      curLoss = 0;
+      if (curWin > longestWin) longestWin = curWin;
+    } else if (r.outcome === 'loss') {
+      curLoss += 1;
+      curWin = 0;
+      if (curLoss > longestLoss) longestLoss = curLoss;
+    }
+    // push: neither streak resets, neither increments
+  }
+  return { longestWin, longestLoss };
+}

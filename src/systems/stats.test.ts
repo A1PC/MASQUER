@@ -10,6 +10,7 @@ import {
   getTopLosers,
   getTopWinners,
   getUserMetrics,
+  getUserStreaks,
 } from './stats';
 
 const SESSION_KEY = 'localGamble.session.userId';
@@ -323,5 +324,114 @@ describe('getUserMetrics — core', () => {
     ]);
     expect((await getUserMetrics(r.user.id)).timePlayedMs).toBe(10000);
     expect((await getUserMetrics(r.user.id, 'blackjack')).timePlayedMs).toBe(3000);
+  });
+});
+
+describe('getUserStreaks', () => {
+  beforeEach(async () => {
+    await resetDb();
+    localStorage.removeItem(SESSION_KEY);
+  });
+
+  async function userWithRounds(outcomes: Array<'win' | 'loss' | 'push'>): Promise<string> {
+    const r = await register({ username: 'streak', password: 'password123' });
+    if (!r.ok) throw new Error();
+    await db.rounds.bulkAdd(
+      outcomes.map((o, i) => ({
+        id: `r-${i}`,
+        userId: r.user.id,
+        game: 'blackjack' as const,
+        betAmount: 10,
+        payout: o === 'win' ? 20 : o === 'push' ? 10 : 0,
+        netChange: o === 'win' ? 10 : o === 'push' ? 0 : -10,
+        outcome: o,
+        details: {},
+        balanceAfter: 1000,
+        playedAt: i * 1000 + 1000,
+      })),
+    );
+    return r.user.id;
+  }
+
+  it('empty rounds → 0/0', async () => {
+    const r = await register({ username: 'empty', password: 'password123' });
+    if (!r.ok) throw new Error();
+    expect(await getUserStreaks(r.user.id)).toEqual({ longestWin: 0, longestLoss: 0 });
+  });
+
+  it('all wins → win streak = count, loss streak = 0', async () => {
+    const uid = await userWithRounds(['win', 'win', 'win', 'win']);
+    expect(await getUserStreaks(uid)).toEqual({ longestWin: 4, longestLoss: 0 });
+  });
+
+  it('all losses → loss streak = count, win streak = 0', async () => {
+    const uid = await userWithRounds(['loss', 'loss', 'loss']);
+    expect(await getUserStreaks(uid)).toEqual({ longestWin: 0, longestLoss: 3 });
+  });
+
+  it('alternating wins/losses → streaks of 1 each', async () => {
+    const uid = await userWithRounds(['win', 'loss', 'win', 'loss', 'win']);
+    expect(await getUserStreaks(uid)).toEqual({ longestWin: 1, longestLoss: 1 });
+  });
+
+  it('multiple win runs → longest reported', async () => {
+    const uid = await userWithRounds(['win', 'win', 'loss', 'win', 'win', 'win', 'loss']);
+    expect(await getUserStreaks(uid)).toEqual({ longestWin: 3, longestLoss: 1 });
+  });
+
+  it('pushes break NEITHER streak (continue, do not reset)', async () => {
+    const uid = await userWithRounds(['win', 'push', 'win']);
+    // Expected: pushes don't increment win-count, but also don't reset it.
+    // Spec §5.2: "pushes break neither streak"
+    // Implementation: push is neutral — neither incremented nor reset.
+    // So the 'win' counter stays at 1 after push, then 'win' bumps to 2.
+    expect(await getUserStreaks(uid)).toEqual({ longestWin: 2, longestLoss: 0 });
+  });
+
+  it('game-scoped streak is independent of other games', async () => {
+    const r = await register({ username: 'cross', password: 'password123' });
+    if (!r.ok) throw new Error();
+    await db.rounds.bulkAdd([
+      {
+        id: 'b-1',
+        userId: r.user.id,
+        game: 'blackjack',
+        betAmount: 10,
+        payout: 20,
+        netChange: 10,
+        outcome: 'win',
+        details: {},
+        balanceAfter: 1010,
+        playedAt: 1000,
+      },
+      {
+        id: 's-1',
+        userId: r.user.id,
+        game: 'slots',
+        betAmount: 10,
+        payout: 0,
+        netChange: -10,
+        outcome: 'loss',
+        details: {},
+        balanceAfter: 1000,
+        playedAt: 2000,
+      },
+      {
+        id: 'b-2',
+        userId: r.user.id,
+        game: 'blackjack',
+        betAmount: 10,
+        payout: 20,
+        netChange: 10,
+        outcome: 'win',
+        details: {},
+        balanceAfter: 1010,
+        playedAt: 3000,
+      },
+    ]);
+    const bj = await getUserStreaks(r.user.id, 'blackjack');
+    expect(bj).toEqual({ longestWin: 2, longestLoss: 0 });
+    const slots = await getUserStreaks(r.user.id, 'slots');
+    expect(slots).toEqual({ longestWin: 0, longestLoss: 1 });
   });
 });
