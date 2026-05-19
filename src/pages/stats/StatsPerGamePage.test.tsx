@@ -75,4 +75,27 @@ describe('StatsPerGamePage', () => {
     expect(screen.getAllByText('+100').length).toBeGreaterThan(0);
     expect(screen.queryByText('-50')).not.toBeInTheDocument();
   });
+
+  it('renders 3 charts in Graphs view scoped to the game', async () => {
+    const r = await register({ username: 'pg', password: 'password123' });
+    if (!r.ok) throw new Error();
+    useSessionStore.setState({ currentUser: r.user });
+    useUIStore.setState({ statsViewMode: 'graphs' });
+    await db.rounds.add({
+      id: 'r-1',
+      userId: r.user.id,
+      game: 'blackjack',
+      betAmount: 100,
+      payout: 200,
+      netChange: 100,
+      outcome: 'win',
+      details: {},
+      balanceAfter: 1100,
+      playedAt: 1000,
+    });
+    renderAt('blackjack');
+    await waitFor(() => expect(screen.getByText(/NET FLOW · Blackjack/i)).toBeInTheDocument());
+    expect(screen.getByText(/RECENT OUTCOMES/i)).toBeInTheDocument();
+    expect(screen.getByText(/BET-SIZE DISTRIBUTION/i)).toBeInTheDocument();
+  });
 });
