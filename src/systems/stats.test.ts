@@ -18,6 +18,7 @@ import {
   getUserSessionStats,
   getUserStreaks,
   getUserWinLossTimeline,
+  getUserWinRateByGame,
 } from './stats';
 
 const SESSION_KEY = 'localGamble.session.userId';
@@ -1025,5 +1026,126 @@ describe('getLeaderboard', () => {
     ]);
     const lb = await getLeaderboard('netWinner');
     expect(lb[0]!.userId).toBe(older.user.id);
+  });
+});
+
+describe('getUserWinRateByGame', () => {
+  beforeEach(async () => {
+    await resetDb();
+    localStorage.removeItem(SESSION_KEY);
+  });
+
+  it('returns empty for a user with no rounds', async () => {
+    const r = await register({ username: 'wr1', password: 'password123' });
+    if (!r.ok) throw new Error();
+    expect(await getUserWinRateByGame(r.user.id)).toEqual([]);
+  });
+
+  it('computes win rate per game and sorts desc', async () => {
+    const r = await register({ username: 'wr2', password: 'password123' });
+    if (!r.ok) throw new Error();
+    await db.rounds.bulkAdd([
+      // blackjack: 2 wins / 4 non-push = 50%
+      {
+        id: 'b-1',
+        userId: r.user.id,
+        game: 'blackjack',
+        betAmount: 10,
+        payout: 20,
+        netChange: 10,
+        outcome: 'win',
+        details: {},
+        balanceAfter: 1010,
+        playedAt: 1000,
+      },
+      {
+        id: 'b-2',
+        userId: r.user.id,
+        game: 'blackjack',
+        betAmount: 10,
+        payout: 20,
+        netChange: 10,
+        outcome: 'win',
+        details: {},
+        balanceAfter: 1020,
+        playedAt: 2000,
+      },
+      {
+        id: 'b-3',
+        userId: r.user.id,
+        game: 'blackjack',
+        betAmount: 10,
+        payout: 0,
+        netChange: -10,
+        outcome: 'loss',
+        details: {},
+        balanceAfter: 1010,
+        playedAt: 3000,
+      },
+      {
+        id: 'b-4',
+        userId: r.user.id,
+        game: 'blackjack',
+        betAmount: 10,
+        payout: 0,
+        netChange: -10,
+        outcome: 'loss',
+        details: {},
+        balanceAfter: 1000,
+        playedAt: 4000,
+      },
+      // slots: 0 wins / 1 non-push = 0%
+      {
+        id: 's-1',
+        userId: r.user.id,
+        game: 'slots',
+        betAmount: 10,
+        payout: 0,
+        netChange: -10,
+        outcome: 'loss',
+        details: {},
+        balanceAfter: 990,
+        playedAt: 5000,
+      },
+    ]);
+    const result = await getUserWinRateByGame(r.user.id);
+    expect(result).toHaveLength(2);
+    expect(result[0]!.game).toBe('blackjack');
+    expect(result[0]!.winRate).toBeCloseTo(50, 1);
+    expect(result[1]!.game).toBe('slots');
+    expect(result[1]!.winRate).toBe(0);
+  });
+
+  it('excludes pushes from denominator', async () => {
+    const r = await register({ username: 'wr3', password: 'password123' });
+    if (!r.ok) throw new Error();
+    await db.rounds.bulkAdd([
+      {
+        id: 'b-1',
+        userId: r.user.id,
+        game: 'blackjack',
+        betAmount: 10,
+        payout: 20,
+        netChange: 10,
+        outcome: 'win',
+        details: {},
+        balanceAfter: 1010,
+        playedAt: 1000,
+      },
+      {
+        id: 'b-2',
+        userId: r.user.id,
+        game: 'blackjack',
+        betAmount: 10,
+        payout: 10,
+        netChange: 0,
+        outcome: 'push',
+        details: {},
+        balanceAfter: 1010,
+        playedAt: 2000,
+      },
+    ]);
+    const result = await getUserWinRateByGame(r.user.id);
+    expect(result[0]!.winRate).toBe(100); // 1 win / 1 non-push
   });
 });
