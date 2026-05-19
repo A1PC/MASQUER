@@ -1,9 +1,9 @@
 import type { JSX } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import StatCard from './StatCard';
-import NetFlowLine from './charts/NetFlowLine';
-import WinnersLosersBar from './charts/WinnersLosersBar';
-import GameDistributionDonut from './charts/GameDistributionDonut';
+import NetFlowLine from '@/components/charts/NetFlowLine';
+import WinnersLosersBar from '@/components/charts/WinnersLosersBar';
+import GameDistributionDonut from '@/components/charts/GameDistributionDonut';
 import {
   getGameDistribution,
   getNetFlowSeries,

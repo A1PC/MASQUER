@@ -1,6 +1,6 @@
 import type { JSX } from 'react';
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
-import type { GameDistributionPoint } from '@/pages/admin/queries';
+import type { GameDistributionPoint } from '@/systems/stats';
 
 const COLORS: Record<string, string> = {
   blackjack: '#3dd17a',

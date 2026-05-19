@@ -8,9 +8,6 @@ import AppLayout from '@/components/AppLayout';
 import LoginPage from '@/pages/LoginPage';
 import RegisterPage from '@/pages/RegisterPage';
 import LobbyPage from '@/pages/LobbyPage';
-import StatsPage from '@/pages/stats/StatsPage';
-import StatsOverviewPage from '@/pages/stats/StatsOverviewPage';
-import StatsPerGamePage from '@/pages/stats/StatsPerGamePage';
 import LeaderboardPage from '@/pages/LeaderboardPage';
 import ProfileStubPage from '@/pages/ProfileStubPage';
 import CoinFlipPage from '@/games/coin-flip/CoinFlipPage';
@@ -18,6 +15,10 @@ import BlackjackPage from '@/games/blackjack/BlackjackPage';
 import RoulettePage from '@/games/roulette/RoulettePage';
 import SlotsPage from '@/games/slots/SlotsPage';
 import BaccaratPage from '@/games/baccarat/BaccaratPage';
+
+const StatsPage = lazy(() => import('@/pages/stats/StatsPage'));
+const StatsOverviewPage = lazy(() => import('@/pages/stats/StatsOverviewPage'));
+const StatsPerGamePage = lazy(() => import('@/pages/stats/StatsPerGamePage'));
 
 const AdminLoginPage = lazy(() => import('@/pages/admin/AdminLoginPage'));
 const AdminLayout = lazy(() => import('@/pages/admin/AdminLayout'));
@@ -30,6 +31,12 @@ const AdminSessionsPage = lazy(() => import('@/pages/admin/AdminSessionsPage'));
 const adminFallback = (
   <div className="flex min-h-screen items-center justify-center bg-felt-deep text-xs text-white/40">
     Loading admin…
+  </div>
+);
+
+const statsFallback = (
+  <div className="flex min-h-screen items-center justify-center bg-felt-deep text-xs text-white/40">
+    Loading stats…
   </div>
 );
 
@@ -73,7 +80,11 @@ export const router = createBrowserRouter([
       { path: 'lobby', element: <LobbyPage /> },
       {
         path: 'stats',
-        element: <StatsPage />,
+        element: (
+          <Suspense fallback={statsFallback}>
+            <StatsPage />
+          </Suspense>
+        ),
         children: [
           { index: true, element: <StatsOverviewPage /> },
           { path: ':game', element: <StatsPerGamePage /> },

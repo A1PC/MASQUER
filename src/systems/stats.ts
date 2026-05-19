@@ -154,8 +154,9 @@ export async function getUserSessionTime(userId: string): Promise<number> {
   return sessions.reduce((s, sess) => s + (sess.durationMs ?? 0), 0);
 }
 
-export async function getUserNetFlowSeries(userId: string): Promise<NetFlowPoint[]> {
-  const rounds = await db.rounds.where('userId').equals(userId).toArray();
+export async function getUserNetFlowSeries(userId: string, game?: Game): Promise<NetFlowPoint[]> {
+  const all = await db.rounds.where('userId').equals(userId).toArray();
+  const rounds = game ? all.filter((r) => r.game === game) : all;
   if (rounds.length === 0) return [];
   const byDay = new Map<number, number>();
   for (const r of rounds) {
@@ -541,4 +542,25 @@ export async function getUserBetSizeHistogram(
     bins[idx]!.count += 1;
   }
   return bins;
+}
+
+// ----- getUserWinRateByGame (Phase 7 — C.5) -----
+
+export async function getUserWinRateByGame(
+  userId: string,
+): Promise<Array<{ game: Game; winRate: number }>> {
+  if (!userId) return [];
+  const rounds = await fetchUserRounds(userId);
+  if (rounds.length === 0) return [];
+  const byGame = new Map<Game, { wins: number; nonPush: number }>();
+  for (const r of rounds) {
+    if (r.outcome === 'push') continue;
+    const cur = byGame.get(r.game) ?? { wins: 0, nonPush: 0 };
+    cur.nonPush += 1;
+    if (r.outcome === 'win') cur.wins += 1;
+    byGame.set(r.game, cur);
+  }
+  return [...byGame.entries()]
+    .map(([game, v]) => ({ game, winRate: v.nonPush === 0 ? 0 : (v.wins / v.nonPush) * 100 }))
+    .sort((a, b) => b.winRate - a.winRate);
 }

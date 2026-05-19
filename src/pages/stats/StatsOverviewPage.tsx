@@ -4,16 +4,22 @@ import { useCurrentUser } from '@/store/sessionStore';
 import { useStatsViewMode } from '@/store/uiStore';
 import {
   getUserExtras,
+  getUserGameDistribution,
   getUserMetrics,
+  getUserNetFlowSeries,
   getUserPeaks,
   getUserSessionStats,
   getUserStreaks,
+  getUserWinRateByGame,
   type ExtraStats,
   type Peaks,
   type SessionStats,
   type StreakStats,
   type UserMetrics,
 } from '@/systems/stats';
+import NetFlowLine from '@/components/charts/NetFlowLine';
+import GameDistributionDonut from '@/components/charts/GameDistributionDonut';
+import WinRateByGameBar from '@/components/charts/WinRateByGameBar';
 import EmptyState from './EmptyState';
 import StatCardGrid from './StatCardGrid';
 
@@ -51,14 +57,44 @@ export default function StatsOverviewPage(): JSX.Element | null {
     EMPTY_SESSIONS,
   );
   const extras: ExtraStats = useLiveQuery(() => getUserExtras(userId), [userId], EMPTY_EXTRAS);
+  const netFlow = useLiveQuery(
+    () => getUserNetFlowSeries(userId),
+    [userId],
+    [] as Awaited<ReturnType<typeof getUserNetFlowSeries>>,
+  );
+  const distribution = useLiveQuery(
+    () => getUserGameDistribution(userId),
+    [userId],
+    [] as Awaited<ReturnType<typeof getUserGameDistribution>>,
+  );
+  const winRates = useLiveQuery(
+    () => getUserWinRateByGame(userId),
+    [userId],
+    [] as Awaited<ReturnType<typeof getUserWinRateByGame>>,
+  );
 
   if (!user) return null;
   if (metrics.totalRounds === 0) return <EmptyState />;
 
   if (mode === 'graphs') {
     return (
-      <div className="rounded border border-dashed border-gold/40 bg-felt-deep p-6 text-center text-sm text-white/50">
-        Graphs view — ships in PR C.
+      <div className="flex flex-col gap-6">
+        <section>
+          <h2 className="mb-2 font-display text-xs tracking-wider text-white/60">NET FLOW</h2>
+          <NetFlowLine data={netFlow} />
+        </section>
+        <section>
+          <h2 className="mb-2 font-display text-xs tracking-wider text-white/60">
+            GAME DISTRIBUTION
+          </h2>
+          <GameDistributionDonut data={distribution} />
+        </section>
+        <section>
+          <h2 className="mb-2 font-display text-xs tracking-wider text-white/60">
+            WIN RATE BY GAME
+          </h2>
+          <WinRateByGameBar data={winRates} />
+        </section>
       </div>
     );
   }

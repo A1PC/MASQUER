@@ -59,8 +59,8 @@ describe('StatsOverviewPage', () => {
     expect(screen.getAllByText('+100').length).toBeGreaterThan(0);
   });
 
-  it('renders the Graphs stub when viewMode=graphs', async () => {
-    const r = await register({ username: 'graphs', password: 'password123' });
+  it('renders 3 charts in Graphs view', async () => {
+    const r = await register({ username: 'g', password: 'password123' });
     if (!r.ok) throw new Error();
     useSessionStore.setState({ currentUser: r.user });
     useUIStore.setState({ statsViewMode: 'graphs' });
@@ -81,6 +81,8 @@ describe('StatsOverviewPage', () => {
         <StatsOverviewPage />
       </MemoryRouter>,
     );
-    await waitFor(() => expect(screen.getByText(/graphs view/i)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText(/NET FLOW/i)).toBeInTheDocument());
+    expect(screen.getByText(/GAME DISTRIBUTION/i)).toBeInTheDocument();
+    expect(screen.getByText(/WIN RATE BY GAME/i)).toBeInTheDocument();
   });
 });

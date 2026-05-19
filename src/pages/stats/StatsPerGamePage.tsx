@@ -5,17 +5,23 @@ import { useCurrentUser } from '@/store/sessionStore';
 import { useStatsViewMode } from '@/store/uiStore';
 import type { Round } from '@/db';
 import {
+  getUserBetSizeHistogram,
   getUserExtras,
   getUserMetrics,
+  getUserNetFlowSeries,
   getUserPeaks,
   getUserSessionStats,
   getUserStreaks,
+  getUserWinLossTimeline,
   type ExtraStats,
   type Peaks,
   type SessionStats,
   type StreakStats,
   type UserMetrics,
 } from '@/systems/stats';
+import NetFlowLine from '@/components/charts/NetFlowLine';
+import WinLossTimeline from '@/components/charts/WinLossTimeline';
+import BetSizeHistogram from '@/components/charts/BetSizeHistogram';
 import EmptyState from './EmptyState';
 import StatCardGrid from './StatCardGrid';
 
@@ -76,6 +82,21 @@ export default function StatsPerGamePage(): JSX.Element | null {
     [userId, game],
     EMPTY_EXTRAS,
   );
+  const netFlow = useLiveQuery(
+    () => getUserNetFlowSeries(userId, game),
+    [userId, game],
+    [] as Awaited<ReturnType<typeof getUserNetFlowSeries>>,
+  );
+  const timeline = useLiveQuery(
+    () => getUserWinLossTimeline(userId, game, 50),
+    [userId, game],
+    [] as Awaited<ReturnType<typeof getUserWinLossTimeline>>,
+  );
+  const histogram = useLiveQuery(
+    () => getUserBetSizeHistogram(userId, game),
+    [userId, game],
+    [] as Awaited<ReturnType<typeof getUserBetSizeHistogram>>,
+  );
 
   if (!user || !game) return null;
   const label = GAME_LABELS[game];
@@ -85,8 +106,25 @@ export default function StatsPerGamePage(): JSX.Element | null {
 
   if (mode === 'graphs') {
     return (
-      <div className="rounded border border-dashed border-gold/40 bg-felt-deep p-6 text-center text-sm text-white/50">
-        Graphs view — ships in PR C.
+      <div className="flex flex-col gap-6">
+        <section>
+          <h2 className="mb-2 font-display text-xs tracking-wider text-white/60">
+            NET FLOW · {label}
+          </h2>
+          <NetFlowLine data={netFlow} />
+        </section>
+        <section>
+          <h2 className="mb-2 font-display text-xs tracking-wider text-white/60">
+            RECENT OUTCOMES
+          </h2>
+          <WinLossTimeline data={timeline} />
+        </section>
+        <section>
+          <h2 className="mb-2 font-display text-xs tracking-wider text-white/60">
+            BET-SIZE DISTRIBUTION
+          </h2>
+          <BetSizeHistogram data={histogram} />
+        </section>
       </div>
     );
   }
