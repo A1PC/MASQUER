@@ -50,3 +50,70 @@ describe('bingoMachine — BET_PLACED transition', () => {
     expect(actor.getSnapshot().context.betHandleId).toBe('handle-1');
   });
 });
+
+describe('bingoMachine — CALL handling (auto mode)', () => {
+  it('CALL increments callIndex and daubs the called number on cards that have it', () => {
+    const actor = createActor(bingoMachine).start();
+    actor.send({ type: 'BUY_AND_START', cardCount: 1, speed: 'normal' });
+    actor.send({ type: 'BET_PLACED', betHandleId: 'h-1' });
+    const ctxBefore = actor.getSnapshot().context;
+    const firstBall = ctxBefore.callSequence[0]!;
+    actor.send({ type: 'CALL' });
+    const ctxAfter = actor.getSnapshot().context;
+    expect(ctxAfter.callIndex).toBe(1);
+    const card = ctxAfter.cards[0]!.card;
+    for (let r = 0; r < 3; r += 1) {
+      for (let c = 0; c < 9; c += 1) {
+        if (card.cells[r]![c]!.value === firstBall) {
+          expect(ctxAfter.cards[0]!.daubed[r]![c]).toBe(true);
+        }
+      }
+    }
+  });
+
+  it('drives through CALLs and ends in settling once any card hits FH', () => {
+    const actor = createActor(bingoMachine).start();
+    actor.send({ type: 'BUY_AND_START', cardCount: 1, speed: 'normal' });
+    actor.send({ type: 'BET_PLACED', betHandleId: 'h-1' });
+    let safety = 100;
+    while (actor.getSnapshot().value === 'playing' && safety-- > 0) {
+      actor.send({ type: 'CALL' });
+    }
+    expect(actor.getSnapshot().value).toBe('settling');
+    const wins = actor.getSnapshot().context.wins;
+    expect(wins.some((w) => w.tier === 'full-house' || w.tier === 'fast-full-house')).toBe(true);
+  });
+});
+
+describe('bingoMachine — settling → done → PLAY_AGAIN', () => {
+  function drivePastSettle() {
+    const actor = createActor(bingoMachine).start();
+    actor.send({ type: 'BUY_AND_START', cardCount: 1, speed: 'normal' });
+    actor.send({ type: 'BET_PLACED', betHandleId: 'h-1' });
+    let safety = 100;
+    while (actor.getSnapshot().value === 'playing' && safety-- > 0) {
+      actor.send({ type: 'CALL' });
+    }
+    return actor;
+  }
+
+  it('SETTLED moves settling → done', () => {
+    const actor = drivePastSettle();
+    expect(actor.getSnapshot().value).toBe('settling');
+    actor.send({ type: 'SETTLED' });
+    expect(actor.getSnapshot().value).toBe('done');
+  });
+
+  it('PLAY_AGAIN moves done → setup with a fresh empty context', () => {
+    const actor = drivePastSettle();
+    actor.send({ type: 'SETTLED' });
+    const oldGameId = actor.getSnapshot().context.gameId;
+    actor.send({ type: 'PLAY_AGAIN' });
+    const ctx = actor.getSnapshot().context;
+    expect(actor.getSnapshot().value).toBe('setup');
+    expect(ctx.gameId).not.toBe(oldGameId);
+    expect(ctx.cards).toEqual([]);
+    expect(ctx.callIndex).toBe(0);
+    expect(ctx.wins).toEqual([]);
+  });
+});
