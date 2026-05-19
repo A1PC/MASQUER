@@ -23,6 +23,7 @@ const GAMES: NavItemDef[] = [
   { to: '/play/roulette', icon: '🎡', label: 'Roulette' },
   { to: '/play/slots', icon: '🎰', label: 'Slots' },
   { to: '/play/baccarat', icon: '🎴', label: 'Baccarat', badge: 'NEW' },
+  { to: '/play/bingo', icon: '🎯', label: 'Bingo' },
 ];
 
 const YOU: NavItemDef[] = [

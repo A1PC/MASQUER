@@ -40,6 +40,7 @@ function renderAtPath(path: string, collapsed = false) {
     [
       { path: '/lobby', element: <Sidebar collapsed={collapsed} /> },
       { path: '/play/coin-flip', element: <Sidebar collapsed={collapsed} /> },
+      { path: '/play/bingo', element: <Sidebar collapsed={collapsed} /> },
       { path: '/lottery', element: <Sidebar collapsed={collapsed} /> },
     ],
     { initialEntries: [path] },
@@ -59,7 +60,7 @@ afterEach(async () => {
 });
 
 describe('Sidebar', () => {
-  it('renders all 9 nav items when expanded', () => {
+  it('renders all 10 nav items when expanded', () => {
     renderAtPath('/lobby', false);
     expect(screen.getByText(/Lobby/)).toBeInTheDocument();
     expect(screen.getByText(/Coin Flip/)).toBeInTheDocument();
@@ -67,9 +68,17 @@ describe('Sidebar', () => {
     expect(screen.getByText(/Roulette/)).toBeInTheDocument();
     expect(screen.getByText(/Slots/)).toBeInTheDocument();
     expect(screen.getByText(/Baccarat/)).toBeInTheDocument();
+    expect(screen.getByText(/Bingo/)).toBeInTheDocument();
     expect(screen.getByText(/Lottery/)).toBeInTheDocument();
     expect(screen.getByText(/Stats/)).toBeInTheDocument();
     expect(screen.getByText(/Leaderboard/)).toBeInTheDocument();
+  });
+
+  it('renders Bingo NavLink pointing to /play/bingo', () => {
+    renderAtPath('/lobby');
+    const link = screen.getByRole('link', { name: /bingo/i });
+    expect(link).toBeInTheDocument();
+    expect(link).toHaveAttribute('href', '/play/bingo');
   });
 
   it('shows NEW badge on Baccarat (most recent ship)', () => {
