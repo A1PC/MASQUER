@@ -6,6 +6,7 @@ import { WALLET_CONFIG } from '@/systems/wallet';
 import {
   getAllUserStats,
   getGameDistribution,
+  getLeaderboard,
   getNetFlowSeries,
   getSiteWideStats,
   getTopLosers,
@@ -847,5 +848,182 @@ describe('getUserBetSizeHistogram', () => {
     const h = await getUserBetSizeHistogram(r.user.id);
     expect(h).toHaveLength(5);
     expect(h.reduce((s, b) => s + b.count, 0)).toBe(5);
+  });
+});
+
+describe('getLeaderboard', () => {
+  beforeEach(async () => {
+    await resetDb();
+    localStorage.removeItem(SESSION_KEY);
+  });
+
+  async function seedTwoPlayersOneBanned() {
+    const a = await register({ username: 'alice', password: 'password123' });
+    const b = await register({ username: 'bob', password: 'password123' });
+    const c = await register({ username: 'cheater', password: 'password123' });
+    if (!a.ok || !b.ok || !c.ok) throw new Error();
+    await db.users.update(c.user.id, { isBanned: true });
+    await db.rounds.bulkAdd([
+      {
+        id: 'a-1',
+        userId: a.user.id,
+        game: 'blackjack',
+        betAmount: 100,
+        payout: 300,
+        netChange: 200,
+        outcome: 'win',
+        details: {},
+        balanceAfter: 1200,
+        playedAt: 1000,
+      },
+      {
+        id: 'b-1',
+        userId: b.user.id,
+        game: 'blackjack',
+        betAmount: 100,
+        payout: 200,
+        netChange: 100,
+        outcome: 'win',
+        details: {},
+        balanceAfter: 1100,
+        playedAt: 2000,
+      },
+      {
+        id: 'c-1',
+        userId: c.user.id,
+        game: 'blackjack',
+        betAmount: 100,
+        payout: 1000,
+        netChange: 900,
+        outcome: 'win',
+        details: {},
+        balanceAfter: 1900,
+        playedAt: 3000,
+      },
+    ]);
+    return { aliceId: a.user.id, bobId: b.user.id, cheaterId: c.user.id };
+  }
+
+  it('netWinner sorts descending and assigns rank', async () => {
+    const { aliceId, bobId } = await seedTwoPlayersOneBanned();
+    const lb = await getLeaderboard('netWinner');
+    expect(lb).toHaveLength(2); // cheater excluded
+    expect(lb[0]!.userId).toBe(aliceId);
+    expect(lb[0]!.rank).toBe(1);
+    expect(lb[0]!.value).toBe(200);
+    expect(lb[1]!.userId).toBe(bobId);
+  });
+
+  it('banned users excluded across all metrics', async () => {
+    const { cheaterId } = await seedTwoPlayersOneBanned();
+    for (const m of ['netWinner', 'mostRounds', 'biggestSingleWin'] as const) {
+      const lb = await getLeaderboard(m);
+      expect(lb.map((r) => r.userId)).not.toContain(cheaterId);
+    }
+  });
+
+  it('per-game leaderboard scopes to that game only', async () => {
+    const a = await register({ username: 'a', password: 'password123' });
+    if (!a.ok) throw new Error();
+    await db.rounds.bulkAdd([
+      {
+        id: 'b-1',
+        userId: a.user.id,
+        game: 'blackjack',
+        betAmount: 100,
+        payout: 200,
+        netChange: 100,
+        outcome: 'win',
+        details: {},
+        balanceAfter: 1100,
+        playedAt: 1000,
+      },
+      {
+        id: 's-1',
+        userId: a.user.id,
+        game: 'slots',
+        betAmount: 50,
+        payout: 100,
+        netChange: 50,
+        outcome: 'win',
+        details: {},
+        balanceAfter: 1150,
+        playedAt: 2000,
+      },
+    ]);
+    const bj = await getLeaderboard('netWinner', 'blackjack');
+    expect(bj[0]!.value).toBe(100);
+    const slots = await getLeaderboard('netWinner', 'slots');
+    expect(slots[0]!.value).toBe(50);
+  });
+
+  it('mostVariety counts distinct games and includes users with 0 in current scope', async () => {
+    const a = await register({ username: 'variety', password: 'password123' });
+    if (!a.ok) throw new Error();
+    await db.rounds.bulkAdd([
+      {
+        id: 'b-1',
+        userId: a.user.id,
+        game: 'blackjack',
+        betAmount: 1,
+        payout: 0,
+        netChange: -1,
+        outcome: 'loss',
+        details: {},
+        balanceAfter: 999,
+        playedAt: 1000,
+      },
+      {
+        id: 's-1',
+        userId: a.user.id,
+        game: 'slots',
+        betAmount: 1,
+        payout: 0,
+        netChange: -1,
+        outcome: 'loss',
+        details: {},
+        balanceAfter: 998,
+        playedAt: 2000,
+      },
+    ]);
+    const lb = await getLeaderboard('mostVariety');
+    expect(lb[0]!.value).toBe(2);
+  });
+
+  it('tiebreaker on equal values: older user (smaller createdAt) wins', async () => {
+    const older = await register({ username: 'older', password: 'password123' });
+    if (!older.ok) throw new Error();
+    const newer = await register({ username: 'newer', password: 'password123' });
+    if (!newer.ok) throw new Error();
+    await db.users.update(older.user.id, { createdAt: 100 });
+    await db.users.update(newer.user.id, { createdAt: 200 });
+    await db.rounds.bulkAdd([
+      {
+        id: 'o-1',
+        userId: older.user.id,
+        game: 'blackjack',
+        betAmount: 100,
+        payout: 200,
+        netChange: 100,
+        outcome: 'win',
+        details: {},
+        balanceAfter: 1100,
+        playedAt: 1000,
+      },
+      {
+        id: 'n-1',
+        userId: newer.user.id,
+        game: 'blackjack',
+        betAmount: 100,
+        payout: 200,
+        netChange: 100,
+        outcome: 'win',
+        details: {},
+        balanceAfter: 1100,
+        playedAt: 2000,
+      },
+    ]);
+    const lb = await getLeaderboard('netWinner');
+    expect(lb[0]!.userId).toBe(older.user.id);
   });
 });

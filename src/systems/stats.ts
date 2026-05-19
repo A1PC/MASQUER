@@ -377,6 +377,115 @@ export async function getUserStreaks(userId: string, game?: Game): Promise<Strea
   return { longestWin, longestLoss };
 }
 
+// ----- getLeaderboard (Phase 7 — A.7) -----
+
+export type LeaderboardMetric =
+  | 'netWinner'
+  | 'mostRounds'
+  | 'biggestSingleWin'
+  | 'longestWinStreak'
+  | 'mostVariety';
+
+export type LeaderboardRow = {
+  rank: number;
+  userId: string;
+  username: string;
+  value: number;
+  /** Secondary text shown beside the value (e.g. round timestamp for biggest win). */
+  sub?: string;
+};
+
+const HARD_LIMIT = 100;
+
+/** Ranked rows for a leaderboard metric. Excludes banned users.
+ *  Game-scoped if provided (per-game leaderboards). */
+export async function getLeaderboard(
+  metric: LeaderboardMetric,
+  game?: Game,
+  limit = 10,
+): Promise<LeaderboardRow[]> {
+  const cap = Math.min(limit, HARD_LIMIT);
+  const users = await db.users.toArray();
+  const eligible = users.filter((u) => u.isBanned !== true);
+  type Scored = {
+    userId: string;
+    username: string;
+    value: number;
+    sub?: string;
+    createdAt: number;
+  };
+  const scored: Scored[] = [];
+  for (const u of eligible) {
+    const rounds = await fetchUserRounds(u.id, game);
+    if (rounds.length === 0 && metric !== 'mostVariety') continue;
+
+    let value = 0;
+    let sub: string | undefined;
+    switch (metric) {
+      case 'netWinner':
+        value = rounds.reduce((s, r) => s + r.netChange, 0);
+        break;
+      case 'mostRounds':
+        value = rounds.length;
+        break;
+      case 'biggestSingleWin': {
+        let maxWin = 0;
+        let at: number | null = null;
+        for (const r of rounds) {
+          if (r.netChange > maxWin) {
+            maxWin = r.netChange;
+            at = r.playedAt;
+          }
+        }
+        if (maxWin === 0) continue;
+        value = maxWin;
+        sub = at ? new Date(at).toISOString().slice(0, 10) : undefined;
+        break;
+      }
+      case 'longestWinStreak': {
+        let longest = 0;
+        let cur = 0;
+        for (const r of rounds) {
+          if (r.outcome === 'win') {
+            cur += 1;
+            if (cur > longest) longest = cur;
+          } else if (r.outcome === 'loss') {
+            cur = 0;
+          }
+        }
+        if (longest === 0) continue;
+        value = longest;
+        break;
+      }
+      case 'mostVariety': {
+        const all = await fetchUserRounds(u.id);
+        const games = new Set(all.map((r) => r.game));
+        value = games.size;
+        sub = `${all.length} rounds total`;
+        if (value === 0) continue;
+        break;
+      }
+    }
+    scored.push({
+      userId: u.id,
+      username: u.username,
+      value,
+      createdAt: u.createdAt,
+      ...(sub !== undefined ? { sub } : {}),
+    });
+  }
+
+  scored.sort((a, b) => (b.value !== a.value ? b.value - a.value : a.createdAt - b.createdAt));
+
+  return scored.slice(0, cap).map((s, i) => ({
+    rank: i + 1,
+    userId: s.userId,
+    username: s.username,
+    value: s.value,
+    ...(s.sub !== undefined ? { sub: s.sub } : {}),
+  }));
+}
+
 // ----- getUserWinLossTimeline + getUserBetSizeHistogram (Phase 7 — A.6) -----
 
 export type WinLossTimelinePoint = {
