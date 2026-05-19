@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { useUIStore } from './uiStore';
 
 const SIDEBAR_KEY = 'localGamble.ui.sidebarCollapsed';
 
@@ -56,5 +57,34 @@ describe('uiStore', () => {
     const { useUIStore } = await importFreshStore();
     expect(useUIStore.getState().sidebarCollapsed).toBe(false);
     spy.mockRestore();
+  });
+});
+
+describe('uiStore.statsViewMode', () => {
+  beforeEach(() => {
+    localStorage.removeItem('localGamble.ui.statsViewMode');
+    useUIStore.setState({ statsViewMode: 'cards' });
+  });
+
+  it('defaults to "cards"', () => {
+    expect(useUIStore.getState().statsViewMode).toBe('cards');
+  });
+
+  it('setStatsViewMode persists to localStorage', () => {
+    useUIStore.getState().setStatsViewMode('graphs');
+    expect(useUIStore.getState().statsViewMode).toBe('graphs');
+    expect(localStorage.getItem('localGamble.ui.statsViewMode')).toBe('graphs');
+  });
+
+  it('reads persisted preference on init', async () => {
+    localStorage.setItem('localGamble.ui.statsViewMode', 'graphs');
+    const { useUIStore } = await importFreshStore();
+    expect(useUIStore.getState().statsViewMode).toBe('graphs');
+  });
+
+  it('invalid persisted value falls back to "cards"', async () => {
+    localStorage.setItem('localGamble.ui.statsViewMode', 'bogus');
+    const { useUIStore } = await importFreshStore();
+    expect(useUIStore.getState().statsViewMode).toBe('cards');
   });
 });
