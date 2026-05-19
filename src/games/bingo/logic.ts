@@ -191,3 +191,26 @@ export function evaluateCardWins(input: {
   }
   return newTiers;
 }
+
+export const BINGO_CONFIG = {
+  CARD_COST: 50,
+  MAX_CARDS_PER_GAME: 4,
+  FAST_FH_THRESHOLD,
+  CALL_SPEEDS: { slow: 3000, normal: 2000, fast: 1000 } as const,
+} as const;
+
+export type BingoSpeed = keyof typeof BINGO_CONFIG.CALL_SPEEDS;
+
+/** Tier → chip payout per card. */
+export function payoutFor(tier: BingoTier): number {
+  switch (tier) {
+    case '1-line':
+      return 75;
+    case '2-line':
+      return 250;
+    case 'full-house':
+      return 1500;
+    case 'fast-full-house':
+      return 5000;
+  }
+}

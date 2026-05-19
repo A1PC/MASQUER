@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import type { BingoCard, BingoTier } from './logic';
-import { generateCard, columnRange, drawCallSequence, evaluateCardWins } from './logic';
+import {
+  generateCard,
+  columnRange,
+  drawCallSequence,
+  evaluateCardWins,
+  BINGO_CONFIG,
+  payoutFor,
+} from './logic';
 
 describe('columnRange', () => {
   it.each([
@@ -241,5 +248,25 @@ describe('evaluateCardWins', () => {
       previouslyAchieved: new Set(['1-line', '2-line', 'full-house']),
     });
     expect(result).toEqual([]);
+  });
+});
+
+describe('BINGO_CONFIG', () => {
+  it('exposes CARD_COST, MAX_CARDS_PER_GAME, FAST_FH_THRESHOLD, CALL_SPEEDS', () => {
+    expect(BINGO_CONFIG.CARD_COST).toBe(50);
+    expect(BINGO_CONFIG.MAX_CARDS_PER_GAME).toBe(4);
+    expect(BINGO_CONFIG.FAST_FH_THRESHOLD).toBe(40);
+    expect(BINGO_CONFIG.CALL_SPEEDS).toEqual({ slow: 3000, normal: 2000, fast: 1000 });
+  });
+});
+
+describe('payoutFor', () => {
+  it.each([
+    ['1-line', 75],
+    ['2-line', 250],
+    ['full-house', 1500],
+    ['fast-full-house', 5000],
+  ] as const)('tier %s → %d chips', (tier, expected) => {
+    expect(payoutFor(tier)).toBe(expected);
   });
 });
