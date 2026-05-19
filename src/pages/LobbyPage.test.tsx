@@ -1,10 +1,11 @@
 import { describe, expect, it, beforeEach } from 'vitest';
 import 'fake-indexeddb/auto';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import LobbyPage from './LobbyPage';
 import { useSessionStore } from '@/store/sessionStore';
 import type { User } from '@/db';
+import { db } from '@/db';
 
 const testUser: User = {
   id: 'u',
@@ -46,5 +47,35 @@ describe('LobbyPage', () => {
       </MemoryRouter>,
     );
     expect(screen.getByText(/No rounds played yet/)).toBeInTheDocument();
+  });
+
+  it('renders the lottery tile with a countdown when no draw exists', async () => {
+    render(
+      <MemoryRouter>
+        <LobbyPage />
+      </MemoryRouter>,
+    );
+    expect(screen.getByText(/daily lottery/i)).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText(/draw in/i)).toBeInTheDocument());
+  });
+
+  it('shows the drawn numbers when today has a draw', async () => {
+    const today = new Date();
+    const id = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    await db.lotteryDraws.put({
+      id,
+      drawAt: Date.now(),
+      mainNumbers: [3, 12, 25, 41, 49],
+      bonus: 7,
+      totalLines: 0,
+      totalRevenue: 0,
+      totalPayout: 0,
+    });
+    render(
+      <MemoryRouter>
+        <LobbyPage />
+      </MemoryRouter>,
+    );
+    await waitFor(() => expect(screen.getByText(/3 · 12 · 25 · 41 · 49/)).toBeInTheDocument());
   });
 });
