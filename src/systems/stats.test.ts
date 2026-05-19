@@ -9,7 +9,7 @@ import {
   getSiteWideStats,
   getTopLosers,
   getTopWinners,
-} from './queries';
+} from './stats';
 
 const SESSION_KEY = 'localGamble.session.userId';
 
