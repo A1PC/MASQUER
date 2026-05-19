@@ -32,6 +32,7 @@ const AdminUsersListPage = lazy(() => import('@/pages/admin/AdminUsersListPage')
 const AdminUserPage = lazy(() => import('@/pages/admin/AdminUserPage'));
 const AdminAuditPage = lazy(() => import('@/pages/admin/AdminAuditPage'));
 const AdminSessionsPage = lazy(() => import('@/pages/admin/AdminSessionsPage'));
+const AdminLotteryPage = lazy(() => import('@/pages/admin/AdminLotteryPage'));
 
 const adminFallback = (
   <div className="flex min-h-screen items-center justify-center bg-felt-deep text-xs text-white/40">
@@ -71,6 +72,7 @@ export const router = createBrowserRouter([
       { path: 'users/:id', element: <AdminUserPage /> },
       { path: 'adjustments', element: <AdminAuditPage /> },
       { path: 'sessions', element: <AdminSessionsPage /> },
+      { path: 'lottery', element: <AdminLotteryPage /> },
     ],
   },
   {

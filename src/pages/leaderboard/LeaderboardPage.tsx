@@ -10,6 +10,7 @@ const TITLES: Record<string, string> = {
   slots: 'SLOTS',
   baccarat: 'BACCARAT',
   'coin-flip': 'COIN FLIP',
+  lottery: 'LOTTERY',
 };
 
 export default function LeaderboardPage(): JSX.Element {
