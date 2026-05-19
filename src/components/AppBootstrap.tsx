@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { db } from '@/db';
 import { useSessionStore } from '@/store/sessionStore';
 import { useWalletStore } from '@/store/walletStore';
+import { useBingoConfigStore } from '@/store/bingoConfigStore';
 
 interface Props {
   children: ReactNode;
@@ -15,6 +16,7 @@ export default function AppBootstrap({ children }: Props): JSX.Element {
   const currentUser = useSessionStore((s) => s.currentUser);
   const hydrateWallet = useWalletStore((s) => s.hydrate);
   const clearWallet = useWalletStore((s) => s.clear);
+  const hydrateBingoConfig = useBingoConfigStore((s) => s.hydrate);
 
   useEffect(() => {
     void bootstrap();
@@ -24,6 +26,11 @@ export default function AppBootstrap({ children }: Props): JSX.Element {
     if (currentUser) void hydrateWallet(currentUser.id);
     else clearWallet();
   }, [currentUser, hydrateWallet, clearWallet]);
+
+  // Bingo config is app-wide (not user-scoped) — hydrate once on mount.
+  useEffect(() => {
+    void hydrateBingoConfig();
+  }, [hydrateBingoConfig]);
 
   useEffect(() => {
     const handler = () => {

@@ -1,11 +1,10 @@
 import type { JSX } from 'react';
 import {
   BUY_IN,
-  DIFFICULTY,
   VARIANTS,
-  potFor,
   type BingoSpeed,
   type Difficulty,
+  type DifficultyConfig,
   type Variant,
 } from './logic';
 
@@ -15,6 +14,8 @@ interface Props {
   speed: BingoSpeed;
   daubMode: 'auto' | 'manual';
   balance: number;
+  /** Resolved per-difficulty configs (admin overrides merged with code defaults). */
+  resolvedConfigs: Record<Difficulty, DifficultyConfig>;
   onDifficultyChange: (d: Difficulty) => void;
   onSpeedChange: (s: BingoSpeed) => void;
   onDaubModeChange: (m: 'auto' | 'manual') => void;
@@ -27,10 +28,10 @@ const SPEED_LABELS: Record<BingoSpeed, string> = {
   fast: 'Fast (1s)',
 };
 
-const DIFFICULTY_DESCRIPTIONS: Record<Difficulty, { label: string; sub: string }> = {
-  easy: { label: 'EASY', sub: '2 CPUs · slow' },
-  medium: { label: 'MEDIUM', sub: '5 CPUs · fast' },
-  hard: { label: 'HARD', sub: '9 CPUs · instant' },
+const DIFFICULTY_LABELS: Record<Difficulty, string> = {
+  easy: 'EASY',
+  medium: 'MEDIUM',
+  hard: 'HARD',
 };
 
 const VARIANT_HEADERS: Record<Variant, string> = {
@@ -44,13 +45,14 @@ export default function SetupPanel({
   speed,
   daubMode,
   balance,
+  resolvedConfigs,
   onDifficultyChange,
   onSpeedChange,
   onDaubModeChange,
   onBuyAndStart,
 }: Props): JSX.Element {
   const canAfford = balance >= BUY_IN;
-  const cfg = DIFFICULTY[difficulty];
+  const cfg = resolvedConfigs[difficulty];
   const effectiveDaubMode = cfg.forceManual ? 'manual' : daubMode;
 
   return (
@@ -70,7 +72,7 @@ export default function SetupPanel({
         <h3 className="mb-2 font-display text-[11px] tracking-[0.18em] text-gold">DIFFICULTY</h3>
         <div role="radiogroup" aria-label="Difficulty" className="grid grid-cols-3 gap-2">
           {(['easy', 'medium', 'hard'] as const).map((d) => {
-            const info = DIFFICULTY_DESCRIPTIONS[d];
+            const dcfg = resolvedConfigs[d];
             const selected = difficulty === d;
             return (
               <button
@@ -84,11 +86,13 @@ export default function SetupPanel({
                 <div
                   className={`font-display text-sm ${selected ? 'text-gold-bright' : 'text-white'}`}
                 >
-                  {info.label}
+                  {DIFFICULTY_LABELS[d]}
                 </div>
-                <div className="text-[9px] text-white/60 mt-1">{info.sub}</div>
+                <div className="text-[9px] text-white/60 mt-1">
+                  {dcfg.cpuCount} CPU{dcfg.cpuCount !== 1 ? 's' : ''}
+                </div>
                 <div className="text-[10px] text-gold-bright tabular-nums mt-1">
-                  Pot {potFor(d)}
+                  Pot {BUY_IN * dcfg.potMultiplier}
                 </div>
               </button>
             );
@@ -133,7 +137,7 @@ export default function SetupPanel({
                 aria-checked={selected}
                 disabled={disabled}
                 onClick={() => !disabled && onDaubModeChange(m)}
-                {...(disabled ? { title: 'Hard difficulty requires manual daub' } : {})}
+                {...(disabled ? { title: 'This difficulty requires manual daub' } : {})}
                 className={[
                   'flex-1 rounded-md border px-3 py-2 text-xs',
                   disabled
@@ -149,7 +153,7 @@ export default function SetupPanel({
           })}
         </div>
         {cfg.forceManual && (
-          <p className="mt-1 text-[10px] text-gold/70">Hard difficulty requires manual daub.</p>
+          <p className="mt-1 text-[10px] text-gold/70">This difficulty requires manual daub.</p>
         )}
       </section>
 
@@ -160,7 +164,7 @@ export default function SetupPanel({
       <section className="flex items-center justify-between text-xs">
         <span className="text-white/60">Win up to</span>
         <span className="font-display tabular-nums text-gold-bright">
-          {potFor(difficulty)} chips
+          {BUY_IN * cfg.potMultiplier} chips
         </span>
       </section>
       <section className="flex items-center justify-between text-xs">

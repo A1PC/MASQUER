@@ -2,17 +2,16 @@ import { setup, assign, fromCallback, sendTo } from 'xstate';
 import {
   BUY_IN,
   CALL_SPEEDS,
-  DIFFICULTY,
   drawCallSequence,
   emptyDaubGrid,
   findCellByValue,
   generateCard,
   detectNewClaims,
   payoutFor,
-  potFor,
   type BingoCard,
   type BingoSpeed,
   type Difficulty,
+  type DifficultyConfig,
   type Tier,
   type Variant,
 } from './logic';
@@ -45,6 +44,9 @@ export interface BingoContext {
   difficulty: Difficulty;
   speed: BingoSpeed;
   daubMode: 'auto' | 'manual';
+  /** True when the resolved difficulty config has forceManual=true. Stored in
+   *  context so the TOGGLE_DAUB action doesn't need to look up DIFFICULTY. */
+  forceManual: boolean;
   pot: number;
   callSequence: number[];
   callIndex: number;
@@ -69,6 +71,9 @@ export type BingoEvent =
       difficulty: Difficulty;
       speed: BingoSpeed;
       daubMode: 'auto' | 'manual';
+      /** Resolved difficulty config (admin overrides merged with code defaults).
+       *  Required — pass DIFFICULTY[difficulty] if no override. */
+      difficultyConfig: DifficultyConfig;
       rngSeed?: number;
     }
   | { type: 'BET_PLACED'; betHandleId: string }
@@ -87,6 +92,7 @@ function makeInitialContext(): BingoContext {
     difficulty: 'easy',
     speed: 'normal',
     daubMode: 'auto',
+    forceManual: false,
     pot: 0,
     callSequence: [],
     callIndex: 0,
@@ -150,7 +156,7 @@ export const bingoMachine = setup({
         card: generateCard(`${gameId}.user`, event.variant),
         daubed: emptyDaubGrid(event.variant),
       };
-      const cfg = DIFFICULTY[event.difficulty];
+      const cfg = event.difficultyConfig;
       // Deterministic mulberry32-ish for CPU latency rolls so tests can pin them.
       let s = seedBase >>> 0;
       const rng = (): number => {
@@ -177,7 +183,8 @@ export const bingoMachine = setup({
         difficulty: event.difficulty,
         speed: event.speed,
         daubMode: cfg.forceManual ? ('manual' as const) : event.daubMode,
-        pot: potFor(event.difficulty),
+        forceManual: cfg.forceManual,
+        pot: BUY_IN * cfg.potMultiplier,
         callSequence: drawCallSequence(gameId, event.variant),
         callIndex: 0,
         userCard,
@@ -291,7 +298,7 @@ export const bingoMachine = setup({
     }),
 
     toggleDaub: assign(({ context }) => {
-      if (DIFFICULTY[context.difficulty].forceManual) return {};
+      if (context.forceManual) return {};
       if (context.daubMode === 'manual') {
         // Auto-daub all currently-called balls on user card.
         const calledSet = new Set(context.callSequence.slice(0, context.callIndex));

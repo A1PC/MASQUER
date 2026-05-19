@@ -5,9 +5,17 @@ import { useMachine } from '@xstate/react';
 import { AnimatePresence } from 'framer-motion';
 import { useCurrentUser } from '@/store/sessionStore';
 import { useBalance } from '@/store/walletStore';
+import { useBingoConfigStore } from '@/store/bingoConfigStore';
+import { resolveDifficulty } from '@/systems/bingoConfig';
 import { useGameRound } from '@/games/_shared/useGameRound';
 import { bingoMachine, type ClaimLogEntry } from './machine';
-import { BUY_IN, type BingoSpeed, type Difficulty, type Variant } from './logic';
+import {
+  BUY_IN,
+  type BingoSpeed,
+  type Difficulty,
+  type DifficultyConfig,
+  type Variant,
+} from './logic';
 import SetupPanel from './SetupPanel';
 import BingoCard from './BingoCard';
 import CallBoard from './CallBoard';
@@ -29,6 +37,16 @@ export default function BingoPage(): JSX.Element | null {
   const variantParam = searchParams.get('variant');
   const variant: Variant = isVariant(variantParam) ? variantParam : 'british';
   const invalidVariant = !isVariant(variantParam);
+
+  const bingoOverrides = useBingoConfigStore((s) => s.overrides);
+  const resolvedConfigs: Record<Difficulty, DifficultyConfig> = useMemo(
+    () => ({
+      easy: resolveDifficulty('easy', bingoOverrides.easy),
+      medium: resolveDifficulty('medium', bingoOverrides.medium),
+      hard: resolveDifficulty('hard', bingoOverrides.hard),
+    }),
+    [bingoOverrides],
+  );
 
   const { placeBet, settle } = useGameRound('bingo');
   const [snapshot, send] = useMachine(bingoMachine);
@@ -152,6 +170,7 @@ export default function BingoPage(): JSX.Element | null {
         difficulty: pendingDifficulty,
         speed: pendingSpeed,
         daubMode: pendingDaubMode,
+        difficultyConfig: resolvedConfigs[pendingDifficulty],
       });
       send({ type: 'BET_PLACED', betHandleId: result.handle.betId });
     })();
@@ -172,9 +191,9 @@ export default function BingoPage(): JSX.Element | null {
               <DaubToggle
                 mode={snapshot.context.daubMode}
                 onToggle={() => send({ type: 'TOGGLE_DAUB' })}
-                disabled={snapshot.context.difficulty === 'hard'}
-                {...(snapshot.context.difficulty === 'hard'
-                  ? { disabledReason: 'Hard difficulty requires manual daub' }
+                disabled={snapshot.context.forceManual}
+                {...(snapshot.context.forceManual
+                  ? { disabledReason: 'This difficulty requires manual daub' }
                   : {})}
               />
             )}
@@ -192,9 +211,10 @@ export default function BingoPage(): JSX.Element | null {
             speed={pendingSpeed}
             daubMode={pendingDaubMode}
             balance={balance}
+            resolvedConfigs={resolvedConfigs}
             onDifficultyChange={(d) => {
               setPendingDifficulty(d);
-              if (d === 'hard') setPendingDaubMode('manual');
+              if (resolvedConfigs[d].forceManual) setPendingDaubMode('manual');
             }}
             onSpeedChange={setPendingSpeed}
             onDaubModeChange={setPendingDaubMode}

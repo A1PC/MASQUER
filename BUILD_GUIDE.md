@@ -353,6 +353,8 @@ Competitive bingo — race AI opponents to BINGO. Two variants: British 90-ball 
 
 Design spec: `docs/superpowers/specs/2026-05-19-phase-11.5-bingo-competitive-design.md`. Implementation plan: `docs/superpowers/plans/2026-05-19-phase-11.5-bingo-competitive-plan.md`.
 
+**Admin tuning:** the `/admin/bingo` page exposes per-difficulty overrides for `cpuCount`, `potMultiplier`, `cpuLatencyMs`, and `forceManual`. Empty overrides fall back to the code defaults shown above. Changes persist via Dexie (v4 schema, `bingoConfig` table) and apply to the next game started.
+
 ---
 
 ## 11. UI / UX — Retro Vegas
