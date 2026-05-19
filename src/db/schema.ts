@@ -29,7 +29,7 @@ export interface Balance {
 export interface Round {
   id: string;
   userId: string;
-  game: 'blackjack' | 'roulette' | 'slots' | 'baccarat' | 'coin-flip';
+  game: 'blackjack' | 'roulette' | 'slots' | 'baccarat' | 'coin-flip' | 'lottery';
   betAmount: number;
   payout: number;
   netChange: number;
@@ -69,6 +69,73 @@ export interface Adjustment {
   adjustedAt: number;
 }
 
+/** v3 (Phase 10): one row per scheduled daily draw. Settled lazily on app open
+ *  via settleMissedDraws(). Numbers are deterministic from the date seed. */
+export interface LotteryDraw {
+  /** Date string `YYYY-MM-DD` (user's local timezone). Primary key. */
+  id: string;
+  /** Epoch ms when the draw was actually run (NOT the scheduled time). */
+  drawAt: number;
+  /** Sorted-asc 5 main numbers in [1, 50]. */
+  mainNumbers: number[];
+  /** Bonus number in [1, 10]. */
+  bonus: number;
+  /** Count of all lines (paid + free-re-entry) participating in this draw. */
+  totalLines: number;
+  /** Sum of chip revenue collected from line sales (excludes free re-entries). */
+  totalRevenue: number;
+  /** Sum of chip payouts paid to winning lines. */
+  totalPayout: number;
+}
+
+/** v3 (Phase 10): one row per purchase event. Wraps 1..N lines. */
+export interface LotteryTicket {
+  id: string;
+  userId: string;
+  drawId: string;
+  purchasedAt: number;
+  /** Total chips debited at purchase (0 if a free-re-entry wrapper). */
+  totalCost: number;
+  lineCount: number;
+}
+
+/** v3 (Phase 10): one row per 5+1 entry into a draw. */
+export interface LotteryLine {
+  id: string;
+  ticketId: string;
+  userId: string;
+  drawId: string;
+  mainNumbers: number[];
+  bonusNumber: number;
+  isLuckyDip: boolean;
+  isFreeReentry: boolean;
+  settled: boolean;
+  matchTier: LotteryMatchTier | null;
+  payout: number;
+  /** For free re-entries, the settled line that earned this entry. */
+  sourceLineId?: string;
+}
+
+export type LotteryMatchTier =
+  | '5+bonus'
+  | '5'
+  | '4+bonus'
+  | '4'
+  | '3+bonus'
+  | '3'
+  | '2+bonus'
+  | '2';
+
+/** v3 (Phase 10): user-saved favorite number sets. */
+export interface LotteryFavorite {
+  id: string;
+  userId: string;
+  name: string;
+  mainNumbers: number[];
+  bonusNumber: number;
+  createdAt: number;
+}
+
 export class LocalGambleDB extends Dexie {
   users!: EntityTable<User, 'id'>;
   balances!: EntityTable<Balance, 'userId'>;
@@ -76,6 +143,10 @@ export class LocalGambleDB extends Dexie {
   sessions!: EntityTable<Session, 'id'>;
   gameVisits!: EntityTable<GameVisit, 'id'>;
   adjustments!: EntityTable<Adjustment, 'id'>;
+  lotteryDraws!: EntityTable<LotteryDraw, 'id'>;
+  lotteryTickets!: EntityTable<LotteryTicket, 'id'>;
+  lotteryLines!: EntityTable<LotteryLine, 'id'>;
+  lotteryFavorites!: EntityTable<LotteryFavorite, 'id'>;
 
   constructor(name = 'localGamble') {
     super(name);
@@ -93,6 +164,19 @@ export class LocalGambleDB extends Dexie {
       sessions: 'id, userId, loginAt, [userId+loginAt]',
       gameVisits: 'id, userId, game, sessionId, [userId+game], [userId+enteredAt]',
       adjustments: 'id, userId, adjustedAt, [userId+adjustedAt]',
+    });
+    this.version(3).stores({
+      users: 'id, &usernameLower, createdAt',
+      balances: 'userId',
+      rounds: 'id, userId, game, playedAt, [userId+playedAt]',
+      sessions: 'id, userId, loginAt, [userId+loginAt]',
+      gameVisits: 'id, userId, game, sessionId, [userId+game], [userId+enteredAt]',
+      adjustments: 'id, userId, adjustedAt, [userId+adjustedAt]',
+      // Phase 10 additions
+      lotteryDraws: 'id, drawAt',
+      lotteryTickets: 'id, userId, drawId, purchasedAt, [userId+drawId]',
+      lotteryLines: 'id, ticketId, userId, drawId, settled, [userId+drawId], [drawId+settled]',
+      lotteryFavorites: 'id, userId, createdAt, [userId+createdAt]',
     });
   }
 }

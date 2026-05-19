@@ -1,0 +1,543 @@
+import { beforeEach, describe, expect, it } from 'vitest';
+import { db } from '@/db';
+import { resetDb } from '@/test/db-helpers';
+import { register } from '@/systems/auth';
+import {
+  drawForDate,
+  lineKey,
+  evaluateLine,
+  payoutFor,
+  generateLuckyDipLine,
+  nextDrawAt,
+  dateStringFor,
+  buyTicket,
+  settleMissedDraws,
+  saveFavorite,
+  listFavorites,
+  renameFavorite,
+  deleteFavorite,
+  getLotteryAdminStats,
+  getNumberFrequency,
+} from './lottery';
+
+const SESSION_KEY = 'localGamble.session.userId';
+
+describe('drawForDate', () => {
+  it('is deterministic for the same date', () => {
+    const a = drawForDate('2026-05-19');
+    const b = drawForDate('2026-05-19');
+    expect(a).toEqual(b);
+  });
+
+  it('returns different numbers for different dates', () => {
+    const a = drawForDate('2026-05-19');
+    const b = drawForDate('2026-05-20');
+    expect(a.mainNumbers).not.toEqual(b.mainNumbers);
+  });
+
+  it('main numbers are 5 distinct in [1, 50], sorted ascending', () => {
+    const { mainNumbers } = drawForDate('2026-05-19');
+    expect(mainNumbers).toHaveLength(5);
+    expect(new Set(mainNumbers).size).toBe(5);
+    for (const n of mainNumbers) {
+      expect(n).toBeGreaterThanOrEqual(1);
+      expect(n).toBeLessThanOrEqual(50);
+    }
+    const sorted = [...mainNumbers].sort((a, b) => a - b);
+    expect(mainNumbers).toEqual(sorted);
+  });
+
+  it('bonus is in [1, 10]', () => {
+    const { bonus } = drawForDate('2026-05-19');
+    expect(bonus).toBeGreaterThanOrEqual(1);
+    expect(bonus).toBeLessThanOrEqual(10);
+  });
+});
+
+describe('lineKey', () => {
+  it('produces the same key for the same numbers regardless of order', () => {
+    const a = lineKey({ mainNumbers: [5, 12, 3, 49, 27], bonusNumber: 7 });
+    const b = lineKey({ mainNumbers: [49, 27, 5, 3, 12], bonusNumber: 7 });
+    expect(a).toBe(b);
+  });
+
+  it('differs when bonus differs', () => {
+    const a = lineKey({ mainNumbers: [1, 2, 3, 4, 5], bonusNumber: 1 });
+    const b = lineKey({ mainNumbers: [1, 2, 3, 4, 5], bonusNumber: 2 });
+    expect(a).not.toBe(b);
+  });
+});
+
+describe('evaluateLine', () => {
+  const draw = { mainNumbers: [3, 12, 25, 41, 49], bonus: 7 };
+
+  it.each([
+    { line: { mainNumbers: [3, 12, 25, 41, 49], bonusNumber: 7 }, tier: '5+bonus' },
+    { line: { mainNumbers: [3, 12, 25, 41, 49], bonusNumber: 8 }, tier: '5' },
+    { line: { mainNumbers: [3, 12, 25, 41, 1], bonusNumber: 7 }, tier: '4+bonus' },
+    { line: { mainNumbers: [3, 12, 25, 41, 1], bonusNumber: 8 }, tier: '4' },
+    { line: { mainNumbers: [3, 12, 25, 1, 2], bonusNumber: 7 }, tier: '3+bonus' },
+    { line: { mainNumbers: [3, 12, 25, 1, 2], bonusNumber: 8 }, tier: '3' },
+    { line: { mainNumbers: [3, 12, 1, 2, 4], bonusNumber: 7 }, tier: '2+bonus' },
+    { line: { mainNumbers: [3, 12, 1, 2, 4], bonusNumber: 8 }, tier: '2' },
+    { line: { mainNumbers: [3, 1, 2, 4, 5], bonusNumber: 7 }, tier: null },
+    { line: { mainNumbers: [3, 1, 2, 4, 5], bonusNumber: 8 }, tier: null },
+    { line: { mainNumbers: [1, 2, 4, 5, 6], bonusNumber: 7 }, tier: null },
+    { line: { mainNumbers: [1, 2, 4, 5, 6], bonusNumber: 8 }, tier: null },
+  ])('returns $tier for line $line.mainNumbers / bonus $line.bonusNumber', ({ line, tier }) => {
+    expect(evaluateLine(line, draw)).toBe(tier);
+  });
+});
+
+describe('payoutFor', () => {
+  it.each([
+    ['5+bonus', 1_000_000],
+    ['5', 500_000],
+    ['4+bonus', 100_000],
+    ['4', 10_000],
+    ['3+bonus', 2_000],
+    ['3', 100],
+    ['2+bonus', 0],
+    ['2', 0],
+    [null, 0],
+  ] as const)('tier %s → %d', (tier, expected) => {
+    expect(payoutFor(tier)).toBe(expected);
+  });
+});
+
+describe('generateLuckyDipLine', () => {
+  it('generates a valid 5+1 line', () => {
+    const line = generateLuckyDipLine([]);
+    expect(line.mainNumbers).toHaveLength(5);
+    expect(new Set(line.mainNumbers).size).toBe(5);
+    expect(line.bonusNumber).toBeGreaterThanOrEqual(1);
+    expect(line.bonusNumber).toBeLessThanOrEqual(10);
+  });
+
+  it('avoids generating a line that matches an existing line', () => {
+    const existing = [{ mainNumbers: [1, 2, 3, 4, 5], bonusNumber: 1 }];
+    for (let i = 0; i < 50; i += 1) {
+      const line = generateLuckyDipLine(existing);
+      // Compare via lineKey-style canonical form
+      const canon = [...line.mainNumbers].sort((a, b) => a - b).join(',') + '|' + line.bonusNumber;
+      expect(canon).not.toBe('1,2,3,4,5|1');
+    }
+  });
+
+  it('avoids many existing lines without exhausting the budget', () => {
+    const lines: { mainNumbers: number[]; bonusNumber: number }[] = [];
+    for (let i = 0; i < 20; i += 1) {
+      const line = generateLuckyDipLine(lines);
+      lines.push(line);
+    }
+    const keys = lines.map(
+      (l) => [...l.mainNumbers].sort((a, b) => a - b).join(',') + '|' + l.bonusNumber,
+    );
+    expect(new Set(keys).size).toBe(20);
+  });
+});
+
+describe('nextDrawAt', () => {
+  it('returns today 20:00 when now is before today 20:00', () => {
+    const now = new Date(2026, 4, 19, 12, 0, 0, 0).getTime();
+    const next = nextDrawAt(now);
+    expect(new Date(next).getDate()).toBe(19);
+    expect(new Date(next).getHours()).toBe(20);
+  });
+
+  it('returns tomorrow 20:00 when now is at or past today 20:00', () => {
+    const now = new Date(2026, 4, 19, 20, 0, 0, 0).getTime();
+    const next = nextDrawAt(now);
+    expect(new Date(next).getDate()).toBe(20);
+    expect(new Date(next).getHours()).toBe(20);
+  });
+
+  it('returns tomorrow 20:00 at 20:00:01', () => {
+    const now = new Date(2026, 4, 19, 20, 0, 1, 0).getTime();
+    const next = nextDrawAt(now);
+    expect(new Date(next).getDate()).toBe(20);
+  });
+});
+
+describe('dateStringFor', () => {
+  it('returns YYYY-MM-DD for a given timestamp (local)', () => {
+    const ts = new Date(2026, 4, 19, 12, 0, 0).getTime();
+    expect(dateStringFor(ts)).toBe('2026-05-19');
+  });
+
+  it('pads month and day with leading zeros', () => {
+    const ts = new Date(2026, 0, 3, 12, 0, 0).getTime();
+    expect(dateStringFor(ts)).toBe('2026-01-03');
+  });
+});
+
+describe('buyTicket', () => {
+  beforeEach(async () => {
+    await resetDb();
+    localStorage.removeItem(SESSION_KEY);
+  });
+
+  it('inserts a ticket + lines for a manual-only purchase and debits the wallet', async () => {
+    const r = await register({ username: 'a', password: 'password123' });
+    if (!r.ok) throw new Error();
+    const before = (await db.balances.get(r.user.id))!.chips;
+    const result = await buyTicket({
+      userId: r.user.id,
+      lines: [
+        { kind: 'manual', mainNumbers: [1, 2, 3, 4, 5], bonusNumber: 1 },
+        { kind: 'manual', mainNumbers: [10, 20, 30, 40, 50], bonusNumber: 9 },
+      ],
+      now: new Date(2026, 4, 19, 12, 0, 0).getTime(),
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const lines = await db.lotteryLines.where('ticketId').equals(result.ticketId).toArray();
+    expect(lines).toHaveLength(2);
+    const after = (await db.balances.get(r.user.id))!.chips;
+    expect(after).toBe(before - 20);
+  });
+
+  it('rejects when two manual lines are duplicates', async () => {
+    const r = await register({ username: 'b', password: 'password123' });
+    if (!r.ok) throw new Error();
+    const result = await buyTicket({
+      userId: r.user.id,
+      lines: [
+        { kind: 'manual', mainNumbers: [1, 2, 3, 4, 5], bonusNumber: 1 },
+        { kind: 'manual', mainNumbers: [5, 4, 3, 2, 1], bonusNumber: 1 },
+      ],
+    });
+    expect(result).toEqual({ ok: false, error: 'duplicate-manual-lines' });
+    const bal = (await db.balances.get(r.user.id))!.chips;
+    expect(bal).toBe(1000);
+  });
+
+  it('rejects when wallet has insufficient chips', async () => {
+    const r = await register({ username: 'c', password: 'password123' });
+    if (!r.ok) throw new Error();
+    await db.balances.update(r.user.id, { chips: 5 });
+    const result = await buyTicket({
+      userId: r.user.id,
+      lines: [{ kind: 'manual', mainNumbers: [1, 2, 3, 4, 5], bonusNumber: 1 }],
+    });
+    expect(result).toEqual({ ok: false, error: 'insufficient-chips' });
+  });
+
+  it('generates unique lucky-dip lines distinct from manual lines on the same ticket', async () => {
+    const r = await register({ username: 'd', password: 'password123' });
+    if (!r.ok) throw new Error();
+    const result = await buyTicket({
+      userId: r.user.id,
+      lines: [
+        { kind: 'manual', mainNumbers: [1, 2, 3, 4, 5], bonusNumber: 1 },
+        { kind: 'lucky-dip' },
+        { kind: 'lucky-dip' },
+        { kind: 'lucky-dip' },
+      ],
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const lines = await db.lotteryLines.where('ticketId').equals(result.ticketId).toArray();
+    const keys = lines.map(
+      (l) => `${[...l.mainNumbers].sort((a, b) => a - b).join(',')}|${l.bonusNumber}`,
+    );
+    expect(new Set(keys).size).toBe(4);
+  });
+
+  it('rejects an invalid line (6 main numbers)', async () => {
+    const r = await register({ username: 'e', password: 'password123' });
+    if (!r.ok) throw new Error();
+    const result = await buyTicket({
+      userId: r.user.id,
+      lines: [{ kind: 'manual', mainNumbers: [1, 2, 3, 4, 5, 6], bonusNumber: 1 }],
+    });
+    expect(result).toEqual({ ok: false, error: 'invalid-line' });
+  });
+
+  it('marks lucky-dip lines with isLuckyDip=true', async () => {
+    const r = await register({ username: 'f', password: 'password123' });
+    if (!r.ok) throw new Error();
+    const result = await buyTicket({
+      userId: r.user.id,
+      lines: [
+        { kind: 'manual', mainNumbers: [1, 2, 3, 4, 5], bonusNumber: 1 },
+        { kind: 'lucky-dip' },
+      ],
+    });
+    if (!result.ok) throw new Error();
+    const lines = await db.lotteryLines.where('ticketId').equals(result.ticketId).toArray();
+    const manual = lines.find((l) => !l.isLuckyDip);
+    const dip = lines.find((l) => l.isLuckyDip);
+    expect(manual).toBeDefined();
+    expect(dip).toBeDefined();
+  });
+});
+
+describe('settleMissedDraws', () => {
+  beforeEach(async () => {
+    await resetDb();
+    localStorage.removeItem(SESSION_KEY);
+  });
+
+  it('does nothing when there are no unsettled lines and no pending draws', async () => {
+    const { settledDrawIds } = await settleMissedDraws({
+      now: new Date(2026, 4, 19, 21, 0, 0).getTime(),
+    });
+    expect(settledDrawIds).toEqual([]);
+  });
+
+  it('runs a single missed draw and writes a draw row', async () => {
+    const r = await register({ username: 'a', password: 'password123' });
+    if (!r.ok) throw new Error();
+    await buyTicket({
+      userId: r.user.id,
+      lines: [{ kind: 'manual', mainNumbers: [1, 2, 3, 4, 5], bonusNumber: 1 }],
+      now: new Date(2026, 4, 19, 12, 0, 0).getTime(),
+    });
+    const { settledDrawIds } = await settleMissedDraws({
+      now: new Date(2026, 4, 19, 20, 30, 0).getTime(),
+    });
+    expect(settledDrawIds).toEqual(['2026-05-19']);
+    const draw = await db.lotteryDraws.get('2026-05-19');
+    expect(draw).toBeDefined();
+    expect(draw!.mainNumbers).toEqual(drawForDate('2026-05-19').mainNumbers);
+  });
+
+  it('settles all lines for the missed draw', async () => {
+    const r = await register({ username: 'b', password: 'password123' });
+    if (!r.ok) throw new Error();
+    await buyTicket({
+      userId: r.user.id,
+      lines: [
+        { kind: 'manual', mainNumbers: [1, 2, 3, 4, 5], bonusNumber: 1 },
+        { kind: 'manual', mainNumbers: [6, 7, 8, 9, 10], bonusNumber: 2 },
+      ],
+      now: new Date(2026, 4, 19, 12, 0, 0).getTime(),
+    });
+    await settleMissedDraws({ now: new Date(2026, 4, 19, 20, 30, 0).getTime() });
+    const lines = await db.lotteryLines.toArray();
+    expect(lines.every((l) => l.settled)).toBe(true);
+  });
+
+  it('backfills multiple missed days in date order', async () => {
+    const r = await register({ username: 'c', password: 'password123' });
+    if (!r.ok) throw new Error();
+    await buyTicket({
+      userId: r.user.id,
+      lines: [{ kind: 'manual', mainNumbers: [1, 2, 3, 4, 5], bonusNumber: 1 }],
+      now: new Date(2026, 4, 17, 12, 0, 0).getTime(),
+    });
+    await buyTicket({
+      userId: r.user.id,
+      lines: [{ kind: 'manual', mainNumbers: [10, 20, 30, 40, 50], bonusNumber: 9 }],
+      now: new Date(2026, 4, 18, 12, 0, 0).getTime(),
+    });
+    await buyTicket({
+      userId: r.user.id,
+      lines: [{ kind: 'manual', mainNumbers: [11, 22, 33, 44, 5], bonusNumber: 7 }],
+      now: new Date(2026, 4, 19, 12, 0, 0).getTime(),
+    });
+    const { settledDrawIds } = await settleMissedDraws({
+      now: new Date(2026, 4, 19, 20, 30, 0).getTime(),
+    });
+    expect(settledDrawIds).toEqual(['2026-05-17', '2026-05-18', '2026-05-19']);
+  });
+
+  it('creates a free re-entry ticket for the next draw when a paid line gets match-2', async () => {
+    const r = await register({ username: 'd', password: 'password123' });
+    if (!r.ok) throw new Error();
+    const { mainNumbers, bonus } = drawForDate('2026-05-19');
+    // Craft a line that matches exactly 2 of the draw's main numbers + wrong bonus.
+    const drawSet = new Set(mainNumbers);
+    const matchTwo: number[] = [mainNumbers[0]!, mainNumbers[1]!];
+    let n = 1;
+    while (matchTwo.length < 5) {
+      if (!drawSet.has(n)) matchTwo.push(n);
+      n += 1;
+    }
+    const wrongBonus = bonus === 10 ? 1 : bonus + 1;
+    await buyTicket({
+      userId: r.user.id,
+      lines: [{ kind: 'manual', mainNumbers: matchTwo, bonusNumber: wrongBonus }],
+      now: new Date(2026, 4, 19, 12, 0, 0).getTime(),
+    });
+    await settleMissedDraws({ now: new Date(2026, 4, 19, 20, 30, 0).getTime() });
+    const tomorrowLines = await db.lotteryLines.where('drawId').equals('2026-05-20').toArray();
+    expect(tomorrowLines.some((l) => l.isFreeReentry)).toBe(true);
+  });
+
+  it('writes a rounds row for a paid line that loses', async () => {
+    const r = await register({ username: 'e', password: 'password123' });
+    if (!r.ok) throw new Error();
+    await buyTicket({
+      userId: r.user.id,
+      lines: [{ kind: 'manual', mainNumbers: [1, 2, 3, 4, 5], bonusNumber: 1 }],
+      now: new Date(2026, 4, 19, 12, 0, 0).getTime(),
+    });
+    await settleMissedDraws({ now: new Date(2026, 4, 19, 20, 30, 0).getTime() });
+    const rounds = (await db.rounds.where('userId').equals(r.user.id).toArray()).filter(
+      (r) => r.game === 'lottery',
+    );
+    expect(rounds).toHaveLength(1);
+  });
+
+  it('is idempotent: a second call after a draw is settled does nothing', async () => {
+    const r = await register({ username: 'f', password: 'password123' });
+    if (!r.ok) throw new Error();
+    await buyTicket({
+      userId: r.user.id,
+      lines: [{ kind: 'manual', mainNumbers: [1, 2, 3, 4, 5], bonusNumber: 1 }],
+      now: new Date(2026, 4, 19, 12, 0, 0).getTime(),
+    });
+    await settleMissedDraws({ now: new Date(2026, 4, 19, 20, 30, 0).getTime() });
+    const firstRounds = (await db.rounds.toArray()).length;
+    const firstDraws = (await db.lotteryDraws.toArray()).length;
+    await settleMissedDraws({ now: new Date(2026, 4, 19, 20, 35, 0).getTime() });
+    expect((await db.rounds.toArray()).length).toBe(firstRounds);
+    expect((await db.lotteryDraws.toArray()).length).toBe(firstDraws);
+  });
+});
+
+describe('Favorites CRUD', () => {
+  beforeEach(async () => {
+    await resetDb();
+    localStorage.removeItem(SESSION_KEY);
+  });
+
+  it('saves and lists favorites scoped to user, newest first', async () => {
+    const a = await register({ username: 'a', password: 'password123' });
+    const b = await register({ username: 'b', password: 'password123' });
+    if (!a.ok || !b.ok) throw new Error();
+    await saveFavorite({
+      userId: a.user.id,
+      name: 'My Numbers 1',
+      mainNumbers: [1, 2, 3, 4, 5],
+      bonusNumber: 1,
+    });
+    await new Promise((r) => setTimeout(r, 1));
+    await saveFavorite({
+      userId: a.user.id,
+      name: 'My Numbers 2',
+      mainNumbers: [6, 7, 8, 9, 10],
+      bonusNumber: 2,
+    });
+    await saveFavorite({
+      userId: b.user.id,
+      name: 'B Numbers',
+      mainNumbers: [11, 12, 13, 14, 15],
+      bonusNumber: 3,
+    });
+    const aFavs = await listFavorites(a.user.id);
+    expect(aFavs).toHaveLength(2);
+    expect(aFavs[0]!.name).toBe('My Numbers 2');
+    expect(aFavs[1]!.name).toBe('My Numbers 1');
+    const bFavs = await listFavorites(b.user.id);
+    expect(bFavs).toHaveLength(1);
+  });
+
+  it('rename updates the name', async () => {
+    const r = await register({ username: 'c', password: 'password123' });
+    if (!r.ok) throw new Error();
+    const fav = await saveFavorite({
+      userId: r.user.id,
+      name: 'Old',
+      mainNumbers: [1, 2, 3, 4, 5],
+      bonusNumber: 1,
+    });
+    await renameFavorite(fav.id, 'New');
+    const refreshed = (await listFavorites(r.user.id))[0]!;
+    expect(refreshed.name).toBe('New');
+  });
+
+  it('delete removes the favorite', async () => {
+    const r = await register({ username: 'd', password: 'password123' });
+    if (!r.ok) throw new Error();
+    const fav = await saveFavorite({
+      userId: r.user.id,
+      name: 'X',
+      mainNumbers: [1, 2, 3, 4, 5],
+      bonusNumber: 1,
+    });
+    await deleteFavorite(fav.id);
+    expect(await listFavorites(r.user.id)).toHaveLength(0);
+  });
+
+  it('rejects an invalid favorite (duplicate main numbers)', async () => {
+    const r = await register({ username: 'e', password: 'password123' });
+    if (!r.ok) throw new Error();
+    await expect(
+      saveFavorite({
+        userId: r.user.id,
+        name: 'bad',
+        mainNumbers: [1, 1, 2, 3, 4],
+        bonusNumber: 1,
+      }),
+    ).rejects.toThrow();
+  });
+
+  it('stores mainNumbers sorted ascending', async () => {
+    const r = await register({ username: 'f', password: 'password123' });
+    if (!r.ok) throw new Error();
+    await saveFavorite({
+      userId: r.user.id,
+      name: 'shuffled',
+      mainNumbers: [5, 2, 4, 1, 3],
+      bonusNumber: 1,
+    });
+    const fav = (await listFavorites(r.user.id))[0]!;
+    expect(fav.mainNumbers).toEqual([1, 2, 3, 4, 5]);
+  });
+});
+
+describe('admin queries', () => {
+  beforeEach(async () => {
+    await resetDb();
+    localStorage.removeItem(SESSION_KEY);
+  });
+
+  it('getLotteryAdminStats reports today + lifetime totals', async () => {
+    const r = await register({ username: 'a', password: 'password123' });
+    if (!r.ok) throw new Error();
+    await buyTicket({
+      userId: r.user.id,
+      lines: [
+        { kind: 'manual', mainNumbers: [1, 2, 3, 4, 5], bonusNumber: 1 },
+        { kind: 'manual', mainNumbers: [6, 7, 8, 9, 10], bonusNumber: 2 },
+      ],
+      now: new Date(2026, 4, 19, 12, 0, 0).getTime(),
+    });
+    await settleMissedDraws({ now: new Date(2026, 4, 19, 20, 30, 0).getTime() });
+    const stats = await getLotteryAdminStats(new Date(2026, 4, 19, 21, 0, 0).getTime());
+    expect(stats.ticketsSoldToday).toBe(1);
+    expect(stats.linesSoldToday).toBe(2);
+    expect(stats.totalRevenue).toBe(20);
+    expect(stats.netProfit).toBe(stats.totalRevenue - stats.totalPayout);
+  });
+
+  it('getNumberFrequency returns 0s when no draws have happened', async () => {
+    const freq = await getNumberFrequency('main');
+    expect(freq).toHaveLength(50);
+    expect(freq.every((n) => n === 0)).toBe(true);
+  });
+
+  it('getNumberFrequency increments for each drawn number across history', async () => {
+    const r = await register({ username: 'b', password: 'password123' });
+    if (!r.ok) throw new Error();
+    await buyTicket({
+      userId: r.user.id,
+      lines: [{ kind: 'manual', mainNumbers: [1, 2, 3, 4, 5], bonusNumber: 1 }],
+      now: new Date(2026, 4, 18, 12, 0, 0).getTime(),
+    });
+    await buyTicket({
+      userId: r.user.id,
+      lines: [{ kind: 'manual', mainNumbers: [1, 2, 3, 4, 5], bonusNumber: 1 }],
+      now: new Date(2026, 4, 19, 12, 0, 0).getTime(),
+    });
+    await settleMissedDraws({ now: new Date(2026, 4, 19, 20, 30, 0).getTime() });
+    const freq = await getNumberFrequency('main');
+    const total = freq.reduce((s, n) => s + n, 0);
+    expect(total).toBe(10); // 2 draws × 5 main numbers
+    const bonusFreq = await getNumberFrequency('bonus');
+    expect(bonusFreq.reduce((s, n) => s + n, 0)).toBe(2);
+  });
+});

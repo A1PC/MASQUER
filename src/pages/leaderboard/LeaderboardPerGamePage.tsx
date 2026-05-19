@@ -18,6 +18,7 @@ const GAME_LABELS: Record<Game, string> = {
   slots: 'SLOTS',
   baccarat: 'BACCARAT',
   'coin-flip': 'COIN FLIP',
+  lottery: 'LOTTERY', // A.8 will complete full wiring
 };
 
 const EMPTY: readonly LeaderboardRow[] = [];
