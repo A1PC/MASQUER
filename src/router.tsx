@@ -25,6 +25,8 @@ const LotteryPage = lazy(() => import('@/pages/lottery/LotteryPage'));
 const LeaderboardOverviewPage = lazy(() => import('@/pages/leaderboard/LeaderboardOverviewPage'));
 const LeaderboardPerGamePage = lazy(() => import('@/pages/leaderboard/LeaderboardPerGamePage'));
 
+const BingoPage = lazy(() => import('@/games/bingo/BingoPage'));
+
 const AdminLoginPage = lazy(() => import('@/pages/admin/AdminLoginPage'));
 const AdminLayout = lazy(() => import('@/pages/admin/AdminLayout'));
 const AdminOverviewPage = lazy(() => import('@/pages/admin/AdminOverviewPage'));
@@ -125,6 +127,20 @@ export const router = createBrowserRouter([
       { path: 'play/roulette', element: <RoulettePage /> },
       { path: 'play/slots', element: <SlotsPage /> },
       { path: 'play/baccarat', element: <BaccaratPage /> },
+      {
+        path: 'play/bingo',
+        element: (
+          <Suspense
+            fallback={
+              <div className="flex min-h-screen items-center justify-center bg-felt-deep text-xs text-white/40">
+                Loading bingo…
+              </div>
+            }
+          >
+            <BingoPage />
+          </Suspense>
+        ),
+      },
     ],
   },
   { path: '*', element: <Navigate to="/lobby" replace /> },
