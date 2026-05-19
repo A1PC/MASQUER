@@ -41,7 +41,7 @@ describe('LotteryPage shell', () => {
       </MemoryRouter>,
     );
     expect(screen.getByRole('heading', { name: /daily lottery/i })).toBeInTheDocument();
-    expect(screen.getByText(/History slide/i)).toBeInTheDocument();
+    expect(screen.getByText(/RECENT DRAWS/i)).toBeInTheDocument();
   });
 
   it('lets a user pick + add a manual line + buy a ticket', async () => {

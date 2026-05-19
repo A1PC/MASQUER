@@ -10,6 +10,7 @@ import { useLotteryCart } from './useLotteryCart';
 import DrawAnimationModal, { type PurchaseRevealLine } from './DrawAnimationModal';
 import HeroSection from './HeroSection';
 import { useLotteryBackfill } from './useLotteryBackfill';
+import HistorySlide from './HistorySlide';
 import { db } from '@/db';
 import type { LotteryDraw, LotteryLine } from '@/db';
 
@@ -169,12 +170,9 @@ export default function LotteryPage(): JSX.Element | null {
           </div>
         </section>
 
-        <section
-          data-history-placeholder
-          className="mt-6 rounded border border-dashed border-gold/40 bg-felt-deep p-6 text-center text-sm text-white/50"
-        >
-          History slide — ships in PR E.
-        </section>
+        <div className="mt-6">
+          <HistorySlide userId={user.id} />
+        </div>
 
         <DrawAnimationModal
           mode="purchase"
