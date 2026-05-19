@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { generateCard, columnRange } from './logic';
+import { generateCard, columnRange, drawCallSequence } from './logic';
 
 describe('columnRange', () => {
   it.each([
@@ -102,5 +102,33 @@ describe('generateCard — multiple cards distribution sanity', () => {
         expect(n).toBeLessThanOrEqual(90);
       }
     }
+  });
+});
+
+describe('drawCallSequence', () => {
+  it('returns 90 numbers', () => {
+    const seq = drawCallSequence('game-1');
+    expect(seq).toHaveLength(90);
+  });
+
+  it('contains every number from 1 to 90 exactly once', () => {
+    const seq = drawCallSequence('game-1');
+    expect(new Set(seq).size).toBe(90);
+    for (const n of seq) {
+      expect(n).toBeGreaterThanOrEqual(1);
+      expect(n).toBeLessThanOrEqual(90);
+    }
+  });
+
+  it('is deterministic for the same gameId', () => {
+    const a = drawCallSequence('game-1');
+    const b = drawCallSequence('game-1');
+    expect(a).toEqual(b);
+  });
+
+  it('produces different sequences for different gameIds', () => {
+    const a = drawCallSequence('game-1');
+    const b = drawCallSequence('game-2');
+    expect(a).not.toEqual(b);
   });
 });

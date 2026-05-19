@@ -120,5 +120,15 @@ function pickRandomMask(rng: () => number, n: number, k: number): boolean[] {
   return mask;
 }
 
-// Suppress unused variable warning for MAIN_POOL_SIZE (reserved for future use)
-void MAIN_POOL_SIZE;
+/** Generates the 90-ball call sequence (90 distinct numbers 1-90) seeded by gameId. */
+export function drawCallSequence(gameId: string): number[] {
+  const rng = mulberry32(stringSeed('bingo.game.' + gameId));
+  const pool: number[] = [];
+  for (let i = 1; i <= MAIN_POOL_SIZE; i += 1) pool.push(i);
+  // Full Fisher-Yates shuffle.
+  for (let i = pool.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(rng() * (i + 1));
+    [pool[i], pool[j]] = [pool[j]!, pool[i]!];
+  }
+  return pool;
+}
