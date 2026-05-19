@@ -1,5 +1,7 @@
+// STUB: SetupPanel is simplified for PR A (references to BINGO_CONFIG removed).
+// PR B/C will rewrite with difficulty + variant pickers.
 import type { JSX } from 'react';
-import { BINGO_CONFIG, type BingoSpeed } from './logic';
+import { BUY_IN, type BingoSpeed } from './logic';
 
 interface Props {
   cardCount: number;
@@ -24,7 +26,7 @@ export default function SetupPanel({
   onSpeedChange,
   onBuyAndStart,
 }: Props): JSX.Element {
-  const cost = cardCount * BINGO_CONFIG.CARD_COST;
+  const cost = cardCount * BUY_IN;
   const canAfford = balance >= cost;
   return (
     <div
