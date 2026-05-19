@@ -15,6 +15,7 @@ export default {
         'history',
         'stats',
         'leaderboard',
+        'lottery',
         'theme',
         'db',
         'session',

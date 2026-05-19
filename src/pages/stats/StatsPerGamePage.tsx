@@ -33,6 +33,7 @@ const GAME_LABELS: Record<Game, string> = {
   slots: 'Slots',
   baccarat: 'Baccarat',
   'coin-flip': 'Coin Flip',
+  lottery: 'Lottery', // A.8 will complete full wiring
 };
 
 const EMPTY_METRICS: UserMetrics = {
