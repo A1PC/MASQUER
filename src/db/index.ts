@@ -14,4 +14,5 @@ export type {
   LotteryLine,
   LotteryFavorite,
   LotteryMatchTier,
+  BingoConfigRow,
 } from './schema';

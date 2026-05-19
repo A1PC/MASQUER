@@ -136,6 +136,18 @@ export interface LotteryFavorite {
   createdAt: number;
 }
 
+/** v4 (Phase 11.5): admin-tunable per-difficulty bingo config. One row per
+ *  difficulty; absent row means use the code default from DIFFICULTY[d]. */
+export interface BingoConfigRow {
+  /** Primary key — one of 'easy' | 'medium' | 'hard'. */
+  difficulty: 'easy' | 'medium' | 'hard';
+  cpuCount: number;
+  potMultiplier: number;
+  cpuLatencyMin: number;
+  cpuLatencyMax: number;
+  forceManual: boolean;
+}
+
 export class LocalGambleDB extends Dexie {
   users!: EntityTable<User, 'id'>;
   balances!: EntityTable<Balance, 'userId'>;
@@ -147,6 +159,7 @@ export class LocalGambleDB extends Dexie {
   lotteryTickets!: EntityTable<LotteryTicket, 'id'>;
   lotteryLines!: EntityTable<LotteryLine, 'id'>;
   lotteryFavorites!: EntityTable<LotteryFavorite, 'id'>;
+  bingoConfig!: Dexie.Table<BingoConfigRow, 'easy' | 'medium' | 'hard'>;
 
   constructor(name = 'localGamble') {
     super(name);
@@ -177,6 +190,20 @@ export class LocalGambleDB extends Dexie {
       lotteryTickets: 'id, userId, drawId, purchasedAt, [userId+drawId]',
       lotteryLines: 'id, ticketId, userId, drawId, settled, [userId+drawId], [drawId+settled]',
       lotteryFavorites: 'id, userId, createdAt, [userId+createdAt]',
+    });
+    this.version(4).stores({
+      users: 'id, &usernameLower, createdAt',
+      balances: 'userId',
+      rounds: 'id, userId, game, playedAt, [userId+playedAt]',
+      sessions: 'id, userId, loginAt, [userId+loginAt]',
+      gameVisits: 'id, userId, game, sessionId, [userId+game], [userId+enteredAt]',
+      adjustments: 'id, userId, adjustedAt, [userId+adjustedAt]',
+      lotteryDraws: 'id, drawAt',
+      lotteryTickets: 'id, userId, drawId, purchasedAt, [userId+drawId]',
+      lotteryLines: 'id, ticketId, userId, drawId, settled, [userId+drawId], [drawId+settled]',
+      lotteryFavorites: 'id, userId, createdAt, [userId+createdAt]',
+      // Phase 11.5: admin-tunable bingo config
+      bingoConfig: '&difficulty',
     });
   }
 }
