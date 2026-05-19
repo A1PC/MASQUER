@@ -27,6 +27,7 @@ describe('bingoMachine - setup', () => {
       difficulty: 'easy',
       speed: 'fast',
       daubMode: 'auto',
+      difficultyConfig: DIFFICULTY.easy,
       rngSeed: 1,
     });
     const snap = actor.getSnapshot();
@@ -48,6 +49,7 @@ describe('bingoMachine - setup', () => {
       difficulty: 'hard',
       speed: 'fast',
       daubMode: 'auto',
+      difficultyConfig: DIFFICULTY.hard,
       rngSeed: 1,
     });
     expect(actor.getSnapshot().context.daubMode).toBe('manual');
@@ -63,6 +65,7 @@ describe('bingoMachine - setup', () => {
       difficulty: 'easy',
       speed: 'fast',
       daubMode: 'auto',
+      difficultyConfig: DIFFICULTY.easy,
       rngSeed: 1,
     });
     const snap = actor.getSnapshot();
@@ -79,11 +82,34 @@ describe('bingoMachine - setup', () => {
       difficulty: 'medium',
       speed: 'normal',
       daubMode: 'auto',
+      difficultyConfig: DIFFICULTY.medium,
       rngSeed: 42,
     });
     const snap = actor.getSnapshot();
     expect(snap.context.cpuCards).toHaveLength(DIFFICULTY.medium.cpuCount);
     expect(snap.context.pot).toBe(BUY_IN * DIFFICULTY.medium.potMultiplier);
+    actor.stop();
+  });
+
+  it('admin override: custom cpuCount and potMultiplier are respected', () => {
+    const actor = createActor(bingoMachine).start();
+    actor.send({
+      type: 'BUY_AND_START',
+      variant: 'british',
+      difficulty: 'easy',
+      speed: 'fast',
+      daubMode: 'auto',
+      difficultyConfig: {
+        cpuCount: 15,
+        potMultiplier: 10,
+        cpuLatencyMs: [0, 100],
+        forceManual: false,
+      },
+      rngSeed: 1,
+    });
+    const snap = actor.getSnapshot();
+    expect(snap.context.cpuCards).toHaveLength(15);
+    expect(snap.context.pot).toBe(BUY_IN * 10);
     actor.stop();
   });
 });
@@ -97,13 +123,15 @@ describe('bingoMachine - playing', () => {
       seed?: number;
     } = {},
   ) {
+    const difficulty = opts.difficulty ?? 'easy';
     const actor = createActor(bingoMachine).start();
     actor.send({
       type: 'BUY_AND_START',
       variant: opts.variant ?? 'british',
-      difficulty: opts.difficulty ?? 'easy',
+      difficulty,
       speed: 'fast',
       daubMode: opts.daubMode ?? 'auto',
+      difficultyConfig: DIFFICULTY[difficulty],
       rngSeed: opts.seed ?? 1,
     });
     actor.send({ type: 'BET_PLACED', betHandleId: 'handle-1' });
@@ -124,6 +152,7 @@ describe('bingoMachine - playing', () => {
       difficulty: 'easy',
       speed: 'fast',
       daubMode: 'auto',
+      difficultyConfig: DIFFICULTY.easy,
       rngSeed: 1,
     });
     actor.send({ type: 'BET_PLACED', betHandleId: 'my-handle-abc' });
@@ -228,6 +257,7 @@ describe('bingoMachine - CPU race', () => {
       difficulty: 'easy',
       speed: 'fast',
       daubMode: 'auto',
+      difficultyConfig: DIFFICULTY.easy,
       rngSeed: 1,
     });
     actor.send({ type: 'BET_PLACED', betHandleId: 'h1' });
@@ -248,6 +278,7 @@ describe('bingoMachine - CPU race', () => {
       difficulty: 'hard',
       speed: 'fast',
       daubMode: 'manual',
+      difficultyConfig: DIFFICULTY.hard,
       rngSeed: 1,
     });
     actor.send({ type: 'BET_PLACED', betHandleId: 'h1' });
@@ -268,6 +299,7 @@ describe('bingoMachine - CPU race', () => {
       difficulty: 'easy',
       speed: 'fast',
       daubMode: 'auto',
+      difficultyConfig: DIFFICULTY.easy,
       rngSeed: 1,
     });
     actor.send({ type: 'BET_PLACED', betHandleId: 'h1' });
@@ -315,6 +347,7 @@ describe('bingoMachine - CPU race', () => {
       difficulty: 'easy',
       speed: 'fast',
       daubMode: 'auto',
+      difficultyConfig: DIFFICULTY.easy,
       rngSeed: 1,
     });
     actor.send({ type: 'BET_PLACED', betHandleId: 'h1' });
@@ -337,6 +370,7 @@ describe('bingoMachine - claim flow', () => {
       difficulty: 'easy',
       speed: 'fast',
       daubMode: 'manual',
+      difficultyConfig: DIFFICULTY.easy,
       rngSeed: 1,
     });
     actor.send({ type: 'BET_PLACED', betHandleId: 'h1' });
@@ -357,6 +391,7 @@ describe('bingoMachine - claim flow', () => {
       difficulty: 'easy',
       speed: 'fast',
       daubMode: 'manual',
+      difficultyConfig: DIFFICULTY.easy,
       rngSeed: 1,
     });
     actor.send({ type: 'BET_PLACED', betHandleId: 'h1' });
@@ -377,6 +412,7 @@ describe('bingoMachine - claim flow', () => {
       difficulty: 'easy',
       speed: 'fast',
       daubMode: 'manual',
+      difficultyConfig: DIFFICULTY.easy,
       rngSeed: 1,
     });
     actor.send({ type: 'BET_PLACED', betHandleId: 'h1' });
@@ -395,6 +431,7 @@ describe('bingoMachine - claim flow', () => {
       difficulty: 'easy',
       speed: 'fast',
       daubMode: 'manual',
+      difficultyConfig: DIFFICULTY.easy,
       rngSeed: 1,
     });
     actor.send({ type: 'BET_PLACED', betHandleId: 'h1' });
@@ -413,6 +450,7 @@ describe('bingoMachine - claim flow', () => {
       difficulty: 'easy',
       speed: 'fast',
       daubMode: 'manual',
+      difficultyConfig: DIFFICULTY.easy,
       rngSeed: 1,
     });
     actor.send({ type: 'BET_PLACED', betHandleId: 'h1' });
@@ -430,6 +468,7 @@ describe('bingoMachine - claim flow', () => {
       difficulty: 'easy',
       speed: 'fast',
       daubMode: 'manual',
+      difficultyConfig: DIFFICULTY.easy,
       rngSeed: 1,
     });
     actor.send({ type: 'BET_PLACED', betHandleId: 'h1' });
@@ -448,6 +487,7 @@ describe('bingoMachine - claim flow', () => {
       difficulty: 'easy',
       speed: 'fast',
       daubMode: 'manual',
+      difficultyConfig: DIFFICULTY.easy,
       rngSeed: 1,
     });
     actor.send({ type: 'BET_PLACED', betHandleId: 'h1' });
@@ -475,6 +515,7 @@ describe('bingoMachine - settle + reset', () => {
       difficulty: 'easy',
       speed: 'fast',
       daubMode: 'manual',
+      difficultyConfig: DIFFICULTY.easy,
       rngSeed: 1,
     });
     actor.send({ type: 'BET_PLACED', betHandleId: 'h1' });
@@ -492,6 +533,7 @@ describe('bingoMachine - settle + reset', () => {
       difficulty: 'easy',
       speed: 'fast',
       daubMode: 'manual',
+      difficultyConfig: DIFFICULTY.easy,
       rngSeed: 1,
     });
     actor.send({ type: 'BET_PLACED', betHandleId: 'h1' });
@@ -514,6 +556,7 @@ describe('bingoMachine - settle + reset', () => {
       difficulty: 'easy',
       speed: 'fast',
       daubMode: 'manual',
+      difficultyConfig: DIFFICULTY.easy,
       rngSeed: 1,
     });
     actor.send({ type: 'BET_PLACED', betHandleId: 'h1' });
@@ -527,6 +570,7 @@ describe('bingoMachine - settle + reset', () => {
       difficulty: 'medium',
       speed: 'normal',
       daubMode: 'auto',
+      difficultyConfig: DIFFICULTY.medium,
       rngSeed: 99,
     });
     actor.send({ type: 'BET_PLACED', betHandleId: 'h2' });
