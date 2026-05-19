@@ -8,7 +8,6 @@ import AppLayout from '@/components/AppLayout';
 import LoginPage from '@/pages/LoginPage';
 import RegisterPage from '@/pages/RegisterPage';
 import LobbyPage from '@/pages/LobbyPage';
-import LeaderboardPage from '@/pages/LeaderboardPage';
 import ProfileStubPage from '@/pages/ProfileStubPage';
 import CoinFlipPage from '@/games/coin-flip/CoinFlipPage';
 import BlackjackPage from '@/games/blackjack/BlackjackPage';
@@ -19,6 +18,10 @@ import BaccaratPage from '@/games/baccarat/BaccaratPage';
 const StatsPage = lazy(() => import('@/pages/stats/StatsPage'));
 const StatsOverviewPage = lazy(() => import('@/pages/stats/StatsOverviewPage'));
 const StatsPerGamePage = lazy(() => import('@/pages/stats/StatsPerGamePage'));
+
+const LeaderboardPage = lazy(() => import('@/pages/leaderboard/LeaderboardPage'));
+const LeaderboardOverviewPage = lazy(() => import('@/pages/leaderboard/LeaderboardOverviewPage'));
+const LeaderboardPerGamePage = lazy(() => import('@/pages/leaderboard/LeaderboardPerGamePage'));
 
 const AdminLoginPage = lazy(() => import('@/pages/admin/AdminLoginPage'));
 const AdminLayout = lazy(() => import('@/pages/admin/AdminLayout'));
@@ -90,7 +93,18 @@ export const router = createBrowserRouter([
           { path: ':game', element: <StatsPerGamePage /> },
         ],
       },
-      { path: 'leaderboard', element: <LeaderboardPage /> },
+      {
+        path: 'leaderboard',
+        element: (
+          <Suspense fallback={statsFallback}>
+            <LeaderboardPage />
+          </Suspense>
+        ),
+        children: [
+          { index: true, element: <LeaderboardOverviewPage /> },
+          { path: ':game', element: <LeaderboardPerGamePage /> },
+        ],
+      },
       { path: 'profile', element: <ProfileStubPage feature="Your profile" /> },
       { path: 'profile/edit', element: <ProfileStubPage feature="Edit profile" /> },
       { path: 'settings', element: <ProfileStubPage feature="Settings" /> },
