@@ -76,14 +76,15 @@ describe('uiStore.statsViewMode', () => {
     expect(localStorage.getItem('localGamble.ui.statsViewMode')).toBe('graphs');
   });
 
-  it('reads persisted preference on init', () => {
+  it('reads persisted preference on init', async () => {
     localStorage.setItem('localGamble.ui.statsViewMode', 'graphs');
-    expect(localStorage.getItem('localGamble.ui.statsViewMode')).toBe('graphs');
+    const { useUIStore } = await importFreshStore();
+    expect(useUIStore.getState().statsViewMode).toBe('graphs');
   });
 
-  it('invalid persisted value falls back to "cards"', () => {
+  it('invalid persisted value falls back to "cards"', async () => {
     localStorage.setItem('localGamble.ui.statsViewMode', 'bogus');
-    useUIStore.setState({ statsViewMode: 'cards' });
+    const { useUIStore } = await importFreshStore();
     expect(useUIStore.getState().statsViewMode).toBe('cards');
   });
 });
