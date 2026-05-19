@@ -10,7 +10,7 @@
 
 A **local, offline, play-money casino app** that runs in the browser on your own machine. No internet, no real money, no remote server. Multiple local user profiles can register and log in, play games, build a chip balance, and compete on a local leaderboard.
 
-**Games:** Blackjack, Roulette, Slots, Baccarat.
+**Games:** Blackjack, Roulette, Slots, Baccarat, Bingo.
 **Core systems:** local accounts (register/login), persistent chip wallet, betting & payout engine, stats & game history, leaderboard.
 **Visual style:** Retro Vegas — neon, deep reds, golds, classic signage feel.
 
@@ -337,6 +337,23 @@ Design spec: `docs/superpowers/specs/2026-05-19-phase-10-daily-lottery-design.md
 
 ---
 
+## 10.6 Bingo
+
+90-ball British bingo, single-player vs. RNG. Lives inside the games sandbox (`src/games/bingo/`) — per-round, wallet-gated, no system-level escape hatches. See ADR §3 sandbox rules.
+
+- **Card model:** 3×9 grid, 15 marked cells per card. Column ranges 1–9, 10–19, …, 80–90. Three cells per row, distributed across columns at generation time. Per-column values sorted ascending.
+- **Buy flow:** 1–4 cards per game @ 50 chips each (max stake 200). Speed picker — slow / normal / fast (3000 / 2000 / 1000 ms per call).
+- **Ball draw:** deterministic shuffled 1–90 sequence per game (seeded RNG). Caller fires one ball per interval; UI shows the current ball big, the last 10 in a strip, and `Ball N of 90`.
+- **Daub modes:** Auto (default, daubs all cards on each call) or Manual (player clicks called cells; un-daubed called cells stay unmarked). Toggle works mid-game; manual→auto immediately daubs all called-but-undaubed cells and evaluates wins.
+- **Win tiers (per card):** any-line, two-line, full-house. A card can win all three across the same game; each tier pays once per card.
+- **Payouts:** Line = 25 chips, Two-line = 75, Full-house = 250. **Fast bonus:** full-house within ≤40 calls pays 500 instead of 250 (called "FAST BINGO!" in the banner stack).
+- **Settle:** game ends when every active card has a full-house OR when the sequence runs out. Exactly one `rounds` row per game (`game: 'bingo'`, details include `cardCount`, `speed`, `daubMode`, `finalCallCount`, `fastFullHouse`, `perCardPayouts`).
+- **Integration:** sidebar, lobby cabinet, /stats per-game tab, /leaderboard per-game tab all wired.
+
+Design spec: `docs/superpowers/specs/2026-05-19-phase-11-bingo-design.md`. Implementation plan: `docs/superpowers/plans/2026-05-19-phase-11-bingo-plan.md`.
+
+---
+
 ## 11. UI / UX — Retro Vegas
 
 **Mood:** neon signage, deep velvet reds, gold trim, dark felt-green backgrounds, chunky retro display fonts for headings, clean readable sans-serif for body and numbers.
@@ -370,6 +387,7 @@ Build in this order. **Do not start a phase until the previous one runs and its 
 | **8. Polish**                      | Animations pass, sound effects, Retro Vegas styling refinement, empty/zero-balance states, daily top-up.                                                                                                                                                                                                                                                                                                                                                                                                                       | App feels finished; no broken states; design tokens used throughout.                                                         |
 | **9. Admin Dashboard** ✅          | Hidden `/admin/*` with hardcoded admin login. Cross-cutting tracking: sessions, gameVisits, loginCount, soft ban, audit-trailed credit adjustments. Overview + Users list + per-user drill-in + Adjustments log + Sessions log. Recharts lazy-loaded (admin chunk only).                                                                                                                                                                                                                                                       | Shipped 2026-05-18 — see `v0.9-admin-dashboard`. ADR-0034, ADR-0035.                                                         |
 | **10. Daily Lottery** ✅           | `systems/lottery.ts` (Pick-5+1 draw + buyTicket + settleMissedDraws + favorites + admin queries), Dexie v3 (4 new tables, additive), LotteryPage with NumberGrid + TicketCart + FavoritesDropdown + HERO countdown ↔ winning balls + HistorySlide, DrawAnimationModal (purchase + draw reveal), Sidebar 🎟️ LOTTERY + 🔴 unread dot, LobbyPage tile, AdminLotteryPage (4 stat cards + 2 frequency charts + recent draws). Strict 20:00 local daily draw with backfill on app open. 1M jackpot, ≈43% RTP, match-2 free re-entry. | Shipped 2026-05-19 — see `v0.10-lottery`. ADR-0040.                                                                          |
+| **11. Bingo** ✅                   | 90-ball British bingo. `src/games/bingo/` — pure `logic.ts` (generateCard, drawCallSequence, evaluateCardWins, payoutFor) + XState v5 machine (setup → playing → settling → done) + BingoPage with SetupPanel, CallBoard, 1–4 BingoCards, DaubToggle (auto/manual, switchable mid-game), WinBanner tier stack (LINE / DOUBLE LINE / BINGO / FAST BINGO), EndScreen breakdown. Sidebar 🎯 Bingo + lobby cabinet + stats/leaderboard per-game tabs.                                                                              | Shipped 2026-05-19 — see `v0.11-bingo`.                                                                                      |
 | **15. (Optional later)**           | Electron/Tauri desktop wrapper; split hands; multi-line slots; more games. (Old Phase 8 Polish moved to a real Phase 15 after Phases 10-14 game additions ship.)                                                                                                                                                                                                                                                                                                                                                               | —                                                                                                                            |
 
 ---
