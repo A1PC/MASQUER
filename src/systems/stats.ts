@@ -205,7 +205,7 @@ const EMPTY_METRICS: UserMetrics = {
   timePlayedMs: 0,
 };
 
-/** 16-metric core. Game-scoped if `game` provided; otherwise all-games aggregate. */
+/** 7 core metrics (rounds, wagered, won, lost, net, RTP, time). Game-scoped if `game` provided; otherwise all-games aggregate. */
 export async function getUserMetrics(userId: string, game?: Game): Promise<UserMetrics> {
   if (!userId) return EMPTY_METRICS;
   const rounds = await fetchUserRounds(userId, game);
