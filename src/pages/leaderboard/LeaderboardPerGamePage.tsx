@@ -21,6 +21,7 @@ const GAME_LABELS: Record<Game, string> = {
   lottery: 'LOTTERY', // A.8 will complete full wiring
   bingo: 'BINGO', // PR D will complete full wiring
   plinko: 'PLINKO', // PR D will complete full wiring
+  poker: 'POKER',
 };
 
 const EMPTY: readonly LeaderboardRow[] = [];
