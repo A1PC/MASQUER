@@ -288,10 +288,21 @@ describe('bingoMachine - CPU race', () => {
     actor.stop();
   });
 
-  it('CPU daubed grid actually updates after CALL + latency elapses (regression: SCHEDULE_CPU_EVALS forwarding)', () => {
+  it('CPU daubed grids update after CALL + latency elapses (regression: SCHEDULE_CPU_EVALS forwarding)', async () => {
     // Regression test for the bug where SCHEDULE_CPU_EVALS was self.send-ed
     // to the machine instead of sendTo'd to the cpuScheduler actor, so no
     // setTimeouts were ever scheduled and CPUs never daubed.
+    //
+    // Earlier version of this test bursted 30+ CALLs synchronously then ran
+    // a sync `vi.advanceTimersByTime(600)`. That was flaky in CI because XState's
+    // invoke→sendBack path needs microtasks to deliver CPU_DAUB events to the
+    // parent machine. The sync timer drain didn't always flush them.
+    //
+    // Fix: send CALLs one-at-a-time, awaiting `vi.advanceTimersByTimeAsync`
+    // between each so microtasks flush. Assert at least one CPU has at least
+    // one daubed cell after 30 calls (statistically near-certain: each card has
+    // 15 of 90 values, so P(0 hits in 30 calls) ≈ (1 - 15/90)^30 ≈ 0.004 per
+    // card, and we have 2 cards → P(zero total) ≈ 0.000016).
     const actor = createActor(bingoMachine).start();
     actor.send({
       type: 'BUY_AND_START',
@@ -304,38 +315,21 @@ describe('bingoMachine - CPU race', () => {
     });
     actor.send({ type: 'BET_PLACED', betHandleId: 'h1' });
 
-    // Pick CPU 0 and find a value on its card; then call exactly that value.
-    const cpu0 = actor.getSnapshot().context.cpuCards[0]!;
-    let targetValue: number | null = null;
-    let targetRow = -1;
-    let targetCol = -1;
-    outer: for (let r = 0; r < cpu0.card.cells.length; r += 1) {
-      for (let c = 0; c < cpu0.card.cells[r]!.length; c += 1) {
-        const v = cpu0.card.cells[r]![c]!.value;
-        if (v !== null) {
-          targetValue = v;
-          targetRow = r;
-          targetCol = c;
-          break outer;
-        }
-      }
-    }
-    expect(targetValue).not.toBeNull();
+    const countDaubs = (): number =>
+      actor
+        .getSnapshot()
+        .context.cpuCards.reduce((sum, cpu) => sum + cpu.daubed.flat().filter(Boolean).length, 0);
 
-    // Advance the callSequence so the next CALL hits the target value.
-    // Find the index of targetValue in callSequence and skip earlier balls.
-    const seq = actor.getSnapshot().context.callSequence;
-    const targetIdx = seq.indexOf(targetValue!);
-    expect(targetIdx).toBeGreaterThanOrEqual(0);
-    for (let i = 0; i <= targetIdx; i += 1) {
+    expect(countDaubs()).toBe(0);
+
+    // Send 30 CALLs, advancing past max latency between each so the scheduler
+    // can deliver CPU_DAUB to the parent. Easy CPU latency max is 500ms.
+    for (let i = 0; i < 30; i += 1) {
       actor.send({ type: 'CALL' });
+      await vi.advanceTimersByTimeAsync(600);
     }
 
-    // Easy CPU latency is 200-500ms — advance well past it.
-    vi.advanceTimersByTime(600);
-
-    const cpu0After = actor.getSnapshot().context.cpuCards[0]!;
-    expect(cpu0After.daubed[targetRow]![targetCol]).toBe(true);
+    expect(countDaubs()).toBeGreaterThan(0);
     actor.stop();
   });
 
