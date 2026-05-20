@@ -13,6 +13,7 @@ const TITLES: Record<string, string> = {
   lottery: 'LOTTERY',
   bingo: 'BINGO',
   plinko: 'PLINKO',
+  poker: 'POKER',
 };
 
 export default function StatsPage(): JSX.Element {
