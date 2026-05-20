@@ -35,6 +35,7 @@ const GAME_LABELS: Record<Game, string> = {
   'coin-flip': 'Coin Flip',
   lottery: 'Lottery', // A.8 will complete full wiring
   bingo: 'Bingo', // PR D will complete full wiring
+  plinko: 'Plinko', // PR D will complete full wiring
 };
 
 const EMPTY_METRICS: UserMetrics = {
