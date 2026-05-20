@@ -17,6 +17,7 @@ export default {
         'leaderboard',
         'lottery',
         'bingo',
+        'plinko',
         'theme',
         'db',
         'session',
