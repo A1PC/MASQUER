@@ -26,6 +26,7 @@ const LeaderboardOverviewPage = lazy(() => import('@/pages/leaderboard/Leaderboa
 const LeaderboardPerGamePage = lazy(() => import('@/pages/leaderboard/LeaderboardPerGamePage'));
 
 const BingoPage = lazy(() => import('@/games/bingo/BingoPage'));
+const PlinkoPage = lazy(() => import('@/games/plinko/PlinkoPage'));
 
 const AdminLoginPage = lazy(() => import('@/pages/admin/AdminLoginPage'));
 const AdminLayout = lazy(() => import('@/pages/admin/AdminLayout'));
@@ -140,6 +141,20 @@ export const router = createBrowserRouter([
             }
           >
             <BingoPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: 'play/plinko',
+        element: (
+          <Suspense
+            fallback={
+              <div className="flex min-h-screen items-center justify-center bg-felt-deep text-xs text-white/40">
+                Loading plinko…
+              </div>
+            }
+          >
+            <PlinkoPage />
           </Suspense>
         ),
       },
