@@ -18,6 +18,7 @@ export default {
         'lottery',
         'bingo',
         'plinko',
+        'poker',
         'theme',
         'db',
         'session',
