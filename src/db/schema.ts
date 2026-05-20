@@ -37,7 +37,8 @@ export interface Round {
     | 'coin-flip'
     | 'lottery'
     | 'bingo'
-    | 'plinko';
+    | 'plinko'
+    | 'poker';
   betAmount: number;
   payout: number;
   netChange: number;
