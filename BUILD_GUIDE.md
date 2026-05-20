@@ -357,6 +357,24 @@ Design spec: `docs/superpowers/specs/2026-05-19-phase-11.5-bingo-competitive-des
 
 ---
 
+## 10.7 Plinko
+
+Modern-casino-style Plinko. 20-row peg board, 21 bins, four risk levels.
+
+- **Board:** fixed 20 rows of pegs; 21 bins at the bottom. Drop point centred. No player aim.
+- **Risk levels:** Safe / Low / Medium / High — same board, different multiplier curves. RTP ~95-100% across all risk levels.
+- **Bet:** 10–5000 chips per ball. Manual mode = 1 ball per click. Auto mode = 1-100 balls at intervals 250/500/1000 ms.
+- **Math:** deterministic Binomial(20, 0.5) walk via mulberry32. Bin = sum of R-moves. Centre bin (10) most likely (~17.6%); edges (0, 20) ~1 per million.
+- **Payouts:** integer floor(stake × multiplier). High-risk edge multiplier is 5000x → max single-ball win at 5000 stake = 25M chips.
+- **Bonuses:** none. Each ball settles standalone — `won` if `payout > stake`.
+- **Settle:** one `rounds` row per ball via `wallet.settleRound`. Each row carries `details = { risk, bin, multiplier, sessionId }`. Manual = new sessionId per click; Auto = shared sessionId across all balls in the session.
+- **Animation:** Framer Motion keyframes per row (~75ms/row, ~1.5s total per ball). Multiple balls in flight simultaneously during auto. `useReducedMotion` collapses to instant placement.
+- **Integration:** sidebar, lobby cabinet, /stats per-game tab, /leaderboard per-game tab all wired.
+
+Design spec: `docs/superpowers/specs/2026-05-20-phase-12-plinko-design.md`. Implementation plan: `docs/superpowers/plans/2026-05-20-phase-12-plinko-plan.md`.
+
+---
+
 ## 11. UI / UX — Retro Vegas
 
 **Mood:** neon signage, deep velvet reds, gold trim, dark felt-green backgrounds, chunky retro display fonts for headings, clean readable sans-serif for body and numbers.
@@ -391,6 +409,7 @@ Build in this order. **Do not start a phase until the previous one runs and its 
 | **9. Admin Dashboard** ✅          | Hidden `/admin/*` with hardcoded admin login. Cross-cutting tracking: sessions, gameVisits, loginCount, soft ban, audit-trailed credit adjustments. Overview + Users list + per-user drill-in + Adjustments log + Sessions log. Recharts lazy-loaded (admin chunk only).                                                                                                                                                                                                                                                       | Shipped 2026-05-18 — see `v0.9-admin-dashboard`. ADR-0034, ADR-0035.                                                         |
 | **10. Daily Lottery** ✅           | `systems/lottery.ts` (Pick-5+1 draw + buyTicket + settleMissedDraws + favorites + admin queries), Dexie v3 (4 new tables, additive), LotteryPage with NumberGrid + TicketCart + FavoritesDropdown + HERO countdown ↔ winning balls + HistorySlide, DrawAnimationModal (purchase + draw reveal), Sidebar 🎟️ LOTTERY + 🔴 unread dot, LobbyPage tile, AdminLotteryPage (4 stat cards + 2 frequency charts + recent draws). Strict 20:00 local daily draw with backfill on app open. 1M jackpot, ≈43% RTP, match-2 free re-entry. | Shipped 2026-05-19 — see `v0.10-lottery`. ADR-0040.                                                                          |
 | **11. Bingo (Competitive)** ✅     | Competitive bingo vs AI computers. Two variants: British 90-ball 3×9 + American 75-ball 5×5 (lobby modal picker). Easy/Medium/Hard (2/5/9 CPUs + pot ×2/×4/×8 + latency tuning + Hard locks manual). 1 user card per game. Line/two-line/4-corners bonuses to first claimant. Tier3 winner takes pot. Coloured balls (UK 9-decile + US 5-column palettes).                                                                                                                                                                     | Shipped 2026-05-19 — see `v0.11.5-bingo-competitive`.                                                                        |
+| **12. Plinko** ✅                  | Modern-casino-style Plinko. Fixed 20-row peg board / 21 bins. 4 risk levels (Safe/Low/Med/High) — same board, different multiplier curves (Safe edge 16x → High edge 5000x). Bet 10–5000 chips per ball. Manual + Auto (1–100 balls, intervals 250/500/1000 ms). Deterministic Binomial(20, 0.5) RNG; Framer Motion keyframe path animation per ball. One `rounds` row per ball via `wallet.settleRound`. ~95-100% RTP across risk levels.                                                                                     | Shipped 2026-05-20 — see `v0.12-plinko`.                                                                                     |
 | **15. (Optional later)**           | Electron/Tauri desktop wrapper; split hands; multi-line slots; more games. (Old Phase 8 Polish moved to a real Phase 15 after Phases 10-14 game additions ship.)                                                                                                                                                                                                                                                                                                                                                               | —                                                                                                                            |
 
 ---

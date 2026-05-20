@@ -12,6 +12,7 @@ const TITLES: Record<string, string> = {
   'coin-flip': 'COIN FLIP',
   lottery: 'LOTTERY',
   bingo: 'BINGO',
+  plinko: 'PLINKO',
 };
 
 export default function StatsPage(): JSX.Element {
