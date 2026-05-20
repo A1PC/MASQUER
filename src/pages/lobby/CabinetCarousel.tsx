@@ -21,6 +21,7 @@ const CABINETS: Cabinet[] = [
   { to: '/play/slots', icon: '🎰', label: 'SLOTS', status: 'playable' },
   { to: '/play/baccarat', icon: '🎴', label: 'BACCARAT', status: 'playable' },
   { to: '/play/bingo', icon: '🎯', label: 'BINGO', status: 'playable' },
+  { to: '/play/plinko', icon: '🔻', label: 'PLINKO', status: 'playable' },
 ];
 
 interface Props {
