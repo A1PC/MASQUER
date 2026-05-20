@@ -27,6 +27,7 @@ const LeaderboardPerGamePage = lazy(() => import('@/pages/leaderboard/Leaderboar
 
 const BingoPage = lazy(() => import('@/games/bingo/BingoPage'));
 const PlinkoPage = lazy(() => import('@/games/plinko/PlinkoPage'));
+const HoldemPage = lazy(() => import('@/games/poker/holdem/HoldemPage'));
 
 const AdminLoginPage = lazy(() => import('@/pages/admin/AdminLoginPage'));
 const AdminLayout = lazy(() => import('@/pages/admin/AdminLayout'));
@@ -155,6 +156,20 @@ export const router = createBrowserRouter([
             }
           >
             <PlinkoPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: 'play/poker/holdem',
+        element: (
+          <Suspense
+            fallback={
+              <div className="flex min-h-screen items-center justify-center bg-felt-deep text-xs text-white/40">
+                Loading Hold&apos;em…
+              </div>
+            }
+          >
+            <HoldemPage />
           </Suspense>
         ),
       },
