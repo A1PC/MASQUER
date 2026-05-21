@@ -61,3 +61,19 @@ L = Likelihood (L/M/H), I = Impact (L/M/H).
 | R-38 | Animation glitch on hole-card flip (Framer Motion + state race) | 3 | L | L | Card component uses `rotateY` motion with explicit transition; tested visually post-merge. |
 | R-39 | Multi-hand layout overflows at narrow viewport (<1024px) | 3 | M | L | CSS scrollable container at player area; documented in dev-setup. |
 | R-40 | "BJ" badge in RecentResults shows for split-Ace 21 by accident | 3 | L | L | BlackjackRoundDetails.hands[i].outcome distinguishes player-blackjack from player-win 21; UI mapping checks specific outcome. |
+
+## Phase 4+ additions (Roulette → Texas Hold'em)
+
+| ID   | Risk                                                                   | Phase | L   | I   | Mitigation                                                                                                                                |
+| ---- | ---------------------------------------------------------------------- | ----- | --- | --- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| R-41 | Spinning-wheel and ball land at visibly different angles               | 4     | M   | M   | Decoupled-rotation pattern (ADR-0031): independent CSS rotations designed equal mod 360; invariant test on `data-rotate-target`.          |
+| R-42 | Slots RTP drifts from target after a weight tweak                      | 5     | M   | L   | Cumulative-weight table in one config; observed-vs-expected frequency test over 30k draws (±2%); RTP assertion.                           |
+| R-43 | Baccarat third-card tableau implemented wrong                          | 6     | M   | H   | Implemented verbatim; 134 cell-by-cell `it.each` tests (ADR-0036).                                                                        |
+| R-44 | Admin login mistaken for a real security boundary                      | 9     | L   | M   | Documented as UI convenience only (ADR-0034); hardcoded creds in source; local-only app.                                                  |
+| R-45 | Lottery draw missed while app closed → players never settled           | 10    | M   | H   | `settleMissedDraws` backfills idempotently on app open; clock-driven 20:00 draw (ADR-0040).                                               |
+| R-46 | Bingo CPU scheduler events never reach the machine                     | 11.5  | M   | H   | `sendTo('cpuScheduler', …)` forwards to the invoked actor (an earlier `self.send` no-op'd — fixed in #153); regression test.              |
+| R-47 | Plinko multiplier curves produce out-of-range RTP                      | 12    | M   | M   | RTP test asserts each risk curve sums to [0.95, 1.0]; symmetry + monotonicity tests pin the shape.                                        |
+| R-48 | Poker session wallet: buy-in + rebuys not reconciled to one row        | 13a   | M   | H   | ADR-0041: multiple `placeBet` accumulate into `totalBoughtIn`; one final `settleRound` credits the cashed-out stack; e2e asserts the row. |
+| R-49 | Poker AI peeks at opponent/deck cards                                  | 13a   | L   | H   | `DecisionContext` deliberately contains only the AI's own cards + the board; test asserts decision is independent of others' holes.       |
+| R-50 | Poker side-pot mis-award when players are all-in for different amounts | 13a   | M   | H   | `computeSidePots` layered-level algorithm; multi-all-in arithmetic pinned by tests; showdown awards per eligible pot.                     |
+| R-51 | CI-only test flakiness (non-deterministic async / ambiguous queries)   | 12+   | M   | L   | Use `vi.advanceTimersByTimeAsync` for XState invoke timing (#157); scope `getByText` to a container/`data-*` (#169).                      |

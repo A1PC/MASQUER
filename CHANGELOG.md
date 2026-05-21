@@ -7,6 +7,137 @@ and this project versions by BUILD_GUIDE.md phase (`v0.PHASE-name`).
 
 ## [Unreleased]
 
+## [v0.13a-texas-holdem] — 2026-05-21
+
+The heaviest phase yet (6 PRs): No-Limit Texas Hold'em plus the reusable poker infrastructure that Five-Card Draw and Omaha will build on.
+
+### Added
+
+- **Shared poker core** (`src/games/poker/_shared/`): seeded `deck`; `handEvaluator` (brute-force best-5-of-7 over 21 combos, `compareHands`, `evaluateFrom` with an `'omaha'` 2-hole+3-board path ready for 13c); `sidePots` (layered all-in pot computation)
+- **AI engine** (`_shared/ai/`): 4 personality archetypes (Rock / Calling Station / Maniac / Shark) over a shared seeded decision engine (hand strength + pot odds + position + bluff). AI sees only its own cards + the board — a fair opponent
+- **No-Limit Texas Hold'em** (`poker/holdem/`): configurable 2-6 players (you + 1-5 AI), tiered stakes (Low 10/20, Mid 50/100, High 250/500), full betting (fold/check/call/raise slider + ½/¾/pot/all-in), all-in side pots, split pots, heads-up button-is-SB handling
+- **Buy-in / cash-out session**: persistent stack across hands, rebuy on your bust, re-seat fresh AI on AI bust. One `rounds` row per session (stake = total bought-in, payout = final stack)
+- XState v5 hand+session machine; `holdemLogic` (dealHand / nextActiveSeat / resolveShowdown)
+- UI: row-based `PokerTable`, `Seat`, `CommunityBoard`, No-Limit `BettingControls`, `SetupPanel`, `SessionBar`, `ShowdownReveal`; `PlayingCard` ports the blackjack/baccarat card visual (shared by all poker variants)
+- `PokerVariantModal` at `/play/poker` (Hold'em active; Five-Card Draw + Omaha "coming soon"); sidebar + lobby cabinet + stats/leaderboard nav
+- ADR-0041 (poker buy-in/cash-out session wallet model — first game where wallet debits aren't 1:1 with the rounds row)
+- 5 implementation PRs (#164–#168); **+272 tests** (1300 → 1572)
+
+### Changed
+
+- `Round.game` union extended with `'poker'`; BUILD_GUIDE §10.8 added
+
+### Fixed
+
+- Flaky `AdminLotteryPage` "negative tone" test (#169): scoped the assertion to the profit card's `data-tone="negative"` (the value "-90" also rendered in the recent-draws P/L column, two independent `useLiveQuery` subscriptions caused intermittent "multiple elements" in CI)
+
+## [v0.12-plinko] — 2026-05-20
+
+### Added
+
+- **Plinko**: fixed 20-row peg board / 21 bins, no player aim; deterministic Binomial(20, 0.5) ball walk via seeded `dropBall`
+- 4 risk levels (Safe / Low / Medium / High) — same probabilities, different symmetric multiplier curves (edge multipliers 16x / 110x / 420x / 5000x; centre bins < 1x). RTP ≈ 95.3–97.9%
+- Bet 10–5000 chips/ball; Manual mode (1 ball/click) + Auto mode (1–100 balls at 250/500/1000ms)
+- Multiple balls in flight simultaneously via `inFlightBalls[]`; Framer Motion keyframe-array animation per row
+- `HistoryStrip` (rolling last 5), `EndScreen` auto-session summary, coloured bins by multiplier tier
+- One `rounds` row per ball (`details`: risk / bin / multiplier / sessionId); sessionId groups an auto session
+- 4 PRs (#158–#161); **+78 tests** (1300 total)
+
+### Fixed
+
+- CPU scheduler bug carried over from Bingo era patterns: stabilised flaky bingo CPU-race test (#157) using `vi.advanceTimersByTimeAsync`
+
+## [v0.11.5-bingo-competitive] — 2026-05-19
+
+Replaced solo bingo with competitive vs-AI gameplay immediately after shipping it.
+
+### Added
+
+- **Competitive Bingo** vs AI computers; two variants picked via `BingoVariantModal`: British 90-ball 3×9 + American 75-ball 5×5 (free centre)
+- Difficulty (Easy 2 / Medium 5 / Hard 9 CPUs) sets opponent count, pot multiplier (×2/×4/×8), CPU reaction latency, and forces manual daub on Hard
+- Per-CPU latency rolled at game start; tie-breaks favour lower index; 0ms-vs-0ms RNG'd
+- Line + two-line/four-corners bonuses (10/20 chips) paid only when the user claims a tier first; full-house/blackout winner takes the pot
+- `cpuScheduler` XState `fromCallback` actor scheduling per-CPU evaluations; global `claimedTiers` race semantics; `bonusesEarned` accumulator paid in the final settle
+- Coloured balls (UK 9-decile + US 5-column palettes)
+- `/admin/bingo` page: per-difficulty overrides for cpuCount / potMultiplier / latency / forceManual, persisted via Dexie v4
+- 4 PRs (#149–#152) + admin-config PR; **+82 tests** (1265 total)
+
+### Changed
+
+- Solo bingo (`v0.11-bingo`) superseded; the variant-as-config pattern (one `VARIANTS` object) drives card generation, evaluators, ball palette, and labels
+
+## [v0.11-bingo] — 2026-05-19
+
+Superseded the same day by `v0.11.5-bingo-competitive`.
+
+### Added
+
+- Solo 90-ball British bingo (1–4 cards, line / two-line / full-house / fast-full-house tiers), seeded card generation + call sequence, auto/manual daub, animated win banners, EndScreen breakdown
+- Sidebar + lobby cabinet + stats/leaderboard nav; `commitlint` scope `bingo`
+- 5 PRs (#142–#146)
+
+## [v0.10-lottery] — 2026-05-19
+
+### Added
+
+- **Daily Lottery**: Pick-5+1, one shared draw per local calendar day at 20:00 with backfill on app open
+- `systems/lottery.ts` (pure draw + evaluator + lucky-dip + `buyTicket` + idempotent `settleMissedDraws` + favourites + admin queries); Dexie v3 (4 additive tables)
+- LotteryPage (NumberGrid + TicketCart + Favourites + HERO countdown ↔ winning balls + history), DrawAnimationModal (purchase + draw reveal)
+- Sidebar entry + per-user unread dot; lobby tile with live countdown; AdminLotteryPage (stat cards + frequency charts + recent draws)
+- 1M jackpot, ≈43% RTP, match-2 free re-entry
+- ADR-0040 (lottery as a system, not a games-sandbox citizen); 6 PRs (#133–#138); **+126 tests**
+
+## [v0.9-admin-dashboard] — 2026-05-18
+
+Shipped out of numeric sequence (before Baccarat/Stats).
+
+### Added
+
+- Hidden `/admin/*` with hardcoded `admin` / `admin12345` login (UI convenience, not a security boundary)
+- Dexie v2 (additive): `sessions`, `gameVisits`, `adjustments` tables + `isBanned` / `loginCount` / `lastLoginAt` on `users`
+- Pages: Overview (stat cards + Recharts), Users list, per-user drill-in with ban/adjust, Adjustments audit log, Sessions log
+- Recharts lazy-loaded into an admin-only chunk (main bundle unchanged)
+- ADRs 0034 (admin auth model), 0035 (tracking schema); 6 PRs (#107–#112); **+107 tests**
+
+## [v0.8-stats-leaderboard] — 2026-05-19
+
+### Added
+
+- `systems/stats.ts` shared aggregation module (9 new aggregations) promoted from admin queries (ADR-0038)
+- StatsPage with left-rail nav (overview + per-game tabs), responsive stat-card grid, Cards ↔ Graphs toggle persisted to localStorage
+- LeaderboardPage with overview + per-game boards, Me/All toggle, banned-user exclusion
+- Shared charts in `components/charts/`; Recharts in one lazy chunk reused by player + admin (ADR-0039)
+- 6 PRs (#125–#130); **+102 tests** (1005 total)
+
+## [v0.7-baccarat] — 2026-05-18
+
+Shipped after Phase 9 (Admin) chronologically.
+
+### Added
+
+- Full Baccarat: all 9 bet zones (Player / Banker / Tie + 2 Pairs + Big/Small + 2 Dragons)
+- Persistent 8-deck shoe with cut card; canonical Punto Banco third-card tableau (134 cell-by-cell tests)
+- Bead plate + big road scoreboard (walked-pen + tie overlay); theatrical card reveal; tier-mapped celebration
+- Banker commission + Big/Small payouts floor-rounded (ADR-0036)
+- ADRs 0036 (third-card tableau + floor rounding), 0037 (persistent shoe + cut card); 6 PRs (#115–#120); **+226 tests**
+
+## [v0.6-slots] — 2026-05-18
+
+### Added
+
+- 3-reel single-payline slots; weighted symbols (Cherry / Lemon / Bell / BAR / Seven) at ~86% RTP via a cumulative-weight table
+- Sequential reel stops with suspense gaps; tiered win celebration with jackpot coin shower
+- ADRs 0032 (symbol weights + RTP), 0033 (tiered win celebration); 98.92% logic coverage; **553 tests**
+
+## [v0.5-roulette] — 2026-05-18
+
+### Added
+
+- European single-zero wheel; all 10 bet types from BUILD_GUIDE §8.2; up to 10 bet positions per round
+- XState v5 round machine; deferred-placeBet wallet model (chips move on SPIN, refund-via-push on partial abort)
+- Decoupled-rotation spin animation (independent CSS rotations equal mod 360); dev-only state-wipe button
+- ADRs 0029 (European wheel order), 0030 (bet position model), 0031 (spin animation contract); **471 tests**
+
 ## [v0.4-blackjack] — 2026-05-17
 
 ### Added

@@ -49,8 +49,14 @@
 - Vitest. File pattern: `*.test.ts`, `*.test.tsx`. Co-located with source.
 - Use the seeded RNG (`rng.seed(...)`) in any test that consumes
   randomness.
-- Component tests use React Testing Library. Query by role/text, never by
-  test id unless unavoidable.
+- Component tests use React Testing Library. Prefer role/text queries.
+- **Scope assertions.** Never assert with a global `getByText(/value/)` for a
+  value that can legitimately appear in more than one component on the page —
+  it intermittently matches multiple elements and flakes in CI. Scope to a
+  container (`within(card)`) or a `data-*` attribute (lesson from #169).
+- For XState machines, feed scripted events with fixed seeds; the machine does
+  no async work itself. For fake-timer + `invoke`/`sendBack` tests, use
+  `await vi.advanceTimersByTimeAsync(ms)` (microtask delivery; lesson from #157).
 - One assertion concept per test. Use `describe` to group.
 
 ## Styling
@@ -64,6 +70,23 @@
 
 - All chip amounts are `number` type but always integers. Never floats.
 - A wallet function MUST validate non-negative integers at boundaries.
+
+## Game patterns (established across phases)
+
+- **Wallet-bridge-async / machine-pure.** The page component does all async work
+  (`placeBet`, RNG, payout math) and sends fully-resolved events into a
+  synchronous XState machine. Machines stay deterministic + trivially testable.
+- **Variant-as-config.** When a game has closely-related variants (e.g. Bingo's
+  British/American), drive them from one `VARIANTS` config object that functions
+  take as a parameter — avoid duplicating per-variant files. Poker is the
+  exception: variants get sibling directories under `poker/` because they differ
+  structurally, but they share `poker/_shared/`.
+- **One round, one row.** Every settled round writes exactly one `rounds` row via
+  `wallet.settleRound` (ADR-0016). The poker buy-in/cash-out session is the
+  documented exception (ADR-0041): one row per session, with multiple `placeBet`
+  debits (buy-in + rebuys) accumulating into the session's stake.
+- **Seeded RNG everywhere.** Inline `mulberry32` + `stringSeed` in a game's pure
+  module when it needs determinism without importing a system; never `Math.random`.
 
 ## Commits and branches
 

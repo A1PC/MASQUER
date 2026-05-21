@@ -45,6 +45,17 @@ Install the workspace-recommended extensions when prompted (see
 | Husky hook didn't fire on commit               | `prepare` script didn't run | `pnpm install` re-runs it; or `pnpm exec husky` manually           |
 | IndexedDB shows stale data after schema change | Old DB version              | DevTools → Application → IndexedDB → delete `localGamble`          |
 
+## Useful routes
+
+| Route                    | What                                                                                     |
+| ------------------------ | ---------------------------------------------------------------------------------------- |
+| `/` → `/lobby`           | Main app (register/login first)                                                          |
+| `/play/<game>`           | A game (e.g. `/play/blackjack`, `/play/plinko`, `/play/poker/holdem`)                    |
+| `/stats`, `/leaderboard` | Player stats + boards                                                                    |
+| `/admin/login`           | Admin dashboard — login `admin` / `admin12345` (UI convenience, not a security boundary) |
+
+To reset all local data after a schema change: DevTools → Application → IndexedDB → delete `localGamble` (the dev Login/Register pages also have a dev-only "wipe" button).
+
 ## Browser support matrix
 
 Targeted: latest stable **Chrome** and **Firefox** on desktop.
