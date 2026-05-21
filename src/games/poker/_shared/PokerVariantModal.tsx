@@ -28,6 +28,11 @@ export default function PokerVariantModal({ open, onClose }: Props): JSX.Element
     void navigate('/play/poker/holdem');
   }
 
+  function goFiveCardDraw() {
+    onClose();
+    void navigate('/play/poker/five-card-draw');
+  }
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
@@ -64,20 +69,21 @@ export default function PokerVariantModal({ open, onClose }: Props): JSX.Element
             </p>
           </button>
 
-          {/* Five-Card Draw — coming soon */}
-          <div
-            className="relative rounded-lg border-2 border-white/10 bg-felt-deep/40 p-6 text-center opacity-50 cursor-not-allowed"
+          {/* Five-Card Draw — active */}
+          <button
+            type="button"
+            onClick={goFiveCardDraw}
+            className="rounded-lg border-2 border-white/20 bg-felt-deep/70 p-6 text-center hover:border-gold transition"
             data-variant-choice="five-card-draw"
           >
             <div className="text-4xl mb-2">🂡</div>
-            <div className="font-display text-base text-white/50 tracking-wider">
+            <div className="font-display text-base text-gold-bright tracking-wider">
               FIVE-CARD DRAW
             </div>
-            <p className="text-[11px] text-white/40 mt-2">Classic draw poker.</p>
-            <span className="absolute top-2 right-2 rounded-full bg-casino-red px-2 py-0.5 text-[9px] font-bold text-white tracking-wider">
-              COMING SOON
-            </span>
-          </div>
+            <p className="text-[11px] text-white/60 mt-2">
+              Classic draw poker. Single draw, cap 3.
+            </p>
+          </button>
 
           {/* Omaha — coming soon */}
           <div
