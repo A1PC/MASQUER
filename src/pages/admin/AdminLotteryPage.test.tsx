@@ -58,8 +58,17 @@ describe('AdminLotteryPage', () => {
         <AdminLotteryPage />
       </MemoryRouter>,
     );
-    await waitFor(() => expect(screen.getByText(/-90/i)).toBeInTheDocument());
-    expect(container.querySelector('[data-tone="negative"]')).toBeInTheDocument();
+    // Scope the assertion to the House-profit card. "-90" also renders in the
+    // RECENT DRAWS table P/L column (revenue 10 − payout 100), and the profit
+    // card + table come from two independent useLiveQuery subscriptions that
+    // resolve in nondeterministic order — a global getByText(/-90/) intermittently
+    // matched both elements and threw "Found multiple elements" in CI.
+    const card = await waitFor(() => {
+      const el = container.querySelector('[data-tone="negative"]');
+      expect(el).toBeInTheDocument();
+      return el as HTMLElement;
+    });
+    expect(card.textContent).toContain('-90');
   });
 
   it('renders recent draws table when draws exist', async () => {
