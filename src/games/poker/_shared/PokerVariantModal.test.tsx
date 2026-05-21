@@ -25,19 +25,15 @@ describe('PokerVariantModal', () => {
     expect(screen.getByText(/OMAHA/)).toBeInTheDocument();
   });
 
-  it("Texas Hold'em and Five-Card Draw are clickable buttons — Omaha is a non-interactive div", () => {
+  it('all three variants are clickable buttons', () => {
     render(
       <MemoryRouter>
         <PokerVariantModal open={true} onClose={vi.fn()} />
       </MemoryRouter>,
     );
-    // Hold'em and Five-Card Draw are buttons
     expect(screen.getByRole('button', { name: /TEXAS HOLD'EM/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /FIVE-CARD DRAW/i })).toBeInTheDocument();
-    // Omaha should NOT be a button
-    const buttons = screen.getAllByRole('button');
-    const buttonTexts = buttons.map((b) => b.textContent ?? '');
-    expect(buttonTexts.some((t) => /OMAHA/i.test(t))).toBe(false);
+    expect(screen.getByRole('button', { name: /OMAHA/i })).toBeInTheDocument();
   });
 
   it("clicking Hold'em fires onClose", async () => {
@@ -59,6 +55,17 @@ describe('PokerVariantModal', () => {
       </MemoryRouter>,
     );
     await userEvent.click(screen.getByRole('button', { name: /FIVE-CARD DRAW/i }));
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it('clicking Omaha fires onClose', async () => {
+    const onClose = vi.fn();
+    render(
+      <MemoryRouter>
+        <PokerVariantModal open={true} onClose={onClose} />
+      </MemoryRouter>,
+    );
+    await userEvent.click(screen.getByRole('button', { name: /OMAHA/i }));
     expect(onClose).toHaveBeenCalled();
   });
 
@@ -85,13 +92,12 @@ describe('PokerVariantModal', () => {
     expect(onClose).toHaveBeenCalled();
   });
 
-  it('COMING SOON badge appears only on Omaha', () => {
+  it('no COMING SOON badges remain — all three variants are active', () => {
     render(
       <MemoryRouter>
         <PokerVariantModal open={true} onClose={vi.fn()} />
       </MemoryRouter>,
     );
-    const badges = screen.getAllByText('COMING SOON');
-    expect(badges).toHaveLength(1);
+    expect(screen.queryByText('COMING SOON')).toBeNull();
   });
 });
