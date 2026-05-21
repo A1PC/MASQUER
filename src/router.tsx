@@ -28,6 +28,7 @@ const LeaderboardPerGamePage = lazy(() => import('@/pages/leaderboard/Leaderboar
 const BingoPage = lazy(() => import('@/games/bingo/BingoPage'));
 const PlinkoPage = lazy(() => import('@/games/plinko/PlinkoPage'));
 const HoldemPage = lazy(() => import('@/games/poker/holdem/HoldemPage'));
+const FiveCardDrawPage = lazy(() => import('@/games/poker/five-card-draw/FiveCardDrawPage'));
 const PokerLobbyPage = lazy(() => import('@/games/poker/_shared/PokerLobbyPage'));
 
 const AdminLoginPage = lazy(() => import('@/pages/admin/AdminLoginPage'));
@@ -185,6 +186,20 @@ export const router = createBrowserRouter([
             }
           >
             <HoldemPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: 'play/poker/five-card-draw',
+        element: (
+          <Suspense
+            fallback={
+              <div className="flex min-h-screen items-center justify-center bg-felt-deep text-xs text-white/40">
+                Loading Five-Card Draw…
+              </div>
+            }
+          >
+            <FiveCardDrawPage />
           </Suspense>
         ),
       },
