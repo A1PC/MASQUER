@@ -25,18 +25,18 @@ describe('PokerVariantModal', () => {
     expect(screen.getByText(/OMAHA/)).toBeInTheDocument();
   });
 
-  it("only Texas Hold'em is clickable — Five-Card Draw and Omaha are non-interactive divs", () => {
+  it("Texas Hold'em and Five-Card Draw are clickable buttons — Omaha is a non-interactive div", () => {
     render(
       <MemoryRouter>
         <PokerVariantModal open={true} onClose={vi.fn()} />
       </MemoryRouter>,
     );
-    // Hold'em is a button
+    // Hold'em and Five-Card Draw are buttons
     expect(screen.getByRole('button', { name: /TEXAS HOLD'EM/i })).toBeInTheDocument();
-    // The other two should NOT be buttons
+    expect(screen.getByRole('button', { name: /FIVE-CARD DRAW/i })).toBeInTheDocument();
+    // Omaha should NOT be a button
     const buttons = screen.getAllByRole('button');
     const buttonTexts = buttons.map((b) => b.textContent ?? '');
-    expect(buttonTexts.some((t) => /FIVE-CARD DRAW/i.test(t))).toBe(false);
     expect(buttonTexts.some((t) => /OMAHA/i.test(t))).toBe(false);
   });
 
@@ -48,6 +48,17 @@ describe('PokerVariantModal', () => {
       </MemoryRouter>,
     );
     await userEvent.click(screen.getByRole('button', { name: /TEXAS HOLD'EM/i }));
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it('clicking Five-Card Draw fires onClose', async () => {
+    const onClose = vi.fn();
+    render(
+      <MemoryRouter>
+        <PokerVariantModal open={true} onClose={onClose} />
+      </MemoryRouter>,
+    );
+    await userEvent.click(screen.getByRole('button', { name: /FIVE-CARD DRAW/i }));
     expect(onClose).toHaveBeenCalled();
   });
 
@@ -74,13 +85,13 @@ describe('PokerVariantModal', () => {
     expect(onClose).toHaveBeenCalled();
   });
 
-  it('COMING SOON badges appear on non-active variants', () => {
+  it('COMING SOON badge appears only on Omaha', () => {
     render(
       <MemoryRouter>
         <PokerVariantModal open={true} onClose={vi.fn()} />
       </MemoryRouter>,
     );
     const badges = screen.getAllByText('COMING SOON');
-    expect(badges).toHaveLength(2);
+    expect(badges).toHaveLength(1);
   });
 });
