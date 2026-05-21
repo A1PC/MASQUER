@@ -29,6 +29,7 @@ const BingoPage = lazy(() => import('@/games/bingo/BingoPage'));
 const PlinkoPage = lazy(() => import('@/games/plinko/PlinkoPage'));
 const HoldemPage = lazy(() => import('@/games/poker/holdem/HoldemPage'));
 const FiveCardDrawPage = lazy(() => import('@/games/poker/five-card-draw/FiveCardDrawPage'));
+const OmahaPage = lazy(() => import('@/games/poker/omaha/OmahaPage'));
 const PokerLobbyPage = lazy(() => import('@/games/poker/_shared/PokerLobbyPage'));
 
 const AdminLoginPage = lazy(() => import('@/pages/admin/AdminLoginPage'));
@@ -200,6 +201,20 @@ export const router = createBrowserRouter([
             }
           >
             <FiveCardDrawPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: 'play/poker/omaha',
+        element: (
+          <Suspense
+            fallback={
+              <div className="flex min-h-screen items-center justify-center bg-felt-deep text-xs text-white/40">
+                Loading Omaha…
+              </div>
+            }
+          >
+            <OmahaPage />
           </Suspense>
         ),
       },
