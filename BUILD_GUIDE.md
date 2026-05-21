@@ -10,13 +10,13 @@
 
 A **local, offline, play-money casino app** that runs in the browser on your own machine. No internet, no real money, no remote server. Multiple local user profiles can register and log in, play games, build a chip balance, and compete on a local leaderboard.
 
-**Games:** Blackjack, Roulette, Slots, Baccarat, Bingo.
-**Core systems:** local accounts (register/login), persistent chip wallet, betting & payout engine, stats & game history, leaderboard.
+**Games:** Coin Flip, Blackjack, Roulette, Slots, Baccarat, Bingo (competitive British + American), Plinko, Texas Hold'em (poker), plus a Daily Lottery.
+**Core systems:** local accounts (register/login), persistent chip wallet, betting & payout engine, stats & game history, leaderboard, a hidden admin dashboard, and a clock-driven daily lottery.
 **Visual style:** Retro Vegas — neon, deep reds, golds, classic signage feel.
 
 ### Goals
 
-- A polished, genuinely fun single-machine casino with four working games.
+- A polished, genuinely fun single-machine casino with a full lineup of games.
 - Every game plugs into one shared wallet and one shared stats system.
 - Clean, well-organized code so new games can be added by copying a pattern.
 
