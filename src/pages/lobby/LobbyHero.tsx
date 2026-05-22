@@ -70,7 +70,7 @@ export default function LobbyHero({ username }: Props): JSX.Element {
           Welcome back, {username}
         </h1>
         <p className="mt-1 text-[10px] uppercase tracking-[0.18em] text-ivory/55">Balance</p>
-        <p className="font-numeral text-3xl leading-none tabular-nums text-ivory">
+        <p className="font-numeral text-3xl leading-none tabular-nums text-gold">
           {formatChips(balance)}
         </p>
       </div>
