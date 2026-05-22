@@ -52,6 +52,13 @@ function dontOddsWinnings(amount: number, betPoint: number): number {
   return Math.floor((amount * 5) / 6); // 6/8 → win 5:6
 }
 
+/** Place-bet winnings (winnings only, floored). */
+function placeWinnings(amount: number, num: number): number {
+  if (num === 4 || num === 10) return Math.floor((amount * 9) / 5); // 9:5
+  if (num === 5 || num === 9) return Math.floor((amount * 7) / 5); // 7:5
+  return Math.floor((amount * 7) / 6); // 6/8 → 7:6
+}
+
 export const BET_TYPES: Record<string, BetType> = {
   pass: {
     id: 'pass',
@@ -156,6 +163,246 @@ export const BET_TYPES: Record<string, BetType> = {
       return { kind: 'standing' };
     },
     payout: (amount, betPoint) => dontOddsWinnings(amount, betPoint ?? 4),
+  },
+
+  // --- Place bets (off on come-out) ---
+  'place-4': {
+    id: 'place-4',
+    label: 'Place 4',
+    canPlace: (phase) => phase === 'point',
+    isWorking: (phase) => phase === 'point',
+    resolve: (roll) =>
+      roll.total === 4
+        ? { kind: 'win' }
+        : roll.total === 7
+          ? { kind: 'lose' }
+          : { kind: 'standing' },
+    payout: (amount) => placeWinnings(amount, 4),
+  },
+  'place-5': {
+    id: 'place-5',
+    label: 'Place 5',
+    canPlace: (phase) => phase === 'point',
+    isWorking: (phase) => phase === 'point',
+    resolve: (roll) =>
+      roll.total === 5
+        ? { kind: 'win' }
+        : roll.total === 7
+          ? { kind: 'lose' }
+          : { kind: 'standing' },
+    payout: (amount) => placeWinnings(amount, 5),
+  },
+  'place-6': {
+    id: 'place-6',
+    label: 'Place 6',
+    canPlace: (phase) => phase === 'point',
+    isWorking: (phase) => phase === 'point',
+    resolve: (roll) =>
+      roll.total === 6
+        ? { kind: 'win' }
+        : roll.total === 7
+          ? { kind: 'lose' }
+          : { kind: 'standing' },
+    payout: (amount) => placeWinnings(amount, 6),
+  },
+  'place-8': {
+    id: 'place-8',
+    label: 'Place 8',
+    canPlace: (phase) => phase === 'point',
+    isWorking: (phase) => phase === 'point',
+    resolve: (roll) =>
+      roll.total === 8
+        ? { kind: 'win' }
+        : roll.total === 7
+          ? { kind: 'lose' }
+          : { kind: 'standing' },
+    payout: (amount) => placeWinnings(amount, 8),
+  },
+  'place-9': {
+    id: 'place-9',
+    label: 'Place 9',
+    canPlace: (phase) => phase === 'point',
+    isWorking: (phase) => phase === 'point',
+    resolve: (roll) =>
+      roll.total === 9
+        ? { kind: 'win' }
+        : roll.total === 7
+          ? { kind: 'lose' }
+          : { kind: 'standing' },
+    payout: (amount) => placeWinnings(amount, 9),
+  },
+  'place-10': {
+    id: 'place-10',
+    label: 'Place 10',
+    canPlace: (phase) => phase === 'point',
+    isWorking: (phase) => phase === 'point',
+    resolve: (roll) =>
+      roll.total === 10
+        ? { kind: 'win' }
+        : roll.total === 7
+          ? { kind: 'lose' }
+          : { kind: 'standing' },
+    payout: (amount) => placeWinnings(amount, 10),
+  },
+
+  // --- Field (always working) ---
+  field: {
+    id: 'field',
+    label: 'Field',
+    canPlace: () => true,
+    isWorking: () => true,
+    resolve(roll) {
+      const t = roll.total;
+      if (t === 2) return { kind: 'win', multiplier: 2 }; // 2:1
+      if (t === 12) return { kind: 'win', multiplier: 3 }; // 3:1
+      if (t === 3 || t === 4 || t === 9 || t === 10 || t === 11) return { kind: 'win' }; // 1:1 via payout()
+      return { kind: 'lose' }; // 5, 6, 7, 8
+    },
+    payout: (amount) => amount, // 1:1 fallback; 2× / 3× cases set multiplier in resolve()
+  },
+
+  // --- Hardways (off on come-out) ---
+  'hard-4': {
+    id: 'hard-4',
+    label: 'Hard 4',
+    canPlace: () => true,
+    isWorking: (phase) => phase === 'point',
+    resolve: (roll) =>
+      roll.total === 4
+        ? roll.isHard
+          ? { kind: 'win' }
+          : { kind: 'lose' }
+        : roll.total === 7
+          ? { kind: 'lose' }
+          : { kind: 'standing' },
+    payout: (amount) => amount * 7, // 7:1
+  },
+  'hard-6': {
+    id: 'hard-6',
+    label: 'Hard 6',
+    canPlace: () => true,
+    isWorking: (phase) => phase === 'point',
+    resolve: (roll) =>
+      roll.total === 6
+        ? roll.isHard
+          ? { kind: 'win' }
+          : { kind: 'lose' }
+        : roll.total === 7
+          ? { kind: 'lose' }
+          : { kind: 'standing' },
+    payout: (amount) => amount * 9, // 9:1
+  },
+  'hard-8': {
+    id: 'hard-8',
+    label: 'Hard 8',
+    canPlace: () => true,
+    isWorking: (phase) => phase === 'point',
+    resolve: (roll) =>
+      roll.total === 8
+        ? roll.isHard
+          ? { kind: 'win' }
+          : { kind: 'lose' }
+        : roll.total === 7
+          ? { kind: 'lose' }
+          : { kind: 'standing' },
+    payout: (amount) => amount * 9, // 9:1
+  },
+  'hard-10': {
+    id: 'hard-10',
+    label: 'Hard 10',
+    canPlace: () => true,
+    isWorking: (phase) => phase === 'point',
+    resolve: (roll) =>
+      roll.total === 10
+        ? roll.isHard
+          ? { kind: 'win' }
+          : { kind: 'lose' }
+        : roll.total === 7
+          ? { kind: 'lose' }
+          : { kind: 'standing' },
+    payout: (amount) => amount * 7, // 7:1
+  },
+
+  // --- One-roll proposition bets ---
+  'any-7': {
+    id: 'any-7',
+    label: 'Any 7',
+    canPlace: () => true,
+    isWorking: () => true,
+    resolve: (roll) => (roll.total === 7 ? { kind: 'win' } : { kind: 'lose' }),
+    payout: (amount) => amount * 4, // 4:1
+  },
+  'any-craps': {
+    id: 'any-craps',
+    label: 'Any Craps',
+    canPlace: () => true,
+    isWorking: () => true,
+    resolve: (roll) =>
+      roll.total === 2 || roll.total === 3 || roll.total === 12
+        ? { kind: 'win' }
+        : { kind: 'lose' },
+    payout: (amount) => amount * 7, // 7:1
+  },
+  'prop-2': {
+    id: 'prop-2',
+    label: '2 (Aces)',
+    canPlace: () => true,
+    isWorking: () => true,
+    resolve: (roll) => (roll.total === 2 ? { kind: 'win' } : { kind: 'lose' }),
+    payout: (amount) => amount * 30, // 30:1
+  },
+  'prop-3': {
+    id: 'prop-3',
+    label: '3',
+    canPlace: () => true,
+    isWorking: () => true,
+    resolve: (roll) => (roll.total === 3 ? { kind: 'win' } : { kind: 'lose' }),
+    payout: (amount) => amount * 15, // 15:1
+  },
+  'prop-11': {
+    id: 'prop-11',
+    label: '11 (Yo)',
+    canPlace: () => true,
+    isWorking: () => true,
+    resolve: (roll) => (roll.total === 11 ? { kind: 'win' } : { kind: 'lose' }),
+    payout: (amount) => amount * 15, // 15:1
+  },
+  'prop-12': {
+    id: 'prop-12',
+    label: '12 (Boxcars)',
+    canPlace: () => true,
+    isWorking: () => true,
+    resolve: (roll) => (roll.total === 12 ? { kind: 'win' } : { kind: 'lose' }),
+    payout: (amount) => amount * 30, // 30:1
+  },
+
+  // --- Composite bets (split-stake; winnings override sized so amount+winnings = true total return) ---
+  horn: {
+    id: 'horn',
+    label: 'Horn',
+    canPlace: () => true,
+    isWorking: () => true,
+    resolve(roll, _phase, _point, _betPoint, amount = 0) {
+      const q = Math.floor(amount / 4);
+      if (roll.total === 2 || roll.total === 12) return { kind: 'win', winnings: 31 * q - amount };
+      if (roll.total === 3 || roll.total === 11) return { kind: 'win', winnings: 16 * q - amount };
+      return { kind: 'lose' };
+    },
+    payout: (amount) => amount, // unused — winnings override always set on win
+  },
+  'c-and-e': {
+    id: 'c-and-e',
+    label: 'C & E',
+    canPlace: () => true,
+    isWorking: () => true,
+    resolve(roll, _phase, _point, _betPoint, amount = 0) {
+      const h = Math.floor(amount / 2);
+      if (roll.total === 2 || roll.total === 3 || roll.total === 12)
+        return { kind: 'win', winnings: 8 * h - amount };
+      if (roll.total === 11) return { kind: 'win', winnings: 16 * h - amount };
+      return { kind: 'lose' };
+    },
+    payout: (amount) => amount, // unused — winnings override always set on win
   },
 };
 
