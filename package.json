@@ -18,6 +18,8 @@
     "format:check": "prettier --check .",
     "test": "vitest",
     "test:run": "vitest run --coverage",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build",
     "prepare": "husky"
   },
   "dependencies": {
@@ -42,6 +44,9 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.14.0",
+    "@storybook/addon-a11y": "^8.6.14",
+    "@storybook/addon-essentials": "^8.6.14",
+    "@storybook/react-vite": "^8.6.14",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.0.1",
     "@testing-library/user-event": "^14.5.2",
@@ -63,6 +68,7 @@
     "lint-staged": "^17.0.5",
     "postcss": "^8.4.49",
     "prettier": "^3.3.3",
+    "storybook": "^8.6.14",
     "tailwindcss": "^3.4.14",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.13.0",
