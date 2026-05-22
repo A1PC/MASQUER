@@ -36,19 +36,20 @@ The single source of truth for the project's design is [`BUILD_GUIDE.md`](./BUIL
 
 ## Games
 
-| Game              | Style       | Highlights                                                                                                              |
-| ----------------- | ----------- | ----------------------------------------------------------------------------------------------------------------------- |
-| **Coin Flip**     | Placeholder | 1:1 payout; the original template game (Phase 2).                                                                       |
-| **Blackjack**     | Table       | H17, split-to-4, double-after-split, insurance, 3:2 naturals, 6-deck shoe.                                              |
-| **Roulette**      | Table       | European single-zero wheel, all 10 bet types, decoupled-rotation spin animation.                                        |
-| **Slots**         | Reels       | 3-reel single-payline, weighted symbols (~86% RTP), tiered win celebration + jackpot coin shower.                       |
-| **Baccarat**      | Table       | All 9 bet zones, persistent 8-deck shoe with cut card, canonical Punto Banco third-card tableau, bead plate + big road. |
-| **Daily Lottery** | Event       | Pick-5+1, one shared draw per local day at 20:00, 1M jackpot, match-2 free re-entry, backfill on app open.              |
-| **Bingo**         | Competitive | British 90-ball **and** American 75-ball, vs AI computers. Difficulty sets opponent count, pot, latency. Admin-tunable. |
-| **Plinko**        | Arcade      | 20-row board / 21 bins, 4 risk levels, manual + auto-drop (up to 100 balls), coloured balls.                            |
-| **Texas Hold'em** | Poker       | No-Limit, 2-6 players vs personality-archetype AI, tiered stakes, buy-in/cash-out session with rebuy.                   |
-
-Five-Card Draw and Omaha (poker variants) are planned and share the poker infrastructure shipped with Hold'em.
+| Game               | Style       | Highlights                                                                                                                   |
+| ------------------ | ----------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| **Coin Flip**      | Placeholder | 1:1 payout; the original template game (Phase 2).                                                                            |
+| **Blackjack**      | Table       | H17, split-to-4, double-after-split, insurance, 3:2 naturals, 6-deck shoe.                                                   |
+| **Roulette**       | Table       | European single-zero wheel, all 10 bet types, decoupled-rotation spin animation.                                             |
+| **Slots**          | Reels       | 3-reel single-payline, weighted symbols (~86% RTP), tiered win celebration + jackpot coin shower.                            |
+| **Baccarat**       | Table       | All 9 bet zones, persistent 8-deck shoe with cut card, canonical Punto Banco third-card tableau, bead plate + big road.      |
+| **Daily Lottery**  | Event       | Pick-5+1, one shared draw per local day at 20:00, 1M jackpot, match-2 free re-entry, backfill on app open.                   |
+| **Bingo**          | Competitive | British 90-ball **and** American 75-ball, vs AI computers. Difficulty sets opponent count, pot, latency. Admin-tunable.      |
+| **Plinko**         | Arcade      | 20-row board / 21 bins, 4 risk levels, manual + auto-drop (up to 100 balls), coloured balls.                                 |
+| **Craps**          | Table       | Full half-table, two dice, come-out/point phases, ~17 bet types via a per-bet resolver registry, ON/OFF puck, table session. |
+| **Texas Hold'em**  | Poker       | No-Limit, 2-6 players vs personality-archetype AI, tiered stakes, buy-in/cash-out session with rebuy.                        |
+| **Five-Card Draw** | Poker       | No-Limit, single draw round (cap 3 discards), archetype-flavoured discard AI, reuses the shared poker core.                  |
+| **Omaha Hold'em**  | Poker       | No-Limit, 4 hole cards, mandatory exactly-2+3 showdown rule, dedicated Omaha AI; completes the poker trio.                   |
 
 ---
 
@@ -92,9 +93,9 @@ The guiding principle: **shared systems live in one place; each game is self-con
 - **Logic before UI.** Each game has a pure `logic.ts` (no React, no I/O, fully unit-tested) and React components that call into it.
 - **One round, one row.** Every completed round writes exactly one `rounds` row via `wallet.settleRound` (ADR-0016). The poker buy-in/cash-out session is the one documented exception (ADR-0041): one row per session, not per hand.
 - **Money is integers.** All chip amounts are integers — no floats, no `parseFloat`.
-- **Wallet-bridge-async / machine-pure.** For games with state machines (Blackjack, Roulette, Baccarat, Bingo, Plinko, Poker), the page component does the async work (`placeBet`, RNG, payout math) and sends fully-resolved events into a synchronous, deterministic XState machine. This keeps machines trivially testable.
+- **Wallet-bridge-async / machine-pure.** For games with state machines (Blackjack, Roulette, Baccarat, Bingo, Plinko, Craps, Poker), the page component does the async work (`placeBet`, RNG, payout math) and sends fully-resolved events into a synchronous, deterministic XState machine. This keeps machines trivially testable.
 
-See [`docs/adr/`](./docs/adr/) for the 41 architecture decision records and [`docs/conventions.md`](./docs/conventions.md) for code conventions.
+See [`docs/adr/`](./docs/adr/) for the 42 architecture decision records and [`docs/conventions.md`](./docs/conventions.md) for code conventions.
 
 ---
 
@@ -140,7 +141,7 @@ The **Definition of Done** before any merge is: `pnpm lint && pnpm typecheck && 
 - **Integration tests** register → bet → settle and assert both balance and the `rounds` row.
 - **State machines** are tested by feeding scripted events with fixed seeds (the machine never does async work itself).
 
-As of `v0.13a-texas-holdem` the suite is ~1,572 tests.
+As of `v0.14-craps` the suite is ~1,968 tests.
 
 ---
 
@@ -161,11 +162,14 @@ src/
    ├─ blackjack/  roulette/  slots/  baccarat/  coin-flip/
    ├─ bingo/                 competitive British + American
    ├─ plinko/
+   ├─ craps/                 full-table single-player craps
    └─ poker/
       ├─ _shared/            deck, handEvaluator, sidePots, ai/, PlayingCard, PokerVariantModal
-      └─ holdem/             Texas Hold'em machine + UI
+      ├─ holdem/             Texas Hold'em machine + UI
+      ├─ five-card-draw/     Five-Card Draw machine + UI
+      └─ omaha/              Omaha Hold'em machine + UI
 docs/
-├─ adr/                      architecture decision records (0001–0041)
+├─ adr/                      architecture decision records (0001–0042)
 ├─ conventions.md            code conventions
 ├─ dev-setup.md              environment setup + troubleshooting
 ├─ risks.md                  risk register
@@ -212,8 +216,8 @@ A hidden admin area lives at `/admin/login`. Credentials are **`admin` / `admin1
 
 ## Project status
 
-Latest release: **`v0.13a-texas-holdem`** (No-Limit Texas Hold'em + shared poker infrastructure).
+Latest release: **`v0.14-craps`** (full-table single-player Craps) — completing **all 14 gameplay phases**.
 
-Shipped phases: Scaffold, Data + Auth, Wallet + Lobby + Game shell, Blackjack, Roulette, Slots, Baccarat, Stats + Leaderboard, Admin Dashboard, Daily Lottery, Bingo (competitive), Plinko, Texas Hold'em.
+Shipped phases: Scaffold, Data + Auth, Wallet + Lobby + Game shell, Blackjack, Roulette, Slots, Baccarat, Stats + Leaderboard, Admin Dashboard, Daily Lottery, Bingo (competitive), Plinko, Texas Hold'em, Five-Card Draw, Omaha, Craps.
 
-Next up: **Five-Card Draw** and **Omaha** (reusing the poker infrastructure), then **Craps**, then a final **Polish** pass. See [`BUILD_GUIDE.md` §12](./BUILD_GUIDE.md) for the full roadmap. Progress is also tracked via [Milestones](../../milestones).
+Underway: **Phase 15 — Polish & Overhaul.** A complete UI/UX overhaul + polish + per-game feature additions + admin expansion + brand rename, decomposed into 18 dependency-ordered sub-projects (foundation → per-game upgrades → admin → final integration). See the [umbrella roadmap](./docs/superpowers/specs/2026-05-22-phase-15-umbrella-roadmap-design.md) and [`BUILD_GUIDE.md` §12](./BUILD_GUIDE.md) for the full plan. Progress is also tracked via [Milestones](../../milestones).

@@ -7,6 +7,58 @@ and this project versions by BUILD_GUIDE.md phase (`v0.PHASE-name`).
 
 ## [Unreleased]
 
+**Phase 15 (Polish & Overhaul) — in progress.** A complete UI/UX overhaul across every screen plus real animation and sound, per-game feature additions, an expanded + re-skinned admin area, and a final brand rename. Decomposed into 18 dependency-ordered sub-projects (foundation: brand → design system → motion/sound infra → shell; then per-game upgrades incl. the poker trio, admin overhaul + expansion, and a closing integration pass), each with its own spec → plan → PRs cycle. See `docs/superpowers/specs/2026-05-22-phase-15-umbrella-roadmap-design.md` for the full plan and shared principles.
+
+## [v0.14-craps] — 2026-05-22
+
+Full-table single-player Craps — completing all 14 gameplay phases. Built in 5 PRs.
+
+### Added
+
+- **Craps**: two-dice come-out / point game with the complete authentic bet set (~17 bet types) for tiered tables (Low / Mid / High)
+- **Per-bet resolver registry** (`BET_TYPES`): each bet declares `canPlace` / `isWorking` / `resolve` / `payout`. **ADR-0042** documents the registry + working-bet rules
+- Line & odds: Pass / Don't Pass (bar 12), Come / Don't Come (travelling come points), Pass/Don't true-odds (2:1 · 3:2 · 6:5 / lay equivalents), odds off on the come-out
+- Place (9:5 · 7:5 · 7:6, off on come-out), Field (1:1, 2× on 2, 3× on 12), Hardways (7:1 / 9:1, win-hard / lose-easy-or-7)
+- Proposition / centre bets: Any 7, Any Craps, 2/3/11/12, Horn, C&E — composite bets compute exact integer winnings
+- Table-session wallet: buy-in bankroll, rebuys, one `rounds` row settled on leave (reuses ADR-0041)
+- Authentic half-table UI: place row with ON/OFF puck, COME band, FIELD strip, Pass/Don't line with odds, collapsible proposition drawer, tumbling dice (respects `prefers-reduced-motion`), roulette-style chip tray
+- XState machine + session; enum + nav + BUILD_GUIDE §10.9
+- 5 PRs (#190–#194); **+135 tests** (1833 → 1968)
+
+## [v0.13c-omaha] — 2026-05-22
+
+No-Limit Omaha Hold'em — the third and final poker variant, completing the poker trio. Built as a near-clone of Hold'em in 4 PRs, reusing the entire `poker/_shared/` core.
+
+### Added
+
+- **No-Limit Omaha Hold'em**: configurable 2-6 players (you + 1-5 AI), tiered stakes, buy-in/cash-out session with rebuy — all inherited from Hold'em
+- **4 hole cards** per player (vs Hold'em's 2), with the mandatory exactly-2-hole + exactly-3-board showdown rule enforced by `evaluateFrom(..., 'omaha')` (built and tested back in 13a)
+- **New `decideOmaha` AI**: a 4-card preflop strength heuristic (rewards high pairs, double-suited, connectedness; penalises danglers + dead trips/quads-in-hand) plus omaha-rule postflop strength, reusing the archetype / pot-odds / raise-sizing structure; AI sees the real street + 4 hole cards + board
+- Community board + flop/turn/river, blinds, side pots, split pots — the full Hold'em machinery, cloned
+- UI: `OmahaSeat` (4 cards), `OmahaTable`, `OmahaPage`; the lobby variant modal now offers all three poker variants (no "coming soon" cards remain)
+- 4 PRs (#179–#182); **+95 tests** (1738 → 1833). No new ADR
+
+### Changed
+
+- Reused untouched: the shared core + Hold'em's `CommunityBoard` / `BettingControls` / `SessionBar` / `ShowdownReveal` / `stakesConfig`; Hold'em + Five-Card Draw code was not modified
+
+## [v0.13b-five-card-draw] — 2026-05-21
+
+No-Limit Five-Card Draw — the second poker variant, built on the shared `poker/_shared/` core from 13a in 4 PRs (vs Hold'em's 6), validating the shared-infrastructure split.
+
+### Added
+
+- **No-Limit Five-Card Draw**: configurable 2-6 players (you + 1-5 AI), tiered stakes, buy-in/cash-out session with rebuy — all inherited from Hold'em
+- **The draw**: single draw round — pre-draw bet → discard 0-3 cards and redraw → post-draw bet → showdown; tap-to-discard UI (cap 3, default stand pat); no community board
+- **AI discard strategy** (`decideDiscard`): stand pat on a straight or better; keep pairs / trips / 4-flush / 4-straight and draw the rest; archetype-flavoured (Maniac sometimes bluff-stands-pat, Rock plays textbook) and seeded
+- Betting AI reuses Hold'em's `decide`, mapped so it judges the full 5-card hand via `evaluateBest5`
+- UI: `DiscardControls`, `DrawSeat`, `DrawTable`, `FiveCardDrawPage`; lobby variant modal now offers Texas Hold'em and Five-Card Draw (Omaha still "coming soon")
+- 4 PRs (#173–#176); **+187 tests** (1537 → 1724). No new ADR
+
+### Changed
+
+- Shared infra reused untouched: deck, hand evaluator, side pots, AI archetypes, `PlayingCard`, the buy-in/cash-out session (ADR-0041), and Hold'em's `BettingControls` / `SessionBar` / `ShowdownReveal`; Hold'em code was not modified
+
 ## [v0.13a-texas-holdem] — 2026-05-21
 
 The heaviest phase yet (6 PRs): No-Limit Texas Hold'em plus the reusable poker infrastructure that Five-Card Draw and Omaha will build on.
