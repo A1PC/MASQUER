@@ -1,16 +1,20 @@
-import { describe, expect, it, beforeEach } from 'vitest';
+import { describe, expect, it, vi, beforeEach } from 'vitest';
 import 'fake-indexeddb/auto';
 import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
+import { ToastProvider } from '@/components/ui';
 import LobbyPage from './LobbyPage';
 import { useSessionStore } from '@/store/sessionStore';
+import { useWalletStore } from '@/store/walletStore';
 import type { User } from '@/db';
 import { db } from '@/db';
 
+vi.mock('@/systems/sound/useSound', () => ({ useSound: () => ({ play: vi.fn() }) }));
+
 const testUser: User = {
   id: 'u',
-  username: 'A',
-  usernameLower: 'a',
+  username: 'Adam',
+  usernameLower: 'adam',
   passwordHash: '',
   passwordSalt: '',
   pbkdf2Iterations: 600_000,
@@ -18,101 +22,58 @@ const testUser: User = {
   createdAt: Date.now(),
 };
 
-beforeEach(() => {
-  useSessionStore.setState({
-    currentUser: testUser,
-    bootstrapping: false,
-  });
+function renderLobby(): void {
+  render(
+    <ToastProvider>
+      <MemoryRouter>
+        <LobbyPage />
+      </MemoryRouter>
+    </ToastProvider>,
+  );
+}
+
+beforeEach(async () => {
+  vi.clearAllMocks();
+  await db.lotteryTickets.clear();
+  await db.lotteryLines.clear();
+  await db.rounds.clear();
+  useSessionStore.setState({ currentUser: testUser, bootstrapping: false });
+  useWalletStore.setState({ balance: 1000, nextDailyEligibleAt: null, hydrating: false });
 });
 
 describe('LobbyPage', () => {
-  it('renders heading and game cabinets including Craps', () => {
-    render(
-      <MemoryRouter>
-        <LobbyPage />
-      </MemoryRouter>,
-    );
-    expect(screen.getByText(/PICK YOUR POISON/)).toBeInTheDocument();
-    expect(screen.getByText('COIN FLIP')).toBeInTheDocument();
-    expect(screen.getByText('BLACKJACK')).toBeInTheDocument();
-    expect(screen.getByText('ROULETTE')).toBeInTheDocument();
-    expect(screen.getByText('SLOTS')).toBeInTheDocument();
-    expect(screen.getByText('BACCARAT')).toBeInTheDocument();
-    expect(screen.getByText('CRAPS')).toBeInTheDocument();
+  it('renders the hero with the welcome message and balance', () => {
+    renderLobby();
+    expect(screen.getByRole('heading', { name: /welcome back, adam/i })).toBeInTheDocument();
+    expect(screen.getByText('1,000')).toBeInTheDocument();
   });
 
-  it('shows empty-state recent-activity strip when no rounds played', () => {
-    render(
-      <MemoryRouter>
-        <LobbyPage />
-      </MemoryRouter>,
-    );
-    expect(screen.getByText(/No rounds played yet/)).toBeInTheDocument();
+  it('renders a cabinet for every game, including Craps and Lottery', () => {
+    renderLobby();
+    for (const label of ['Coin Flip', 'Blackjack', 'Roulette', 'Slots', 'Baccarat', 'Craps']) {
+      expect(screen.getByRole('link', { name: new RegExp(label, 'i') })).toBeInTheDocument();
+    }
+    expect(screen.getByRole('button', { name: /poker/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /bingo/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /lottery/i })).toBeInTheDocument();
   });
 
-  it('renders LOTTERY cabinet in the carousel', () => {
-    render(
-      <MemoryRouter>
-        <LobbyPage />
-      </MemoryRouter>,
-    );
-    expect(screen.getByText('LOTTERY')).toBeInTheDocument();
+  it('shows the recent-activity empty message when no rounds have been played', () => {
+    renderLobby();
+    expect(screen.getByText(/no rounds played yet/i)).toBeInTheDocument();
   });
 
-  it('shows BUY A TICKET on the lottery cabinet when user has no tickets', async () => {
-    render(
-      <MemoryRouter>
-        <LobbyPage />
-      </MemoryRouter>,
+  it('shows the lottery prompt when the user has no tickets today', async () => {
+    renderLobby();
+    await waitFor(() =>
+      expect(screen.getByRole('link', { name: /lottery.*buy a ticket/i })).toBeInTheDocument(),
     );
-    await waitFor(() => expect(screen.getByText(/BUY A TICKET/)).toBeInTheDocument());
   });
 
-  it('shows ticket and line counts on lottery cabinet when user has tickets for today', async () => {
-    const today = new Date();
-    const drawId = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-    await db.lotteryTickets.add({
-      id: 'tk-1',
-      userId: testUser.id,
-      drawId,
-      purchasedAt: Date.now(),
-      totalCost: 20,
-      lineCount: 2,
-    });
-    await db.lotteryLines.bulkAdd([
-      {
-        id: 'ln-1',
-        ticketId: 'tk-1',
-        userId: testUser.id,
-        drawId,
-        mainNumbers: [1, 2, 3, 4, 5],
-        bonusNumber: 1,
-        isLuckyDip: false,
-        isFreeReentry: false,
-        settled: false,
-        matchTier: null,
-        payout: 0,
-      },
-      {
-        id: 'ln-2',
-        ticketId: 'tk-1',
-        userId: testUser.id,
-        drawId,
-        mainNumbers: [6, 7, 8, 9, 10],
-        bonusNumber: 2,
-        isLuckyDip: false,
-        isFreeReentry: false,
-        settled: false,
-        matchTier: null,
-        payout: 0,
-      },
-    ]);
-    render(
-      <MemoryRouter>
-        <LobbyPage />
-      </MemoryRouter>,
-    );
-    await waitFor(() => expect(screen.getByText(/1 TICKET/)).toBeInTheDocument());
-    await waitFor(() => expect(screen.getByText(/2 LINES/)).toBeInTheDocument());
+  it('renders the zero-balance empty state when the player is out of chips', () => {
+    useWalletStore.setState({ balance: 0, nextDailyEligibleAt: null, hydrating: false });
+    renderLobby();
+    expect(screen.getByRole('heading', { name: /out of chips/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /claim daily top-up/i })).toBeInTheDocument();
   });
 });
