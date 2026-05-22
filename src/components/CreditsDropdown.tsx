@@ -60,7 +60,9 @@ export default function CreditsDropdown(): JSX.Element {
         aria-label={`Your chips: ${formatChips(balance)}`}
       >
         <Icon name="Coins" size={18} className="text-gold" />
-        <motion.span className="text-base font-semibold leading-none">{rounded}</motion.span>
+        <motion.span className="text-base font-semibold leading-none text-gold">
+          {rounded}
+        </motion.span>
         <Icon name={open ? 'ChevronUp' : 'ChevronDown'} size={14} className="text-gold/60" />
       </button>
       <AnimatePresence>

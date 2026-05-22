@@ -67,21 +67,28 @@ export default function GameGrid({ userId }: Props): JSX.Element {
   // passing `undefined`, which exactOptionalPropertyTypes rejects).
   const itemProps = reduce ? {} : { variants: staggerItem };
 
+  // Cabinet width per breakpoint, accounting for gap-3 (12px) — keeps the
+  // visual rhythm of the prior grid (2/3/4 cabinets per row), but as a flex
+  // container so the last incomplete row centers (Option A + 10 games leaves
+  // 2 cabinets on the third row at lg).
+  const LI_CLASS =
+    'basis-[calc(50%-0.375rem)] md:basis-[calc(33.333%-0.5rem)] lg:basis-[calc(25%-0.5625rem)]';
+
   return (
     <>
       <motion.ul
-        className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4"
+        className="flex flex-wrap justify-center gap-3"
         variants={staggerContainer}
         initial={reduce ? false : 'hidden'}
         animate="visible"
         aria-label="Games"
       >
         {ROUTE_GAMES.map((g) => (
-          <motion.li key={g.key} {...itemProps}>
+          <motion.li key={g.key} className={LI_CLASS} {...itemProps}>
             <GameCabinet to={g.to} iconName={NAV_ICON[g.key]} label={g.label} status="Play now" />
           </motion.li>
         ))}
-        <motion.li {...itemProps}>
+        <motion.li className={LI_CLASS} {...itemProps}>
           <GameCabinet
             onClick={() => setPokerOpen(true)}
             iconName={NAV_ICON.poker}
@@ -89,7 +96,7 @@ export default function GameGrid({ userId }: Props): JSX.Element {
             status="Play now"
           />
         </motion.li>
-        <motion.li {...itemProps}>
+        <motion.li className={LI_CLASS} {...itemProps}>
           <GameCabinet
             onClick={() => setBingoOpen(true)}
             iconName={NAV_ICON.bingo}
@@ -97,7 +104,7 @@ export default function GameGrid({ userId }: Props): JSX.Element {
             status="Play now"
           />
         </motion.li>
-        <motion.li {...itemProps}>
+        <motion.li className={LI_CLASS} {...itemProps}>
           <GameCabinet
             to="/lottery"
             iconName={NAV_ICON.lottery}
