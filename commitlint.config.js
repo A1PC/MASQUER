@@ -38,6 +38,7 @@ export default {
         'admin',
         'tracking',
         'baccarat',
+        'craps',
       ],
     ],
     'subject-case': [0],
