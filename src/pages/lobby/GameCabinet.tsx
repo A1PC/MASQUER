@@ -22,7 +22,7 @@ type GameCabinetProps =
  *  link/button (hit target well over 44px). Hover/press lift is transform-only
  *  (no layout shift) and motion-safe, so reduced-motion users get a static card. */
 const CABINET_CLASS = cn(
-  'group relative flex h-full min-h-[116px] flex-col items-center justify-center gap-2 rounded-xl p-5 text-center',
+  'group relative flex h-full w-full min-h-[116px] flex-col items-center justify-center gap-2 rounded-xl p-5 text-center',
   'border border-brass bg-gradient-to-b from-velvet/40 to-velvet-deep/60',
   "before:pointer-events-none before:absolute before:inset-1.5 before:rounded-lg before:border before:border-brass/40 before:content-['']",
   'transition-transform duration-150 motion-safe:hover:-translate-y-0.5 motion-safe:active:scale-[0.98]',
