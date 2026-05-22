@@ -1,6 +1,7 @@
 import type { JSX } from 'react';
 import SidebarToggle from './SidebarToggle';
 import CreditsDropdown from './CreditsDropdown';
+import DailyClaimChip from './DailyClaimChip';
 import ProfileDropdown from './ProfileDropdown';
 import Wordmark from './brand/Wordmark';
 
@@ -11,7 +12,8 @@ export default function TopBar(): JSX.Element {
         <SidebarToggle />
         <Wordmark maskSize={26} />
       </div>
-      <div className="flex items-center gap-3.5 text-sm">
+      <div className="flex items-center gap-3 text-sm">
+        <DailyClaimChip />
         <CreditsDropdown />
         <ProfileDropdown />
       </div>

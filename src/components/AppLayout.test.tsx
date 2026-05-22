@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { RouterProvider, createMemoryRouter } from 'react-router';
 import AppLayout from './AppLayout';
+import { ToastProvider } from '@/components/ui';
 import { useSessionStore } from '@/store/sessionStore';
 import { useUIStore } from '@/store/uiStore';
 import type { User } from '@/db';
@@ -29,7 +30,11 @@ describe('AppLayout', () => {
       [
         {
           path: '/',
-          element: <AppLayout />,
+          element: (
+            <ToastProvider>
+              <AppLayout />
+            </ToastProvider>
+          ),
           children: [{ path: 'lobby', element: <p>lobby content</p> }],
         },
       ],

@@ -121,6 +121,24 @@ describe('Sidebar', () => {
     expect(badge.closest('a')).toHaveAttribute('href', '/play/baccarat');
   });
 
+  it('marks the current route as the active nav item', () => {
+    renderAtPath('/play/coin-flip');
+    const active = screen.getByRole('link', { name: /coin flip/i });
+    // react-router applies aria-current="page" + the `active` class on the
+    // matched NavLink; the re-skin highlights it in gold.
+    expect(active).toHaveAttribute('aria-current', 'page');
+    const inactive = screen.getByRole('link', { name: /blackjack/i });
+    expect(inactive).not.toHaveAttribute('aria-current');
+  });
+
+  it('renders nav items as accessible links with text labels (no emoji)', () => {
+    renderAtPath('/lobby');
+    const link = screen.getByRole('link', { name: /blackjack/i });
+    // Label text is present and the icon is an inline SVG (lucide), not emoji.
+    expect(link).toHaveTextContent('Blackjack');
+    expect(link.querySelector('svg')).toBeInTheDocument();
+  });
+
   it('does not show any stale phase tags (all games shipped)', () => {
     renderAtPath('/lobby');
     expect(screen.queryByText('P3')).not.toBeInTheDocument();
