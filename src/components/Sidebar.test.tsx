@@ -60,7 +60,7 @@ afterEach(async () => {
 });
 
 describe('Sidebar', () => {
-  it('renders all 13 nav items when expanded', () => {
+  it('renders all 14 nav items when expanded', () => {
     renderAtPath('/lobby', false);
     expect(screen.getByText(/Lobby/)).toBeInTheDocument();
     expect(screen.getByText(/Coin Flip/)).toBeInTheDocument();
@@ -75,6 +75,14 @@ describe('Sidebar', () => {
     expect(screen.getByText(/Lottery/)).toBeInTheDocument();
     expect(screen.getByText(/Stats/)).toBeInTheDocument();
     expect(screen.getByText(/Leaderboard/)).toBeInTheDocument();
+    expect(screen.getByText(/Settings/)).toBeInTheDocument();
+  });
+
+  it('renders Settings NavLink pointing to /settings', () => {
+    renderAtPath('/lobby');
+    const link = screen.getByRole('link', { name: /settings/i });
+    expect(link).toBeInTheDocument();
+    expect(link).toHaveAttribute('href', '/settings');
   });
 
   it('renders Bingo NavLink pointing to /play/bingo', () => {
