@@ -36,7 +36,7 @@ describe('AppLayout', () => {
       { initialEntries: ['/lobby'] },
     );
     render(<RouterProvider router={router} />);
-    expect(screen.getByText('LOCALGAMBLE')).toBeInTheDocument();
+    expect(screen.getByText('MASQUER')).toBeInTheDocument();
     expect(screen.getByText(/Coin Flip/)).toBeInTheDocument(); // sidebar item
     expect(screen.getByText('lobby content')).toBeInTheDocument(); // outlet
   });
