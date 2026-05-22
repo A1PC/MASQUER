@@ -1,42 +1,66 @@
 import type { JSX } from 'react';
+import { motion } from 'framer-motion';
+import { Panel, Icon, Text } from '@/components/ui';
 import { useRecentRounds } from '@/systems/hooks/useRecentRounds';
 import { useCurrentUser } from '@/store/sessionStore';
+import { useEffectiveReducedMotion } from '@/motion/useEffectiveReducedMotion';
+import { staggerContainer, staggerItem } from '@/motion/variants';
 
+const OUTCOME_CLASS = {
+  win: 'text-chip-win',
+  loss: 'text-chip-loss',
+  push: 'text-chip-push',
+} as const;
+
+/** Recent-activity strip — the last few rounds, re-skinned on the design system
+ *  with a deco Panel, lucide section icon, and a reduced-motion-aware staggered
+ *  reveal of the round rows. */
 export default function RecentActivityStrip(): JSX.Element {
   const user = useCurrentUser();
   const rounds = useRecentRounds(user?.id, undefined, 5);
-  if (rounds.length === 0) {
-    return (
-      <div className="mt-5 rounded-md border border-dashed border-gold/30 bg-gold/[0.05] px-4 py-3.5">
-        <div className="font-display text-[13px] tracking-wider text-gold">📊 RECENT ACTIVITY</div>
-        <div className="mt-1 text-xs text-white/60">No rounds played yet. Try the Coin Flip!</div>
-      </div>
-    );
-  }
+  const reduce = useEffectiveReducedMotion();
+  // Omit `variants` when reduced (exactOptionalPropertyTypes rejects `undefined`).
+  const itemProps = reduce ? {} : { variants: staggerItem };
+
   return (
-    <div className="mt-5 rounded-md border border-dashed border-gold/30 bg-gold/[0.05] px-4 py-3.5">
-      <div className="font-display text-[13px] tracking-wider text-gold">📊 RECENT ACTIVITY</div>
-      <ul className="mt-2 space-y-1 text-xs text-white/80">
-        {rounds.map((r) => (
-          <li key={r.id} className="flex justify-between font-mono">
-            <span>
-              {r.game} · bet {r.betAmount}
-            </span>
-            <span
-              className={
-                r.outcome === 'win'
-                  ? 'text-chip-win'
-                  : r.outcome === 'loss'
-                    ? 'text-chip-loss'
-                    : 'text-chip-push'
-              }
+    <Panel surface="felt" className="mt-6">
+      <div className="mb-2 flex items-center gap-2">
+        <Icon name="History" size={15} className="text-gold" />
+        <span className="font-display text-[13px] uppercase tracking-[0.1em] text-gold">
+          Recent Activity
+        </span>
+      </div>
+      {rounds.length === 0 ? (
+        <Text tone="muted" size="sm">
+          No rounds played yet. Try the Coin Flip!
+        </Text>
+      ) : (
+        <motion.ul
+          className="space-y-1"
+          variants={staggerContainer}
+          initial={reduce ? false : 'hidden'}
+          animate="visible"
+        >
+          {rounds.map((r) => (
+            <motion.li
+              key={r.id}
+              {...itemProps}
+              className="flex items-center justify-between text-xs"
             >
-              {r.netChange > 0 ? '+' : ''}
-              {r.netChange}
-            </span>
-          </li>
-        ))}
-      </ul>
-    </div>
+              <span className="text-ivory/80">
+                <span className="font-display uppercase tracking-[0.06em] text-ivory/90">
+                  {r.game}
+                </span>{' '}
+                <span className="text-ivory/55">· bet {r.betAmount}</span>
+              </span>
+              <span className={`font-numeral tabular-nums ${OUTCOME_CLASS[r.outcome]}`}>
+                {r.netChange > 0 ? '+' : ''}
+                {r.netChange}
+              </span>
+            </motion.li>
+          ))}
+        </motion.ul>
+      )}
+    </Panel>
   );
 }

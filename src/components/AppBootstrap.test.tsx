@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import { db } from '@/db';
+import { ToastProvider } from '@/components/ui';
 import { useSessionStore } from '@/store/sessionStore';
 import { resetDb } from '@/test/db-helpers';
 import { renderWithRouter } from '@/test/router-helpers';
@@ -15,12 +16,16 @@ vi.mock('@/store/walletStore', () => ({
       selector: (s: {
         hydrate: ReturnType<typeof vi.fn>;
         clear: ReturnType<typeof vi.fn>;
+        claimDaily: ReturnType<typeof vi.fn>;
       }) => unknown,
-    ) => selector({ hydrate: vi.fn(), clear: vi.fn() }),
+    ) => selector({ hydrate: vi.fn(), clear: vi.fn(), claimDaily: vi.fn() }),
     {
-      getState: () => ({ hydrate: vi.fn(), clear: vi.fn() }),
+      getState: () => ({ hydrate: vi.fn(), clear: vi.fn(), claimDaily: vi.fn() }),
     },
   ),
+  // LobbyPage renders the hero (balance) + daily CTA (eligibility) when authed.
+  useBalance: () => 1000,
+  useNextDailyEligibleAt: () => null,
 }));
 
 const SESSION_KEY = 'localGamble.session.userId';
@@ -115,7 +120,9 @@ it('renders /lobby when a user is logged in', async () => {
         path: '/lobby',
         element: (
           <RequireAuth>
-            <LobbyPage />
+            <ToastProvider>
+              <LobbyPage />
+            </ToastProvider>
           </RequireAuth>
         ),
       },
@@ -124,6 +131,6 @@ it('renders /lobby when a user is logged in', async () => {
   );
 
   await waitFor(() => {
-    expect(screen.getByText(/PICK YOUR POISON/)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /welcome back, adam/i })).toBeInTheDocument();
   });
 });
