@@ -37,6 +37,7 @@ const GAME_LABELS: Record<Game, string> = {
   bingo: 'Bingo', // PR D will complete full wiring
   plinko: 'Plinko', // PR D will complete full wiring
   poker: 'Poker',
+  craps: 'Craps',
 };
 
 const EMPTY_METRICS: UserMetrics = {

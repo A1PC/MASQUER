@@ -38,7 +38,8 @@ export interface Round {
     | 'lottery'
     | 'bingo'
     | 'plinko'
-    | 'poker';
+    | 'poker'
+    | 'craps';
   betAmount: number;
   payout: number;
   netChange: number;
