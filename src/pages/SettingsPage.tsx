@@ -1,5 +1,6 @@
 import type { JSX } from 'react';
 import { useId, useState } from 'react';
+import { useNavigate } from 'react-router';
 import {
   Button,
   Card,
@@ -13,10 +14,10 @@ import {
   useToast,
 } from '@/components/ui';
 import { usePrefsStore, effectivePrefs } from '@/store/prefsStore';
-import { useNextDailyEligibleAt } from '@/store/walletStore';
-import { useCurrentUser } from '@/store/sessionStore';
+import { useNextDailyEligibleAt, useWalletStore } from '@/store/walletStore';
+import { useCurrentUser, useSessionStore } from '@/store/sessionStore';
 import { useSound } from '@/systems/sound/useSound';
-import { clearHistory } from '@/systems/account';
+import { clearHistory, deleteAccount } from '@/systems/account';
 import { WALLET_CONFIG } from '@/systems/wallet';
 import type { Prefs } from '@/db';
 
@@ -194,8 +195,14 @@ function MotionCard({ prefs, update }: { prefs: Prefs; update: UpdateFn }): JSX.
 function AccountCard({ userId }: { userId: string | null }): JSX.Element {
   const { toast } = useToast();
   const nextDailyAt = useNextDailyEligibleAt();
+  const navigate = useNavigate();
+  const logout = useSessionStore((s) => s.logout);
+  const clearWallet = useWalletStore((s) => s.clear);
+  const clearPrefs = usePrefsStore((s) => s.clear);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [clearing, setClearing] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const handleClear = async (): Promise<void> => {
     if (!userId) return;
@@ -211,6 +218,22 @@ function AccountCard({ userId }: { userId: string | null }): JSX.Element {
       setClearing(false);
       setConfirmOpen(false);
     }
+  };
+
+  const handleDeleteAccount = async (): Promise<void> => {
+    if (!userId) return;
+    setDeleting(true);
+    try {
+      await deleteAccount(userId);
+    } finally {
+      setDeleting(false);
+      setConfirmDelete(false);
+    }
+    // Reuse the logout flow: clear session + wallet + prefs, then exit to login.
+    await logout();
+    clearWallet();
+    clearPrefs();
+    void navigate('/login', { replace: true });
   };
 
   return (
@@ -268,6 +291,43 @@ function AccountCard({ userId }: { userId: string | null }): JSX.Element {
               onClick={() => void handleClear()}
             >
               Clear history
+            </Button>
+          </div>
+        </Modal>
+
+        <div className="mt-3 border-t border-brass/15 pt-4">
+          <p className="mb-2 font-body text-sm text-chip-loss">Delete account</p>
+          <p className="mb-3 font-body text-xs text-ivory/55">
+            Permanently delete your account and all of your data — balance, play history, sessions,
+            and lottery entries. This cannot be undone.
+          </p>
+          <Button
+            variant="danger"
+            size="sm"
+            onClick={() => setConfirmDelete(true)}
+            disabled={!userId}
+          >
+            Delete account
+          </Button>
+        </div>
+
+        <Modal
+          open={confirmDelete}
+          onOpenChange={setConfirmDelete}
+          title="Delete account?"
+          description="This permanently deletes your account and all of your data — balance, play history, sessions, and lottery entries. This cannot be undone."
+        >
+          <div className="mt-4 flex justify-end gap-2.5">
+            <Button variant="ghost" size="sm" onClick={() => setConfirmDelete(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="danger"
+              size="sm"
+              loading={deleting}
+              onClick={() => void handleDeleteAccount()}
+            >
+              Delete forever
             </Button>
           </div>
         </Modal>
