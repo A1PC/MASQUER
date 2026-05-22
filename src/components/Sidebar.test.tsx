@@ -60,7 +60,7 @@ afterEach(async () => {
 });
 
 describe('Sidebar', () => {
-  it('renders all 12 nav items when expanded', () => {
+  it('renders all 13 nav items when expanded', () => {
     renderAtPath('/lobby', false);
     expect(screen.getByText(/Lobby/)).toBeInTheDocument();
     expect(screen.getByText(/Coin Flip/)).toBeInTheDocument();
@@ -71,6 +71,7 @@ describe('Sidebar', () => {
     expect(screen.getByText(/Bingo/)).toBeInTheDocument();
     expect(screen.getByText(/Plinko/)).toBeInTheDocument();
     expect(screen.getByText(/Poker/)).toBeInTheDocument();
+    expect(screen.getByText(/Craps/)).toBeInTheDocument();
     expect(screen.getByText(/Lottery/)).toBeInTheDocument();
     expect(screen.getByText(/Stats/)).toBeInTheDocument();
     expect(screen.getByText(/Leaderboard/)).toBeInTheDocument();
@@ -95,6 +96,13 @@ describe('Sidebar', () => {
     const link = screen.getByRole('link', { name: /poker/i });
     expect(link).toBeInTheDocument();
     expect(link).toHaveAttribute('href', '/play/poker');
+  });
+
+  it('renders Craps NavLink pointing to /play/craps', () => {
+    renderAtPath('/lobby');
+    const link = screen.getByRole('link', { name: /craps/i });
+    expect(link).toBeInTheDocument();
+    expect(link).toHaveAttribute('href', '/play/craps');
   });
 
   it('shows NEW badge on Baccarat (most recent ship)', () => {

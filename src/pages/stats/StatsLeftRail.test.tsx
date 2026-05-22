@@ -12,7 +12,7 @@ function renderAt(initial: string, basePath: '/stats' | '/leaderboard' = '/stats
 }
 
 describe('StatsLeftRail', () => {
-  it('renders Overview + 9 game tabs', () => {
+  it('renders Overview + 10 game tabs', () => {
     renderAt('/stats');
     expect(screen.getByRole('link', { name: /overview/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /blackjack/i })).toBeInTheDocument();
@@ -24,6 +24,7 @@ describe('StatsLeftRail', () => {
     expect(screen.getByRole('link', { name: /bingo/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /plinko/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /poker/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /craps/i })).toBeInTheDocument();
   });
 
   it('renders Bingo tab with correct href', () => {
@@ -39,6 +40,11 @@ describe('StatsLeftRail', () => {
   it('renders Poker tab with correct href', () => {
     renderAt('/stats');
     expect(screen.getByRole('link', { name: /poker/i })).toHaveAttribute('href', '/stats/poker');
+  });
+
+  it('renders Craps tab with correct href', () => {
+    renderAt('/stats');
+    expect(screen.getByRole('link', { name: /craps/i })).toHaveAttribute('href', '/stats/craps');
   });
 
   it('overview link uses base path only', () => {
