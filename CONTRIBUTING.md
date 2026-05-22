@@ -37,7 +37,26 @@ Spec-first rule: if a rule, payout, or schema must change, update `BUILD_GUIDE.m
 
 ## Architecture decisions
 
-Record non-obvious architectural choices as ADRs in `docs/adr/NNNN-short-title.md` (copy `docs/adr/_template.md`). Number sequentially. Reference the ADR number in the relevant code comment, BUILD_GUIDE row, and changelog entry. There are 41 ADRs as of `v0.13a`.
+Record non-obvious architectural choices as ADRs in `docs/adr/NNNN-short-title.md` (copy `docs/adr/_template.md`). Number sequentially. Reference the ADR number in the relevant code comment, BUILD_GUIDE row, and changelog entry. There are 42 ADRs as of `v0.14-craps` (ADR-0042 = craps bet-resolver registry).
+
+## Phase 15 overhaul conventions
+
+Phase 15 is a complete UI/UX overhaul + polish + per-game feature additions + admin expansion + brand rename, decomposed into 18 dependency-ordered sub-projects. The umbrella roadmap (`docs/superpowers/specs/2026-05-22-phase-15-umbrella-roadmap-design.md`) is the source of truth. Every overhaul PR must follow these rules (from §4 of the roadmap):
+
+- **Build UI from the shared design-system primitives** (the sub-project #1 component library) — do not hand-roll one-off components per screen.
+- **Tokens only — no hard-coded hex** in components. Colors, type, and spacing come from `src/theme/tokens.ts` + the tailwind config (this is already a CLAUDE.md rule; the overhaul makes it real).
+- **`useSound` is the only sound integration point.** Games call the hook — never embed `<audio>` directly. Volume + mute live in the Settings page and persist.
+- **Use the `frontend-design` skill** for UI implementation.
+- **`prefers-reduced-motion` is honored everywhere** via `useReducedMotion` — every animated surface has an instant/eased-down fallback. Reuse the shared Framer-Motion variant library rather than bespoke transitions.
+
+Invariants that must survive the overhaul (do NOT regress):
+
+- **Game logic is untouched by UI work** — pure logic (`*.ts` in `src/games/**`), resolvers, machines, and their tests stay green. Feature adds get their own logic + tests, TDD'd.
+- **Games sandbox preserved** — `src/games/**` never imports `src/db/**` or `src/store/**`; wallet access goes through `useGameRound` / `src/systems/**`.
+- **One rounds row per game** (ADR-0016; session exception ADR-0041). Feature adds must not fragment or duplicate rounds rows.
+- **Money is integers; seeded RNG only** (no `Math.random()`). All ADRs (0001–0042) remain authoritative and intact.
+
+Workflow: the umbrella roadmap decomposes into sub-projects; each sub-project runs its own spec → plan → PRs cycle (brainstorm → spec → plan → subagent-driven PRs → checkpoint/release), and the umbrella's Progress table is updated as each ships.
 
 ## Commit message format (Conventional Commits)
 
@@ -51,7 +70,7 @@ Scopes — the canonical list is enforced by `commitlint.config.js`. Current sco
 `history`, `stats`, `leaderboard`, `lottery`, `bingo`, `plinko`, `poker`,
 `theme`, `db`, `session`, `lobby`, `ci`, `build-guide`, `deps`, `deps-dev`,
 `release`, `repo`, `adr`, `routing`, `ui`, `shell`, `coin-flip`, `games`,
-`admin`, `tracking`.
+`admin`, `tracking`, `craps`.
 
 > When you introduce a new game or area, add its scope to `commitlint.config.js`
 > **in the same PR, before the first commit that uses it** — the `commit-msg`
