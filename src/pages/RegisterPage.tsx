@@ -1,12 +1,15 @@
 import { useEffect, useState } from 'react';
+import type { JSX } from 'react';
 import { useNavigate, Link } from 'react-router';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useSessionStore, useCurrentUser } from '@/store/sessionStore';
 import { registerSchema, type RegisterInput } from '@/systems/auth-schemas';
+import { Card, Field, Input, Button } from '@/components/ui';
+import MaskMark from '@/components/brand/MaskMark';
 import DevWipeButton from '@/components/DevWipeButton';
 
-export default function RegisterPage() {
+export default function RegisterPage(): JSX.Element {
   const registerUser = useSessionStore((s) => s.register);
   const currentUser = useCurrentUser();
   const navigate = useNavigate();
@@ -35,6 +38,8 @@ export default function RegisterPage() {
     if (!result.ok) {
       if (result.error === 'username_taken') {
         setError('username', { message: 'That username is already taken.' });
+      } else if (result.error === 'reserved_username') {
+        setError('username', { message: 'That username is reserved.' });
       } else {
         setSubmitError('Something went wrong. Please try again.');
       }
@@ -45,82 +50,83 @@ export default function RegisterPage() {
 
   return (
     <main className="mx-auto grid min-h-full max-w-md place-items-center p-6">
-      <form
-        onSubmit={(e) => void onSubmit(e)}
-        noValidate
-        className="w-full space-y-4 rounded-lg border border-gold/30 bg-felt p-6 shadow-gold-glow"
-      >
-        <h1 className="text-center text-2xl text-gold">Create an account</h1>
+      <Card surface="velvet" className="w-full">
+        <form onSubmit={(e) => void onSubmit(e)} noValidate className="space-y-5">
+          <div className="flex flex-col items-center gap-3 text-center">
+            <MaskMark size={64} />
+            <div>
+              <h1 className="font-display text-2xl tracking-[0.16em] text-gold">
+                Create an account
+              </h1>
+              <p className="mt-1 font-body text-xs text-ivory/60">
+                Join the table. Chips are on the house.
+              </p>
+            </div>
+          </div>
 
-        <label className="block">
-          <span className="text-sm text-white/80">Username</span>
-          <input
-            type="text"
-            autoComplete="username"
-            autoFocus
-            {...register('username')}
-            className="mt-1 w-full rounded border border-white/20 bg-felt-deep px-3 py-2"
-          />
-          {errors.username && (
-            <p className="mt-1 text-sm text-casino-red" role="alert">
-              {errors.username.message}
+          <Field
+            id="register-username"
+            label="Username"
+            {...(errors.username?.message ? { error: errors.username.message } : {})}
+          >
+            <Input
+              id="register-username"
+              type="text"
+              autoComplete="username"
+              autoFocus
+              state={errors.username ? 'error' : 'default'}
+              {...register('username')}
+            />
+          </Field>
+
+          <Field
+            id="register-password"
+            label="Password"
+            {...(errors.password?.message ? { error: errors.password.message } : {})}
+          >
+            <Input
+              id="register-password"
+              type="password"
+              autoComplete="new-password"
+              state={errors.password ? 'error' : 'default'}
+              {...register('password')}
+            />
+          </Field>
+
+          <Field
+            id="register-confirm"
+            label="Confirm password"
+            {...(errors.confirmPassword?.message ? { error: errors.confirmPassword.message } : {})}
+          >
+            <Input
+              id="register-confirm"
+              type="password"
+              autoComplete="new-password"
+              state={errors.confirmPassword ? 'error' : 'default'}
+              {...register('confirmPassword')}
+            />
+          </Field>
+
+          {submitError ? (
+            <p role="alert" className="text-[11px] text-[#e3a8af]">
+              {submitError}
             </p>
-          )}
-        </label>
+          ) : null}
 
-        <label className="block">
-          <span className="text-sm text-white/80">Password</span>
-          <input
-            type="password"
-            autoComplete="new-password"
-            {...register('password')}
-            className="mt-1 w-full rounded border border-white/20 bg-felt-deep px-3 py-2"
-          />
-          {errors.password && (
-            <p className="mt-1 text-sm text-casino-red" role="alert">
-              {errors.password.message}
-            </p>
-          )}
-        </label>
+          <Button type="submit" variant="primary" loading={isSubmitting} className="w-full">
+            {isSubmitting ? 'Creating…' : 'Create account'}
+          </Button>
 
-        <label className="block">
-          <span className="text-sm text-white/80">Confirm password</span>
-          <input
-            type="password"
-            autoComplete="new-password"
-            {...register('confirmPassword')}
-            className="mt-1 w-full rounded border border-white/20 bg-felt-deep px-3 py-2"
-          />
-          {errors.confirmPassword && (
-            <p className="mt-1 text-sm text-casino-red" role="alert">
-              {errors.confirmPassword.message}
-            </p>
-          )}
-        </label>
-
-        {submitError && (
-          <p className="text-sm text-casino-red" role="alert">
-            {submitError}
+          <p className="text-center font-body text-xs text-ivory/60">
+            Already have one?{' '}
+            <Link to="/login" className="text-gold underline">
+              Sign in
+            </Link>
           </p>
-        )}
 
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="w-full rounded bg-casino-red px-4 py-2 font-display tracking-wide text-white disabled:opacity-50"
-        >
-          {isSubmitting ? 'Creating…' : 'Create account'}
-        </button>
-
-        <p className="text-center text-sm text-white/70">
-          Already have one?{' '}
-          <Link to="/login" className="text-gold underline">
-            Sign in
-          </Link>
-        </p>
-
-        <DevWipeButton />
-      </form>
+          <DevWipeButton />
+        </form>
+      </Card>
     </main>
   );
 }

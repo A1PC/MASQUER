@@ -8,7 +8,7 @@ import AppLayout from '@/components/AppLayout';
 import LoginPage from '@/pages/LoginPage';
 import RegisterPage from '@/pages/RegisterPage';
 import LobbyPage from '@/pages/LobbyPage';
-import ProfileStubPage from '@/pages/ProfileStubPage';
+import ProfilePage from '@/pages/ProfilePage';
 import SettingsPage from '@/pages/SettingsPage';
 import CoinFlipPage from '@/games/coin-flip/CoinFlipPage';
 import BlackjackPage from '@/games/blackjack/BlackjackPage';
@@ -128,8 +128,8 @@ export const router = createBrowserRouter([
           </Suspense>
         ),
       },
-      { path: 'profile', element: <ProfileStubPage feature="Your profile" /> },
-      { path: 'profile/edit', element: <ProfileStubPage feature="Edit profile" /> },
+      { path: 'profile', element: <ProfilePage /> },
+      { path: 'profile/edit', element: <ProfilePage edit /> },
       { path: 'settings', element: <SettingsPage /> },
       { path: 'play/coin-flip', element: <CoinFlipPage /> },
       { path: 'play/blackjack', element: <BlackjackPage /> },
