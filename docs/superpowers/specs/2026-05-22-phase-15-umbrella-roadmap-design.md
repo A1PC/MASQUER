@@ -109,13 +109,13 @@ This umbrella's **Progress** table is updated as each sub-project completes.
 
 ## 8. Progress
 
-| #     | Sub-project                                                                                 | Status      |
-| ----- | ------------------------------------------------------------------------------------------- | ----------- |
-| 0     | Brand + Design Language                                                                     | Not started |
-| 1     | Design-system component library                                                             | Not started |
-| 2     | Motion & Sound infrastructure                                                               | Not started |
-| 3     | Shell & navigation overhaul                                                                 | Not started |
-| 4–12  | Per-game upgrades (BJ, roulette, slots, baccarat, coin-flip, craps, bingo, plinko, lottery) | Not started |
-| 13–15 | Poker upgrades (Hold'em, Five-Card Draw, Omaha)                                             | Not started |
-| 16    | Admin overhaul + expansion                                                                  | Not started |
-| 17    | Final integration & launch polish                                                           | Not started |
+| #     | Sub-project                                                                                 | Status                          |
+| ----- | ------------------------------------------------------------------------------------------- | ------------------------------- |
+| 0     | Brand + Design Language                                                                     | ✅ Done (merged)                |
+| 1     | Design-system component library                                                             | ✅ Done (25 primitives, merged) |
+| 2     | Motion & Sound infrastructure                                                               | In progress (spec)              |
+| 3     | Shell & navigation overhaul                                                                 | Not started                     |
+| 4–12  | Per-game upgrades (BJ, roulette, slots, baccarat, coin-flip, craps, bingo, plinko, lottery) | Not started                     |
+| 13–15 | Poker upgrades (Hold'em, Five-Card Draw, Omaha)                                             | Not started                     |
+| 16    | Admin overhaul + expansion                                                                  | Not started                     |
+| 17    | Final integration & launch polish                                                           | Not started                     |
