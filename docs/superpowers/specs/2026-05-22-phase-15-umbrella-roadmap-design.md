@@ -113,8 +113,8 @@ This umbrella's **Progress** table is updated as each sub-project completes.
 | ----- | ------------------------------------------------------------------------------------------- | ------------------------------- |
 | 0     | Brand + Design Language                                                                     | ✅ Done (merged)                |
 | 1     | Design-system component library                                                             | ✅ Done (25 primitives, merged) |
-| 2     | Motion & Sound infrastructure                                                               | In progress (spec)              |
-| 3     | Shell & navigation overhaul                                                                 | Not started                     |
+| 2     | Motion & Sound infrastructure                                                               | ✅ Done (3 PRs, merged)         |
+| 3     | Shell & navigation overhaul                                                                 | In progress (spec)              |
 | 4–12  | Per-game upgrades (BJ, roulette, slots, baccarat, coin-flip, craps, bingo, plinko, lottery) | Not started                     |
 | 13–15 | Poker upgrades (Hold'em, Five-Card Draw, Omaha)                                             | Not started                     |
 | 16    | Admin overhaul + expansion                                                                  | Not started                     |
