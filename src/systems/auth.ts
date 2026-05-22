@@ -91,6 +91,37 @@ export async function login(input: { username: string; password: string }): Prom
   return { ok: true, user };
 }
 
+export type UpdateProfileError = 'username_taken' | 'not_found';
+
+export type UpdateProfileResult = { ok: true } | { ok: false; error: UpdateProfileError };
+
+/**
+ * Update a user's editable profile fields. Username changes are uniqueness-
+ * checked against the `usernameLower` index (so the unique constraint is never
+ * violated); omitted fields are left unchanged. Money/balances are untouched.
+ */
+export async function updateProfile(
+  userId: string,
+  patch: { username?: string; avatarColor?: string },
+): Promise<UpdateProfileResult> {
+  const user = await db.users.get(userId);
+  if (!user) return { ok: false, error: 'not_found' };
+
+  const next: Partial<User> = {};
+  if (patch.username !== undefined) {
+    const username = patch.username.trim();
+    const usernameLower = username.toLowerCase();
+    const clash = await db.users.where('usernameLower').equals(usernameLower).first();
+    if (clash && clash.id !== userId) return { ok: false, error: 'username_taken' };
+    next.username = username;
+    next.usernameLower = usernameLower;
+  }
+  if (patch.avatarColor !== undefined) next.avatarColor = patch.avatarColor;
+
+  await db.users.update(userId, next);
+  return { ok: true };
+}
+
 export function logout(): Promise<void> {
   clearStoredSession();
   return Promise.resolve();
