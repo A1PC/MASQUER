@@ -5,8 +5,6 @@ import { useNavigate } from 'react-router';
 import { useCurrentUser, useSessionStore } from '@/store/sessionStore';
 import { useWalletStore } from '@/store/walletStore';
 import { usePrefsStore } from '@/store/prefsStore';
-import { Button, Modal } from '@/components/ui';
-import { deleteAccount } from '@/systems/account';
 
 export default function ProfileDropdown(): JSX.Element | null {
   const user = useCurrentUser();
@@ -16,8 +14,6 @@ export default function ProfileDropdown(): JSX.Element | null {
   const navigate = useNavigate();
   const reduce = useReducedMotion();
   const [open, setOpen] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState(false);
-  const [deleting, setDeleting] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -37,19 +33,6 @@ export default function ProfileDropdown(): JSX.Element | null {
     clearWallet();
     clearPrefs();
     void navigate('/login', { replace: true });
-  };
-
-  const handleDeleteAccount = async () => {
-    if (!user) return;
-    setDeleting(true);
-    try {
-      await deleteAccount(user.id);
-    } finally {
-      setDeleting(false);
-      setConfirmDelete(false);
-    }
-    // Reuse the existing logout flow: clear session + wallet + prefs, then exit.
-    await handleLogout();
   };
 
   const go = (to: string) => {
@@ -107,40 +90,9 @@ export default function ProfileDropdown(): JSX.Element | null {
               onClick={() => void handleLogout()}
               variant="danger"
             />
-            <div className="my-1.5 border-t border-gold/15" />
-            <MenuItem
-              icon="🗑️"
-              label="Delete account"
-              onClick={() => {
-                setOpen(false);
-                setConfirmDelete(true);
-              }}
-              variant="danger"
-            />
           </motion.div>
         )}
       </AnimatePresence>
-
-      <Modal
-        open={confirmDelete}
-        onOpenChange={setConfirmDelete}
-        title="Delete account?"
-        description="This permanently deletes your account and all of your data — balance, play history, sessions, and lottery entries. This cannot be undone."
-      >
-        <div className="mt-4 flex justify-end gap-2.5">
-          <Button variant="ghost" size="sm" onClick={() => setConfirmDelete(false)}>
-            Cancel
-          </Button>
-          <Button
-            variant="danger"
-            size="sm"
-            loading={deleting}
-            onClick={() => void handleDeleteAccount()}
-          >
-            Delete forever
-          </Button>
-        </div>
-      </Modal>
     </div>
   );
 }

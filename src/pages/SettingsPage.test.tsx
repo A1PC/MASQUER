@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import 'fake-indexeddb/auto';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -137,5 +137,20 @@ describe('SettingsPage', () => {
     const dialog = await screen.findByRole('dialog');
     await userEvent.click(within(dialog).getByRole('button', { name: /cancel/i }));
     expect(await db.rounds.where('userId').equals(testUser.id).count()).toBe(1);
+  });
+
+  it('delete account opens a confirm modal and wipes the user + logs out on confirm', async () => {
+    const logout = vi.fn(() => Promise.resolve());
+    useSessionStore.setState({ logout });
+    await db.users.add(testUser);
+    await db.rounds.add(makeRound('r3'));
+    renderPage();
+    await userEvent.click(screen.getByRole('button', { name: /^delete account$/i }));
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByText(/delete account\?/i)).toBeInTheDocument();
+    await userEvent.click(within(dialog).getByRole('button', { name: /delete forever/i }));
+    await waitFor(async () => expect(await db.users.get(testUser.id)).toBeUndefined());
+    expect(await db.rounds.where('userId').equals(testUser.id).count()).toBe(0);
+    expect(logout).toHaveBeenCalled();
   });
 });
