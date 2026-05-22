@@ -177,10 +177,7 @@ function ambienceLounge() {
   for (let i = 0; i < buf.length; i++) {
     const t = i / SAMPLE_RATE;
     const pad =
-      sine(t, 110) * 0.18 +
-      sine(t, 164.81) * 0.12 +
-      sine(t, 220) * 0.08 +
-      sine(t, 277.18) * 0.05;
+      sine(t, 110) * 0.18 + sine(t, 164.81) * 0.12 + sine(t, 220) * 0.08 + sine(t, 277.18) * 0.05;
     const slowTrem = 0.85 + 0.15 * Math.sin(TAU * 0.15 * t);
     const n = rng() * 2 - 1;
     lp += 0.0008 * (n - lp);
@@ -245,4 +242,6 @@ for (const [name, gen] of Object.entries(FILES)) {
   total += bytes;
   console.log(`  ${name.padEnd(22)} ${(bytes / 1024).toFixed(1)} KB`);
 }
-console.log(`Generated ${Object.keys(FILES).length} samples — ${(total / 1024).toFixed(1)} KB total.`);
+console.log(
+  `Generated ${Object.keys(FILES).length} samples — ${(total / 1024).toFixed(1)} KB total.`,
+);
