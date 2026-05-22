@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { db } from '@/db';
 import { useSessionStore } from '@/store/sessionStore';
 import { useWalletStore } from '@/store/walletStore';
+import { usePrefsStore } from '@/store/prefsStore';
 import { useBingoConfigStore } from '@/store/bingoConfigStore';
 
 interface Props {
@@ -16,6 +17,8 @@ export default function AppBootstrap({ children }: Props): JSX.Element {
   const currentUser = useSessionStore((s) => s.currentUser);
   const hydrateWallet = useWalletStore((s) => s.hydrate);
   const clearWallet = useWalletStore((s) => s.clear);
+  const hydratePrefs = usePrefsStore((s) => s.hydrate);
+  const clearPrefs = usePrefsStore((s) => s.clear);
   const hydrateBingoConfig = useBingoConfigStore((s) => s.hydrate);
 
   useEffect(() => {
@@ -23,9 +26,14 @@ export default function AppBootstrap({ children }: Props): JSX.Element {
   }, [bootstrap]);
 
   useEffect(() => {
-    if (currentUser) void hydrateWallet(currentUser.id);
-    else clearWallet();
-  }, [currentUser, hydrateWallet, clearWallet]);
+    if (currentUser) {
+      void hydrateWallet(currentUser.id);
+      void hydratePrefs(currentUser.id);
+    } else {
+      clearWallet();
+      clearPrefs();
+    }
+  }, [currentUser, hydrateWallet, clearWallet, hydratePrefs, clearPrefs]);
 
   // Bingo config is app-wide (not user-scoped) — hydrate once on mount.
   useEffect(() => {
