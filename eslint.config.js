@@ -7,7 +7,7 @@ import prettier from 'eslint-config-prettier';
 import globals from 'globals';
 
 export default tseslint.config(
-  { ignores: ['dist', 'coverage', 'node_modules', '.husky', '*.config.js'] },
+  { ignores: ['dist', 'coverage', 'storybook-static', 'node_modules', '.husky', '*.config.js'] },
   js.configs.recommended,
   ...tseslint.configs.recommendedTypeChecked,
   {
@@ -43,6 +43,23 @@ export default tseslint.config(
       '@typescript-eslint/no-unsafe-assignment': 'off',
       '@typescript-eslint/no-unsafe-argument': 'off',
     },
+  },
+  {
+    // Storybook stories + config legitimately export non-component values
+    // (default `meta`, named story objects, Storybook config). They are not
+    // part of the typed app project, so disable the react-refresh HMR rule and
+    // type-checked rules that need a tsconfig project for them.
+    files: ['**/*.stories.{ts,tsx}', '.storybook/**/*.{ts,tsx}'],
+    rules: {
+      'react-refresh/only-export-components': 'off',
+    },
+  },
+  {
+    files: ['.storybook/**/*.{ts,tsx}'],
+    languageOptions: {
+      parserOptions: { projectService: false, project: null },
+    },
+    ...tseslint.configs.disableTypeChecked,
   },
   {
     // Game logic and helpers must not bypass the system layer.
