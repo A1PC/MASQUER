@@ -26,7 +26,7 @@ beforeEach(() => {
 });
 
 describe('LobbyPage', () => {
-  it('renders heading and all 5 game cabinets', () => {
+  it('renders heading and game cabinets including Craps', () => {
     render(
       <MemoryRouter>
         <LobbyPage />
@@ -38,6 +38,7 @@ describe('LobbyPage', () => {
     expect(screen.getByText('ROULETTE')).toBeInTheDocument();
     expect(screen.getByText('SLOTS')).toBeInTheDocument();
     expect(screen.getByText('BACCARAT')).toBeInTheDocument();
+    expect(screen.getByText('CRAPS')).toBeInTheDocument();
   });
 
   it('shows empty-state recent-activity strip when no rounds played', () => {
