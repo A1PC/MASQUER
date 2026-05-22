@@ -9,3 +9,4 @@ export { Divider } from './Divider';
 export { Heading, Text } from './Text';
 export { Field } from './Field';
 export { Input, Textarea, type InputProps, type TextareaProps } from './Input';
+export { Select } from './Select';
