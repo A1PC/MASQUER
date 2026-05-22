@@ -1,8 +1,13 @@
 import type { JSX } from 'react';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { ToastProvider } from './Toast';
 import { useToast, type ToastTone } from './toast-context';
+
+const { playSpy } = vi.hoisted(() => ({ playSpy: vi.fn() }));
+vi.mock('@/systems/sound/useSound', () => ({ useSound: () => ({ play: playSpy }) }));
+
+beforeEach(() => playSpy.mockClear());
 
 function Trigger({ tone }: { tone?: ToastTone }): JSX.Element {
   const { toast } = useToast();
@@ -50,6 +55,35 @@ describe('useToast / ToastProvider', () => {
     await screen.findByText('Jackpot!');
     fireEvent.click(screen.getByRole('button', { name: 'Dismiss' }));
     await waitFor(() => expect(screen.queryByText('Jackpot!')).not.toBeInTheDocument());
+  });
+
+  it('plays the tone-mapped sound when a toast fires', async () => {
+    render(
+      <ToastProvider>
+        <Trigger tone="win" />
+      </ToastProvider>,
+    );
+    fireEvent.click(screen.getByText('Fire'));
+    await screen.findAllByText('Jackpot!');
+    expect(playSpy).toHaveBeenCalledWith('win.medium');
+  });
+
+  it('plays loss / ui.toggle for loss and info tones', () => {
+    const { rerender } = render(
+      <ToastProvider>
+        <Trigger tone="loss" />
+      </ToastProvider>,
+    );
+    fireEvent.click(screen.getByText('Fire'));
+    expect(playSpy).toHaveBeenLastCalledWith('loss');
+    playSpy.mockClear();
+    rerender(
+      <ToastProvider>
+        <Trigger />
+      </ToastProvider>,
+    );
+    fireEvent.click(screen.getByText('Fire'));
+    expect(playSpy).toHaveBeenLastCalledWith('ui.toggle');
   });
 
   it('throws when useToast is used outside a provider', () => {

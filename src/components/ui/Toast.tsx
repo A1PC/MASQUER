@@ -10,6 +10,8 @@ import {
   type ToastOptions,
   type ToastTone,
 } from './toast-context';
+import { useSound } from '@/systems/sound/useSound';
+import type { SoundId } from '@/systems/sound/ids';
 
 /**
  * Toast system on `@radix-ui/react-toast`. `ToastProvider` holds a queue in
@@ -40,6 +42,13 @@ const iconByTone: Record<ToastTone, IconName> = {
   loss: 'TrendingDown',
 };
 
+// Each tone is announced with a matching sound (prefs-gated by useSound).
+const soundByTone: Record<ToastTone, SoundId> = {
+  info: 'ui.toggle',
+  win: 'win.medium',
+  loss: 'loss',
+};
+
 const iconColorByTone: Record<ToastTone, string> = {
   info: 'text-brass',
   win: 'text-gold',
@@ -55,11 +64,16 @@ interface ToastProviderProps {
 export function ToastProvider({ children, duration = 4000 }: ToastProviderProps): JSX.Element {
   const [toasts, setToasts] = useState<ToastEntry[]>([]);
   const nextId = useRef(0);
+  const { play } = useSound();
 
-  const toast = useCallback((options: ToastOptions) => {
-    const id = nextId.current++;
-    setToasts((prev) => [...prev, { id, open: true, tone: 'info', ...options }]);
-  }, []);
+  const toast = useCallback(
+    (options: ToastOptions) => {
+      const id = nextId.current++;
+      setToasts((prev) => [...prev, { id, open: true, tone: 'info', ...options }]);
+      play(soundByTone[options.tone ?? 'info']);
+    },
+    [play],
+  );
 
   const setOpen = useCallback((id: number, open: boolean) => {
     setToasts((prev) => prev.map((t) => (t.id === id ? { ...t, open } : t)));

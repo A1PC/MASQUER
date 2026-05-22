@@ -6,6 +6,8 @@ import { useSessionStore } from '@/store/sessionStore';
 import { useWalletStore } from '@/store/walletStore';
 import { usePrefsStore } from '@/store/prefsStore';
 import { useBingoConfigStore } from '@/store/bingoConfigStore';
+import { ToastProvider } from '@/components/ui';
+import { soundEngine } from '@/systems/sound/engine';
 
 interface Props {
   children: ReactNode;
@@ -60,13 +62,21 @@ export default function AppBootstrap({ children }: Props): JSX.Element {
     return () => window.removeEventListener('beforeunload', handler);
   }, []);
 
-  if (bootstrapping) {
-    return (
-      <main className="grid h-full place-items-center">
-        <p className="font-display text-gold">Loading…</p>
-      </main>
-    );
-  }
+  // Arm the audio unlock once on mount: the engine resumes its AudioContext on
+  // the first user gesture (browser autoplay policy). Safe no-op under jsdom.
+  useEffect(() => {
+    soundEngine.unlock();
+  }, []);
 
-  return <>{children}</>;
+  return (
+    <ToastProvider>
+      {bootstrapping ? (
+        <main className="grid h-full place-items-center">
+          <p className="font-display text-gold">Loading…</p>
+        </main>
+      ) : (
+        children
+      )}
+    </ToastProvider>
+  );
 }

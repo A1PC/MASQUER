@@ -1,8 +1,9 @@
-import { forwardRef } from 'react';
+import { forwardRef, useCallback } from 'react';
 import { Slot } from '@radix-ui/react-slot';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from './cn';
 import { Spinner } from './Spinner';
+import { useSound } from '@/systems/sound/useSound';
 
 const button = cva(
   'inline-flex items-center justify-center gap-2 rounded-xl font-body font-semibold uppercase tracking-[0.12em] ' +
@@ -29,15 +30,36 @@ export interface ButtonProps
 }
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
-  { className, variant, size, asChild = false, loading = false, disabled, children, ...rest },
+  {
+    className,
+    variant,
+    size,
+    asChild = false,
+    loading = false,
+    disabled,
+    children,
+    onClick,
+    ...rest
+  },
   ref,
 ) {
   const Comp = asChild ? Slot : 'button';
+  const { play } = useSound();
+  // Play the UI click on real buttons only — when `asChild`, Slot forwards to the
+  // child element and we don't own its click contract. Prefs-gated by useSound.
+  const handleClick = useCallback(
+    (e: React.MouseEvent<HTMLButtonElement>) => {
+      if (!asChild) play('ui.click');
+      onClick?.(e);
+    },
+    [asChild, play, onClick],
+  );
   return (
     <Comp
       ref={ref}
       className={cn(button({ variant, size }), className)}
       disabled={asChild ? undefined : disabled || loading}
+      onClick={asChild ? onClick : handleClick}
       {...rest}
     >
       {asChild ? (
