@@ -16,3 +16,5 @@ export { RadioGroup, RadioGroupItem } from './RadioGroup';
 export { Slider } from './Slider';
 export { Modal, Drawer } from './Modal';
 export { Tabs } from './Tabs';
+export { Tooltip, TooltipProvider } from './Tooltip';
+export { DropdownMenu } from './DropdownMenu';
