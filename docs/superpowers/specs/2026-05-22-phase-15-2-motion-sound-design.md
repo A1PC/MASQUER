@@ -74,7 +74,11 @@ Route `/settings` (inside `AppLayout`/`RequireAuth`) + a sidebar/profile-menu en
 
 - **Sound:** master `Switch` (soundEnabled); `Slider` master volume (plays a `ui.click` test blip on change); category `Switch`es (UI / Game / Ambience). Disabled controls greyed when sound off.
 - **Motion:** `Select` `motionPref` (System / Full / Reduced) with a helper noting the OS setting is respected under "System".
-- **Account utilities:** **Clear play history** (deletes this user's `rounds` rows — confirm `Modal`; stats/leaderboard reflect the reset), **Reset profile** (resets balance to the starting 1,000 chips + clears history — confirm `Modal`), and a read-only **Daily top-up** info line (next top-up amount/time). These call new `src/systems` helpers (`clearHistory(userId)`, `resetProfile(userId)`); they never bypass the wallet/round invariants.
+- **Account utilities:** **Clear play history** (deletes this user's `rounds` rows — confirm `Modal`; stats/leaderboard reflect the cleared data) and a read-only **Daily top-up** info line (next top-up amount/time). Calls a new `clearHistory(userId)` helper; never bypasses the wallet/round invariants. **Profile _reset_ is intentionally NOT offered.**
+
+### 6.1 Account deletion (profile menu, not Settings)
+
+A **Delete account** action lives in the **profile menu** (`ProfileDropdown`), set apart (destructive styling). It opens a confirm `Modal` (type-to-confirm or explicit "Delete forever" button) and calls a new `deleteAccount(userId)` helper that removes the user row **and all their data** (`balances`, `rounds`, `sessions`, `gameVisits`, `adjustments`, lottery tickets/lines/favorites, `prefs`) in one Dexie transaction, then logs the user out to the login screen. Global rows (e.g. `lotteryDraws`) are untouched.
 
 ## 7. Integration in #2 (proof-of-life)
 
@@ -88,7 +92,8 @@ Route `/settings` (inside `AppLayout`/`RequireAuth`) + a sidebar/profile-menu en
 - **useSound:** respects `soundEnabled`/category mute/volume from a mocked `prefsStore`; unknown id is a safe no-op.
 - **prefsStore + Dexie:** `getOrCreatePrefs` seeds defaults; updates persist (fake-indexeddb); v5 migration is additive (existing data intact).
 - **useEffectiveReducedMotion:** truth table over (OS reduce?, motionPref) — mock `matchMedia`.
-- **Settings page:** renders all controls; volume/mute/motion changes call the store; Clear history + Reset profile open a confirm Modal and call the right system helper (fake-indexeddb asserts rows cleared / balance reset).
+- **Settings page:** renders all controls; volume/mute/motion changes call the store; Clear history opens a confirm Modal and calls `clearHistory` (fake-indexeddb asserts the user's `rounds` rows are gone).
+- **Account deletion:** `deleteAccount(userId)` removes the user + all user-keyed rows in one transaction and leaves global rows intact (fake-indexeddb); the `ProfileDropdown` Delete-account item opens a confirm Modal and logs out on confirm.
 - **PageTransition:** renders children; collapses to instant under effective-reduced-motion.
 - DoD per PR: `pnpm lint && pnpm typecheck && pnpm exec vitest run && pnpm build` (+ `pnpm build-storybook`).
 
@@ -96,11 +101,11 @@ Route `/settings` (inside `AppLayout`/`RequireAuth`) + a sidebar/profile-menu en
 
 - **PR A — Sound:** Dexie v5 `prefs` table + `prefsStore`; `soundEngine` (synth + sample + unlock + master gain); `useSound`; bundled samples + CREDITS; tests. (No UI yet beyond wiring `Button`/`Toast`.)
 - **PR B — Motion:** `variants.ts`, `useEffectiveReducedMotion`, `<PageTransition>` mounted in `AppLayout`; #1 Modal/overlays adopt the shared variants; tests.
-- **PR C — Settings page:** `/settings` route + nav entry + the page (sound/motion/account utilities) + `clearHistory`/`resetProfile` system helpers; tests.
+- **PR C — Settings page + account deletion:** `/settings` route + nav entry + the page (sound/motion/Clear-history/top-up info) + the `clearHistory(userId)` helper; plus the `deleteAccount(userId)` helper and the **Delete account** item in `ProfileDropdown` (confirm Modal + logout); tests.
 
 ## 10. Invariants & out of scope
 
-Game logic untouched; games sandbox preserved (`useSound`/motion are `src/systems`/`src/motion` hooks games may import; no `@/db`/`@/store` imports inside `src/games`); one rounds row per game (clear-history deletes rows, never fabricates them); integer money (reset-profile sets exactly 1,000); seeded RNG unaffected; all ADRs intact; tokens-only; CLAUDE.md not edited; `BUILD_GUIDE.md` updated spec-first. **Out of scope:** per-game sound/motion wiring (each game's sub-project); new games; theme switching.
+Game logic untouched; games sandbox preserved (`useSound`/motion are `src/systems`/`src/motion` hooks games may import; no `@/db`/`@/store` imports inside `src/games`); one rounds row per game (clear-history + account-deletion delete rows, never fabricate them); integer money; seeded RNG unaffected; all ADRs intact; tokens-only; CLAUDE.md not edited; `BUILD_GUIDE.md` updated spec-first. **Out of scope:** per-game sound/motion wiring (each game's sub-project); new games; theme switching.
 
 ## 11. Open decisions
 
