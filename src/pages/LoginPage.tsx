@@ -1,12 +1,15 @@
 import { useEffect, useState } from 'react';
+import type { JSX } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useSessionStore, useCurrentUser } from '@/store/sessionStore';
 import { loginSchema, type LoginInput } from '@/systems/auth-schemas';
+import { Card, Field, Input, Button } from '@/components/ui';
+import MaskMark from '@/components/brand/MaskMark';
 import DevWipeButton from '@/components/DevWipeButton';
 
-export default function LoginPage() {
+export default function LoginPage(): JSX.Element {
   const login = useSessionStore((s) => s.login);
   const currentUser = useCurrentUser();
   const navigate = useNavigate();
@@ -40,67 +43,57 @@ export default function LoginPage() {
 
   return (
     <main className="mx-auto grid min-h-full max-w-md place-items-center p-6">
-      <form
-        onSubmit={(e) => void onSubmit(e)}
-        className="w-full space-y-4 rounded-lg border border-gold/30 bg-felt p-6 shadow-gold-glow"
-        noValidate
-      >
-        <h1 className="text-center text-2xl text-gold">Sign in</h1>
+      <Card surface="velvet" className="w-full">
+        <form onSubmit={(e) => void onSubmit(e)} noValidate className="space-y-5">
+          <div className="flex flex-col items-center gap-3 text-center">
+            <MaskMark size={64} />
+            <div>
+              <h1 className="font-display text-2xl tracking-[0.16em] text-gold">Sign in</h1>
+              <p className="mt-1 font-body text-xs text-ivory/60">Welcome back to MASQUER.</p>
+            </div>
+          </div>
 
-        <label className="block">
-          <span className="text-sm text-white/80">Username</span>
-          <input
-            type="text"
-            autoComplete="username"
-            autoFocus
-            {...register('username')}
-            className="mt-1 w-full rounded border border-white/20 bg-felt-deep px-3 py-2"
-          />
-          {errors.username && (
-            <p className="mt-1 text-sm text-casino-red" role="alert">
-              {errors.username.message}
+          <Field id="login-username" label="Username" error={errors.username?.message}>
+            <Input
+              id="login-username"
+              type="text"
+              autoComplete="username"
+              autoFocus
+              state={errors.username ? 'error' : 'default'}
+              {...register('username')}
+            />
+          </Field>
+
+          <Field id="login-password" label="Password" error={errors.password?.message}>
+            <Input
+              id="login-password"
+              type="password"
+              autoComplete="current-password"
+              state={errors.password ? 'error' : 'default'}
+              {...register('password')}
+            />
+          </Field>
+
+          {submitError ? (
+            <p role="alert" className="text-[11px] text-[#e3a8af]">
+              {submitError}
             </p>
-          )}
-        </label>
+          ) : null}
 
-        <label className="block">
-          <span className="text-sm text-white/80">Password</span>
-          <input
-            type="password"
-            autoComplete="current-password"
-            {...register('password')}
-            className="mt-1 w-full rounded border border-white/20 bg-felt-deep px-3 py-2"
-          />
-          {errors.password && (
-            <p className="mt-1 text-sm text-casino-red" role="alert">
-              {errors.password.message}
-            </p>
-          )}
-        </label>
+          <Button type="submit" variant="primary" loading={isSubmitting} className="w-full">
+            {isSubmitting ? 'Signing in…' : 'Sign in'}
+          </Button>
 
-        {submitError && (
-          <p className="text-sm text-casino-red" role="alert">
-            {submitError}
+          <p className="text-center font-body text-xs text-ivory/60">
+            New here?{' '}
+            <Link to="/register" className="text-gold underline">
+              Create an account
+            </Link>
           </p>
-        )}
 
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="w-full rounded bg-casino-red px-4 py-2 font-display tracking-wide text-white disabled:opacity-50"
-        >
-          {isSubmitting ? 'Signing in…' : 'Sign in'}
-        </button>
-
-        <p className="text-center text-sm text-white/70">
-          New here?{' '}
-          <Link to="/register" className="text-gold underline">
-            Create an account
-          </Link>
-        </p>
-
-        <DevWipeButton />
-      </form>
+          <DevWipeButton />
+        </form>
+      </Card>
     </main>
   );
 }
