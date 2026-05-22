@@ -1,8 +1,12 @@
 import type { IconName } from '@/components/ui';
 
 /** One source of truth for nav + lobby icons. Keys = game/route slugs.
- *  Values are lucide icon names; pick the closest available glyph. */
-export const NAV_ICON: Record<string, IconName> = {
+ *  Values are lucide icon names; pick the closest available glyph.
+ *
+ *  Declared with `satisfies` (not `Record<string, IconName>`) so each key keeps
+ *  its literal `IconName` type — indexing returns `IconName`, never `undefined`
+ *  (which `noUncheckedIndexedAccess` would otherwise infer for a string Record). */
+export const NAV_ICON = {
   lobby: 'LayoutGrid',
   'coin-flip': 'CircleDollarSign',
   blackjack: 'Spade',
@@ -17,4 +21,4 @@ export const NAV_ICON: Record<string, IconName> = {
   stats: 'ChartColumn',
   leaderboard: 'Trophy',
   settings: 'Settings',
-};
+} satisfies Record<string, IconName>;

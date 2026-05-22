@@ -9,7 +9,7 @@ describe('NAV_ICON', () => {
     }
   });
   it('covers the games + you-section routes', () => {
-    for (const k of [
+    const keys: (keyof typeof NAV_ICON)[] = [
       'lobby',
       'coin-flip',
       'blackjack',
@@ -24,7 +24,7 @@ describe('NAV_ICON', () => {
       'stats',
       'leaderboard',
       'settings',
-    ])
-      expect(NAV_ICON[k]).toBeDefined();
+    ];
+    for (const k of keys) expect(NAV_ICON[k]).toBeDefined();
   });
 });
