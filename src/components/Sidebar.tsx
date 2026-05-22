@@ -4,6 +4,7 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { NavLink, useLocation } from 'react-router';
 import { useCurrentUser } from '@/store/sessionStore';
 import { markDrawSeen, useLatestDrawId, useUnreadDot } from '@/systems/lottery-unread';
+import { Icon, type IconName } from '@/components/ui';
 
 interface Props {
   collapsed: boolean;
@@ -11,7 +12,10 @@ interface Props {
 
 interface NavItemDef {
   to: string;
+  /** Emoji glyph (legacy game rows) or a lucide `Icon` name (rendered as SVG). */
   icon: string;
+  /** When set, renders the #1 `Icon` instead of the emoji string. */
+  iconName?: IconName;
   label: string;
   badge?: 'NEW';
 }
@@ -32,6 +36,7 @@ const GAMES: NavItemDef[] = [
 const YOU: NavItemDef[] = [
   { to: '/stats', icon: '📊', label: 'Stats' },
   { to: '/leaderboard', icon: '🏆', label: 'Leaderboard' },
+  { to: '/settings', icon: '⚙️', iconName: 'Settings', label: 'Settings' },
 ];
 
 export default function Sidebar({ collapsed }: Props): JSX.Element {
@@ -100,7 +105,7 @@ function Divider() {
 }
 
 function NavItem({ item }: { item: NavItemDef }) {
-  const { to, icon, label, badge } = item;
+  const { to, icon, iconName, label, badge } = item;
   return (
     <NavLink
       to={to}
@@ -112,8 +117,9 @@ function NavItem({ item }: { item: NavItemDef }) {
         }`
       }
     >
-      <span>
-        {icon} {label}
+      <span className="flex items-center gap-2">
+        {iconName ? <Icon name={iconName} size={15} /> : <span>{icon}</span>}
+        {label}
       </span>
       {badge && (
         <span className="rounded-full bg-neon-cyan px-1.5 text-[9px] font-bold text-felt-deep">

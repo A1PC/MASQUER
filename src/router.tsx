@@ -9,6 +9,7 @@ import LoginPage from '@/pages/LoginPage';
 import RegisterPage from '@/pages/RegisterPage';
 import LobbyPage from '@/pages/LobbyPage';
 import ProfileStubPage from '@/pages/ProfileStubPage';
+import SettingsPage from '@/pages/SettingsPage';
 import CoinFlipPage from '@/games/coin-flip/CoinFlipPage';
 import BlackjackPage from '@/games/blackjack/BlackjackPage';
 import RoulettePage from '@/games/roulette/RoulettePage';
@@ -129,7 +130,7 @@ export const router = createBrowserRouter([
       },
       { path: 'profile', element: <ProfileStubPage feature="Your profile" /> },
       { path: 'profile/edit', element: <ProfileStubPage feature="Edit profile" /> },
-      { path: 'settings', element: <ProfileStubPage feature="Settings" /> },
+      { path: 'settings', element: <SettingsPage /> },
       { path: 'play/coin-flip', element: <CoinFlipPage /> },
       { path: 'play/blackjack', element: <BlackjackPage /> },
       { path: 'play/roulette', element: <RoulettePage /> },
