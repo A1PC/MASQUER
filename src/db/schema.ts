@@ -158,6 +158,18 @@ export interface BingoConfigRow {
   forceManual: boolean;
 }
 
+/** v5 (Phase 15 #2): per-user preferences (sound + motion). One row per user,
+ *  keyed by `userId`. Created lazily with defaults on first access. */
+export interface Prefs {
+  userId: string; // PK
+  soundEnabled: boolean;
+  masterVolume: number; // 0..1
+  muteUi: boolean;
+  muteGame: boolean;
+  muteAmbience: boolean;
+  motionPref: 'system' | 'full' | 'reduced';
+}
+
 export class LocalGambleDB extends Dexie {
   users!: EntityTable<User, 'id'>;
   balances!: EntityTable<Balance, 'userId'>;
@@ -170,6 +182,7 @@ export class LocalGambleDB extends Dexie {
   lotteryLines!: EntityTable<LotteryLine, 'id'>;
   lotteryFavorites!: EntityTable<LotteryFavorite, 'id'>;
   bingoConfig!: Dexie.Table<BingoConfigRow, 'easy' | 'medium' | 'hard'>;
+  prefs!: EntityTable<Prefs, 'userId'>;
 
   constructor(name = 'localGamble') {
     super(name);
@@ -214,6 +227,21 @@ export class LocalGambleDB extends Dexie {
       lotteryFavorites: 'id, userId, createdAt, [userId+createdAt]',
       // Phase 11.5: admin-tunable bingo config
       bingoConfig: '&difficulty',
+    });
+    this.version(5).stores({
+      users: 'id, &usernameLower, createdAt',
+      balances: 'userId',
+      rounds: 'id, userId, game, playedAt, [userId+playedAt]',
+      sessions: 'id, userId, loginAt, [userId+loginAt]',
+      gameVisits: 'id, userId, game, sessionId, [userId+game], [userId+enteredAt]',
+      adjustments: 'id, userId, adjustedAt, [userId+adjustedAt]',
+      lotteryDraws: 'id, drawAt',
+      lotteryTickets: 'id, userId, drawId, purchasedAt, [userId+drawId]',
+      lotteryLines: 'id, ticketId, userId, drawId, settled, [userId+drawId], [drawId+settled]',
+      lotteryFavorites: 'id, userId, createdAt, [userId+createdAt]',
+      bingoConfig: '&difficulty',
+      // Phase 15 #2: per-user sound + motion preferences
+      prefs: 'userId',
     });
   }
 }

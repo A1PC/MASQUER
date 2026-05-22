@@ -16,8 +16,8 @@ describe('schema v2', () => {
     await freshDb();
   });
 
-  it('opens at version 4', () => {
-    expect(db.verno).toBe(4);
+  it('opens at version 5', () => {
+    expect(db.verno).toBe(5);
   });
 
   it('has the new tables: sessions, gameVisits, adjustments', () => {

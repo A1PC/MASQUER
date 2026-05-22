@@ -7,7 +7,19 @@ import prettier from 'eslint-config-prettier';
 import globals from 'globals';
 
 export default tseslint.config(
-  { ignores: ['dist', 'coverage', 'storybook-static', 'node_modules', '.husky', '*.config.js'] },
+  {
+    // `scripts/` holds zero-dep Node build tooling (e.g. gen-audio.mjs) that is
+    // outside the typed app project — exclude like the *.config.js files.
+    ignores: [
+      'dist',
+      'coverage',
+      'storybook-static',
+      'node_modules',
+      '.husky',
+      '*.config.js',
+      'scripts',
+    ],
+  },
   js.configs.recommended,
   ...tseslint.configs.recommendedTypeChecked,
   {
