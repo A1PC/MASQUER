@@ -7,3 +7,5 @@ export { Badge } from './Badge';
 export { Chip } from './Chip';
 export { Divider } from './Divider';
 export { Heading, Text } from './Text';
+export { Field } from './Field';
+export { Input, Textarea, type InputProps, type TextareaProps } from './Input';
