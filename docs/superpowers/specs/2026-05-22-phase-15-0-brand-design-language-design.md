@@ -35,7 +35,7 @@ Dark-themed. All values are the canonical hex; components reference **semantic t
 | `porcelain`     | `#ffffff`               | Mask face, high-contrast card stock          |
 | `jewel.ruby`    | `#7a1422`               | Sparing accent (mask jewel, alerts)          |
 | `jewel.emerald` | `#1f6b4a`               | Sparing accent (mask jewel)                  |
-| `state.win`     | `#2ea27a`               | Win/success (jade — ties to felt)            |
+| `state.win`     | `#e6c068`               | Win/success (gold — winning glows gold)      |
 | `state.loss`    | `#7a1f2b`               | Loss                                         |
 | `state.push`    | `#8a7a55`               | Push / neutral (muted brass)                 |
 | `border.hair`   | `rgba(230,192,104,0.4)` | Gold hairline borders                        |
@@ -69,7 +69,7 @@ The Colombina mask ships as a **reusable React SVG component** `MaskMark` (e.g. 
 
 **Recurring usage:** app logo + wordmark lockup; coin-flip **heads** face (mask) / **tails** face (Cinzel "M" monogram); card backs (mask on oxblood pinstripe + gold rule); poker chips (mask centre, dashed gold edge); loaders (mask fades/tilts in, respecting reduced-motion); empty states; favicon + PWA icons; lobby hero.
 
-## 7. Motion principles (PROPOSED — confirm at review)
+## 7. Motion principles (APPROVED)
 
 Codified in #2's shared Framer-Motion variant library; every sub-project reuses named variants.
 
@@ -81,7 +81,7 @@ Codified in #2's shared Framer-Motion variant library; every sub-project reuses 
 - Animations **interruptible**; never block input.
 - **Signature moments:** card deal/flip, chip slide+stack, coin flip, the **mask reveal** loader, and a **tiered win celebration** (small/medium/jackpot — reuses ADR-0033) with a gold sunburst burst.
 
-## 8. Sound principles (PROPOSED — confirm at review)
+## 8. Sound principles (APPROVED)
 
 Built in #2; a single `useSound` hook is the **only** integration point (no inline `<audio>`).
 
@@ -112,4 +112,4 @@ Game logic untouched; games sandbox preserved; one rounds row per game (ADR-0041
 
 ## 12. Open decisions resolved
 
-Name (MASQUER) · palette (Velvet Deco) · type (Cinzel/Montserrat/Poiret One) · emblem (Colombina, porcelain+gold). Remaining for review: confirm the **motion** (§7) and **sound** (§8) principles, and whether the win-state colour should be **jade `#2ea27a`** (proposed) or **gold**.
+Name (MASQUER) · palette (Velvet Deco) · type (Cinzel/Montserrat/Poiret One) · emblem (Colombina, porcelain+gold). **Resolved at review:** win-state colour = **gold `#e6c068`** (winning glows gold; loss = oxblood, push = muted brass; functional colour always paired with an icon/label); motion (§7) and sound (§8) principles **approved** as written. Nothing outstanding — ready for the implementation plan.
