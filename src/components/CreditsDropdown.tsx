@@ -6,6 +6,7 @@ import { useEffectiveReducedMotion } from '@/motion/useEffectiveReducedMotion';
 import { useBalance, useNextDailyEligibleAt, useWalletStore } from '@/store/walletStore';
 import { useCurrentUser } from '@/store/sessionStore';
 import { WALLET_CONFIG } from '@/systems/wallet';
+import { formatChips } from '@/lib/formatChips';
 
 export default function CreditsDropdown(): JSX.Element {
   const [open, setOpen] = useState(false);
@@ -40,7 +41,7 @@ export default function CreditsDropdown(): JSX.Element {
 
   // Animated count-up/down on balance change.
   const display = useMotionValue(balance);
-  const rounded = useTransform(display, (v) => Math.round(v).toLocaleString());
+  const rounded = useTransform(display, (v) => formatChips(v));
   useEffect(() => {
     const controls = animate(display, balance, {
       duration: reduce ? 0 : 0.6,
@@ -56,11 +57,11 @@ export default function CreditsDropdown(): JSX.Element {
         className="flex items-center gap-1.5 rounded-lg border border-brass bg-transparent px-3.5 py-1.5 font-numeral tabular-nums text-gold transition-colors hover:bg-gold/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
         aria-haspopup="true"
         aria-expanded={open}
-        aria-label={`Your chips: ${balance.toLocaleString()}`}
+        aria-label={`Your chips: ${formatChips(balance)}`}
       >
-        <Icon name="Coins" size={15} className="text-gold" />
-        <motion.span>{rounded}</motion.span>
-        <Icon name={open ? 'ChevronUp' : 'ChevronDown'} size={13} className="text-gold/60" />
+        <Icon name="Coins" size={18} className="text-gold" />
+        <motion.span className="text-base font-semibold leading-none">{rounded}</motion.span>
+        <Icon name={open ? 'ChevronUp' : 'ChevronDown'} size={14} className="text-gold/60" />
       </button>
       <AnimatePresence>
         {open && (

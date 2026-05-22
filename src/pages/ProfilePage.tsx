@@ -19,6 +19,7 @@ import { updateProfile } from '@/systems/auth';
 import { db } from '@/db';
 import { getUserMetrics, type UserMetrics } from '@/systems/stats';
 import { AVATAR_PALETTE } from '@/systems/avatar';
+import { formatChips } from '@/lib/formatChips';
 
 interface ProfilePageProps {
   /** When true, the page opens directly in edit mode (the `/profile/edit` route). */
@@ -197,17 +198,17 @@ export default function ProfilePage({ edit = false }: ProfilePageProps): JSX.Ele
         ) : (
           <div className="space-y-5">
             <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-              <Stat label="Balance" value={(balance ?? 0).toLocaleString()} />
-              <Stat label="Rounds" value={(metrics?.totalRounds ?? 0).toLocaleString()} />
+              <Stat label="Balance" value={formatChips(balance ?? 0)} />
+              <Stat label="Rounds" value={formatChips(metrics?.totalRounds ?? 0)} />
               <Stat
                 label="Net"
                 value={
                   metrics
-                    ? `${metrics.netChange >= 0 ? '+' : ''}${metrics.netChange.toLocaleString()}`
+                    ? `${metrics.netChange >= 0 ? '+' : ''}${formatChips(metrics.netChange)}`
                     : '0'
                 }
               />
-              <Stat label="Won" value={(metrics?.totalWon ?? 0).toLocaleString()} />
+              <Stat label="Won" value={formatChips(metrics?.totalWon ?? 0)} />
             </div>
 
             <Button variant="secondary" onClick={() => void navigate('/profile/edit')}>

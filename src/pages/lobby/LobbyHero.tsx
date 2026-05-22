@@ -3,6 +3,7 @@ import { Panel, Button, Text, Icon, EmptyState } from '@/components/ui';
 import MaskMark from '@/components/brand/MaskMark';
 import { useBalance } from '@/store/walletStore';
 import { useDailyClaim } from '@/components/useDailyClaim';
+import { formatChips } from '@/lib/formatChips';
 
 /** "Next top-up …" copy for the not-yet-eligible state. */
 function formatNextDaily(nextEligibleAt: number | null): string {
@@ -70,7 +71,7 @@ export default function LobbyHero({ username }: Props): JSX.Element {
         </h1>
         <p className="mt-1 text-[10px] uppercase tracking-[0.18em] text-ivory/55">Balance</p>
         <p className="font-numeral text-3xl leading-none tabular-nums text-ivory">
-          {balance.toLocaleString()}
+          {formatChips(balance)}
         </p>
       </div>
       <div className="sm:ml-auto">
