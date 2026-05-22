@@ -53,7 +53,11 @@ export default function LoginPage(): JSX.Element {
             </div>
           </div>
 
-          <Field id="login-username" label="Username" error={errors.username?.message}>
+          <Field
+            id="login-username"
+            label="Username"
+            {...(errors.username?.message ? { error: errors.username.message } : {})}
+          >
             <Input
               id="login-username"
               type="text"
@@ -64,7 +68,11 @@ export default function LoginPage(): JSX.Element {
             />
           </Field>
 
-          <Field id="login-password" label="Password" error={errors.password?.message}>
+          <Field
+            id="login-password"
+            label="Password"
+            {...(errors.password?.message ? { error: errors.password.message } : {})}
+          >
             <Input
               id="login-password"
               type="password"

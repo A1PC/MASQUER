@@ -134,7 +134,11 @@ export default function ProfilePage({ edit = false }: ProfilePageProps): JSX.Ele
           >
             <CardHeader>Edit profile</CardHeader>
 
-            <Field id="profile-username" label="Username" error={nameError ?? undefined}>
+            <Field
+              id="profile-username"
+              label="Username"
+              {...(nameError ? { error: nameError } : {})}
+            >
               <Input
                 id="profile-username"
                 type="text"

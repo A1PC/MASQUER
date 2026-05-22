@@ -64,7 +64,11 @@ export default function RegisterPage(): JSX.Element {
             </div>
           </div>
 
-          <Field id="register-username" label="Username" error={errors.username?.message}>
+          <Field
+            id="register-username"
+            label="Username"
+            {...(errors.username?.message ? { error: errors.username.message } : {})}
+          >
             <Input
               id="register-username"
               type="text"
@@ -75,7 +79,11 @@ export default function RegisterPage(): JSX.Element {
             />
           </Field>
 
-          <Field id="register-password" label="Password" error={errors.password?.message}>
+          <Field
+            id="register-password"
+            label="Password"
+            {...(errors.password?.message ? { error: errors.password.message } : {})}
+          >
             <Input
               id="register-password"
               type="password"
@@ -88,7 +96,7 @@ export default function RegisterPage(): JSX.Element {
           <Field
             id="register-confirm"
             label="Confirm password"
-            error={errors.confirmPassword?.message}
+            {...(errors.confirmPassword?.message ? { error: errors.confirmPassword.message } : {})}
           >
             <Input
               id="register-confirm"
