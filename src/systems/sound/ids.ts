@@ -10,6 +10,7 @@ export type SoundId =
   | 'ui.toggle'
   | 'ui.hover'
   | 'ui.error'
+  | 'coin.flip'
   | 'chip.place'
   | 'card.deal'
   | 'dice.roll'
@@ -28,8 +29,9 @@ export const SOUND_CATEGORY: Record<SoundId, SoundCategory> = {
   'ui.toggle': 'ui',
   'ui.hover': 'ui',
   'ui.error': 'ui',
-  'chip.place': 'game',
   'card.deal': 'game',
+  'chip.place': 'game',
+  'coin.flip': 'game',
   'dice.roll': 'game',
   'reel.spin': 'game',
   'reel.stop': 'game',
