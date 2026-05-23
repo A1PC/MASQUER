@@ -66,8 +66,8 @@ export default function CoinFlipPage(): JSX.Element | null {
     setLastNet(null);
     play('coin.flip');
     const result = playRound({ call, betAmount: handle.amount });
-    // Spin animation duration matches the BrandCoin transition below.
-    await new Promise((r) => setTimeout(r, reduce ? 0 : 900));
+    // Spin animation duration matches BrandCoin's transition (1.6s for drama).
+    await new Promise((r) => setTimeout(r, reduce ? 0 : 1600));
     await settle(handle, result);
     const details = result.details as CoinFlipDetails;
     setDisplayFace(details.landed);
@@ -114,6 +114,7 @@ export default function CoinFlipPage(): JSX.Element | null {
           balance={balance}
           {...(lastBet !== undefined ? { lastBet } : {})}
           locked={handle !== null || flipping || resolving}
+          autoCommitRepeat
           onCommit={(amount) => void onCommit(amount)}
           callButtons={(committedAmount) => (
             <div className="flex gap-2.5">
