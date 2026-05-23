@@ -19,31 +19,33 @@ Phase 15 touches ~143 non-test components across 10 games (incl. the poker trio)
 
 Sub-projects 0–3 are the **foundation** and are strictly sequential — each gates the next. Sub-projects 4+ (games, admin) consume the foundation and can be sequenced flexibly. The final integration pass is last.
 
-| #   | Sub-project                           | Scope (one-liner)                                                                                                                                                                                                                        | Depends on |
-| --- | ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
-| 0   | **Brand + Design Language**           | Final product name, logo, color palette, typography & spacing scale, and the documented motion + sound _principles_ (decisions, not code). The "old-school Vegas content × modern-web execution" language made concrete.                 | —          |
-| 1   | **Design-system component library**   | Shared, tested UI primitives built on the #0 tokens: Button, Card, Panel, Modal, Chip, Badge, Tabs, Toast, EmptyState, Field/Input, etc. The vocabulary every screen is rebuilt from.                                                    | 0          |
-| 2   | **Motion & Sound infrastructure**     | `useSound` hook + audio asset pipeline + volume/mute settings; a shared Framer-Motion variant library + route/page transitions; a **Settings page** (sound volume, reduced-motion override, etc.). All respect `prefers-reduced-motion`. | 1          |
-| 3   | **Shell & navigation overhaul**       | TopBar, Sidebar, Lobby, Login/Register, Profile, daily top-up surfacing, and the global empty/zero-balance states — rebuilt on the design system. Validates the system on real screens before the games.                                 | 1, 2       |
-| 4   | **Blackjack** upgrade                 | Re-skin + animation + sound + triaged feature adds.                                                                                                                                                                                      | 1, 2       |
-| 5   | **Roulette** upgrade                  | "                                                                                                                                                                                                                                        | 1, 2       |
-| 6   | **Slots** upgrade                     | "                                                                                                                                                                                                                                        | 1, 2       |
-| 7   | **Baccarat** upgrade                  | "                                                                                                                                                                                                                                        | 1, 2       |
-| 8   | **Coin-flip** upgrade                 | "                                                                                                                                                                                                                                        | 1, 2       |
-| 9   | **Craps** upgrade                     | " (and the deferred craps items: put/buy/lay, working-on-come-out, etc.)                                                                                                                                                                 | 1, 2       |
-| 10  | **Bingo** upgrade                     | "                                                                                                                                                                                                                                        | 1, 2       |
-| 11  | **Plinko** upgrade                    | " (sound/jackpot celebration are strong candidates here)                                                                                                                                                                                 | 1, 2       |
-| 12  | **Lottery** upgrade                   | "                                                                                                                                                                                                                                        | 1, 2       |
-| 13  | **Poker — Hold'em** upgrade           | Re-skins the shared `poker/_shared/` core + Hold'em UI; **establishes the poker-table visual language** the other two variants adopt.                                                                                                    | 1, 2       |
-| 14  | **Poker — Five-Card Draw** upgrade    | Adopts the #13 poker visual language for consistency; variant-specific feature adds.                                                                                                                                                     | 1, 2, 13   |
-| 15  | **Poker — Omaha** upgrade             | Adopts the #13 poker visual language for consistency; variant-specific feature adds.                                                                                                                                                     | 1, 2, 13   |
-| 16  | **Admin overhaul + expansion**        | Re-skin ALL `/admin/*` pages (incl. admin login) to the design system; expand capabilities — per-game tuning consoles (building on the `/admin/bingo` precedent), richer analytics, any new admin tooling triaged from the docket.       | 1, 2       |
-| 17  | **Final integration & launch polish** | Cross-screen consistency audit, per-game `React.lazy` bundle splitting, full manual-smoke sweep across every game + admin, zero/empty-state QA, and the closing pass.                                                                    | all        |
+| #     | Sub-project                           | Scope (one-liner)                                                                                                                                                                                                                        | Depends on  |
+| ----- | ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
+| 0     | **Brand + Design Language**           | Final product name, logo, color palette, typography & spacing scale, and the documented motion + sound _principles_ (decisions, not code). The "old-school Vegas content × modern-web execution" language made concrete.                 | —           |
+| 1     | **Design-system component library**   | Shared, tested UI primitives built on the #0 tokens: Button, Card, Panel, Modal, Chip, Badge, Tabs, Toast, EmptyState, Field/Input, etc. The vocabulary every screen is rebuilt from.                                                    | 0           |
+| 2     | **Motion & Sound infrastructure**     | `useSound` hook + audio asset pipeline + volume/mute settings; a shared Framer-Motion variant library + route/page transitions; a **Settings page** (sound volume, reduced-motion override, etc.). All respect `prefers-reduced-motion`. | 1           |
+| 3     | **Shell & navigation overhaul**       | TopBar, Sidebar, Lobby, Login/Register, Profile, daily top-up surfacing, and the global empty/zero-balance states — rebuilt on the design system. Validates the system on real screens before the games.                                 | 1, 2        |
+| 4     | **Coin-flip** upgrade                 | Re-skin + animation + sound + triaged feature adds. Original release: Phase 2.                                                                                                                                                           | 1, 2        |
+| 5     | **Blackjack** upgrade                 | " · Phase 3                                                                                                                                                                                                                              | 1, 2        |
+| 6     | **Roulette** upgrade                  | " · Phase 4                                                                                                                                                                                                                              | 1, 2        |
+| 7     | **Slots** upgrade                     | " · Phase 5                                                                                                                                                                                                                              | 1, 2        |
+| 8     | **Baccarat** upgrade                  | " · Phase 6                                                                                                                                                                                                                              | 1, 2        |
+| 9     | **Lottery** upgrade                   | " · Phase 10                                                                                                                                                                                                                             | 1, 2        |
+| 10.v1 | **Bingo — British** upgrade           | Re-skin the 90-ball British variant. · Phase 11                                                                                                                                                                                          | 1, 2        |
+| 10.v2 | **Bingo — American** upgrade          | Re-skin the 75-ball American variant (after v1 locks the bingo visual language). · Phase 11.5                                                                                                                                            | 1, 2, 10.v1 |
+| 11    | **Plinko** upgrade                    | " (sound/jackpot celebration are strong candidates) · Phase 12                                                                                                                                                                           | 1, 2        |
+| 12.v1 | **Poker — Texas Hold'em** upgrade     | Re-skins the shared `poker/_shared/` core + Hold'em UI; **establishes the poker-table visual language** the other two variants adopt. · Phase 13a                                                                                        | 1, 2        |
+| 12.v2 | **Poker — Five-Card Draw** upgrade    | Adopts the #12.v1 poker visual language for consistency; variant-specific feature adds. · Phase 13b                                                                                                                                      | 1, 2, 12.v1 |
+| 12.v3 | **Poker — Omaha** upgrade             | Adopts the #12.v1 poker visual language for consistency; variant-specific feature adds. · Phase 13c                                                                                                                                      | 1, 2, 12.v1 |
+| 13    | **Craps** upgrade                     | " (and the deferred craps items: put/buy/lay, working-on-come-out, etc.) · Phase 14                                                                                                                                                      | 1, 2        |
+| 14    | **Admin overhaul + expansion**        | Re-skin ALL `/admin/*` pages (incl. admin login) to the design system; expand capabilities — per-game tuning consoles (building on the `/admin/bingo` precedent), richer analytics, any new admin tooling triaged from the docket.       | 1, 2        |
+| 15    | **Final integration & launch polish** | Cross-screen consistency audit, per-game `React.lazy` bundle splitting, full manual-smoke sweep across every game + admin, zero/empty-state QA, and the closing pass.                                                                    | all         |
 
 **Sequencing notes:**
 
-- The three poker sub-projects (#13–15) share consistency by construction: #13 re-skins `poker/_shared/` and locks the table visual language; #14 and #15 are near-mechanical adopters plus their own feature adds.
-- Games #4–12 are independent of each other and of poker — they can be reordered freely (e.g. tackle the most-played first, or the simplest first to validate the system).
+- **Sub-project numbering follows the games' original release order.** Multi-variant games are split into `x.vN` sub-projects (one per variant) so each gets its own spec/plan/PR cycle: **Bingo** = #10.v1 (British) + #10.v2 (American); the **poker trio** = #12.v1 (Hold'em) + #12.v2 (Five-Card Draw) + #12.v3 (Omaha).
+- The three poker sub-projects (#12.v1–v3) share consistency by construction: #12.v1 re-skins `poker/_shared/` and locks the table visual language; #12.v2 and #12.v3 are near-mechanical adopters plus their own feature adds. The two bingo sub-projects work similarly: #10.v1 locks the bingo visual language; #10.v2 adopts it for the American variant.
+- Sub-projects 4–13 are otherwise independent (each game's upgrade doesn't depend on the others). #14 (Admin) is also independent. #15 (final integration) comes last.
 - Admin (#16) is independent of the games and could run early to re-skin admin once the design system exists.
 
 ## 4. Shared principles (every sub-project MUST obey)
@@ -109,13 +111,24 @@ This umbrella's **Progress** table is updated as each sub-project completes.
 
 ## 8. Progress
 
-| #     | Sub-project                                                                                 | Status                          |
-| ----- | ------------------------------------------------------------------------------------------- | ------------------------------- |
-| 0     | Brand + Design Language                                                                     | ✅ Done (merged)                |
-| 1     | Design-system component library                                                             | ✅ Done (25 primitives, merged) |
-| 2     | Motion & Sound infrastructure                                                               | ✅ Done (3 PRs, merged)         |
-| 3     | Shell & navigation overhaul                                                                 | In progress (spec)              |
-| 4–12  | Per-game upgrades (BJ, roulette, slots, baccarat, coin-flip, craps, bingo, plinko, lottery) | Not started                     |
-| 13–15 | Poker upgrades (Hold'em, Five-Card Draw, Omaha)                                             | Not started                     |
-| 16    | Admin overhaul + expansion                                                                  | Not started                     |
-| 17    | Final integration & launch polish                                                           | Not started                     |
+| #     | Sub-project                       | Status                          |
+| ----- | --------------------------------- | ------------------------------- |
+| 0     | Brand + Design Language           | ✅ Done (merged)                |
+| 1     | Design-system component library   | ✅ Done (25 primitives, merged) |
+| 2     | Motion & Sound infrastructure     | ✅ Done (3 PRs, merged)         |
+| 3     | Shell & navigation overhaul       | ✅ Done (3 PRs + fixes, merged) |
+| 4     | Coin-flip upgrade                 | In progress (spec)              |
+| 5     | Blackjack upgrade                 | Not started                     |
+| 6     | Roulette upgrade                  | Not started                     |
+| 7     | Slots upgrade                     | Not started                     |
+| 8     | Baccarat upgrade                  | Not started                     |
+| 9     | Lottery upgrade                   | Not started                     |
+| 10.v1 | Bingo — British upgrade           | Not started                     |
+| 10.v2 | Bingo — American upgrade          | Not started                     |
+| 11    | Plinko upgrade                    | Not started                     |
+| 12.v1 | Poker — Texas Hold'em upgrade     | Not started                     |
+| 12.v2 | Poker — Five-Card Draw upgrade    | Not started                     |
+| 12.v3 | Poker — Omaha upgrade             | Not started                     |
+| 13    | Craps upgrade                     | Not started                     |
+| 14    | Admin overhaul + expansion        | Not started                     |
+| 15    | Final integration & launch polish | Not started                     |
