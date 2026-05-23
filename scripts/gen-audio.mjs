@@ -134,6 +134,19 @@ function reelStop() {
   return normalize(buf);
 }
 
+// Short metallic "flip" — two sine partials + tiny noise burst, ~0.32 s.
+function coinFlip() {
+  const buf = buffer(0.32);
+  const rng = makeRng(0xc01f);
+  add(buf, (t) => {
+    const e = env(t, 0.32, 0.005);
+    const tone = 0.55 * sine(t, 1180) + 0.35 * sine(t, 1760) + 0.18 * triangle(t, 590);
+    const noise = (rng() - 0.5) * Math.max(0, 1 - t / 0.06) * 0.45;
+    return e * (tone + noise);
+  });
+  return normalize(buf, 0.8);
+}
+
 /** Major-triad arpeggio stinger. `notes` = freqs; `step` = time between onsets. */
 function arpeggio(freqs, step, noteDur, totalDur, peak = 0.85) {
   const buf = buffer(totalDur);
@@ -228,6 +241,7 @@ const FILES = {
   'dice-roll.wav': diceRoll,
   'reel-spin.wav': reelSpin,
   'reel-stop.wav': reelStop,
+  'coin-flip.wav': coinFlip,
   'win-small.wav': winSmall,
   'win-medium.wav': winMedium,
   'win-jackpot.wav': winJackpot,

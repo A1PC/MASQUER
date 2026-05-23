@@ -1,5 +1,6 @@
 import chipPlace from '@/assets/audio/chip-place.wav';
 import cardDeal from '@/assets/audio/card-deal.wav';
+import coinFlip from '@/assets/audio/coin-flip.wav';
 import diceRoll from '@/assets/audio/dice-roll.wav';
 import reelSpin from '@/assets/audio/reel-spin.wav';
 import reelStop from '@/assets/audio/reel-stop.wav';
@@ -23,8 +24,9 @@ import { SYNTH_IDS, type SoundId } from './ids';
 
 /** Vite returns a URL string for each sample import (non-synth ids only). */
 const SAMPLE_URL: Partial<Record<SoundId, string>> = {
-  'chip.place': chipPlace,
   'card.deal': cardDeal,
+  'chip.place': chipPlace,
+  'coin.flip': coinFlip,
   'dice.roll': diceRoll,
   'reel.spin': reelSpin,
   'reel.stop': reelStop,

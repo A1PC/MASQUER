@@ -39,4 +39,14 @@ describe('sound taxonomy', () => {
       expect(valid.has(SOUND_CATEGORY[id])).toBe(true);
     }
   });
+
+  it('includes coin.flip as a game-category sound', () => {
+    const id: SoundId = 'coin.flip';
+    expect(SOUND_CATEGORY[id]).toBe('game');
+  });
+
+  it('sample registry contains coin.flip', () => {
+    expect(SAMPLE_REGISTRY['coin.flip']).toBeTypeOf('string');
+    expect((SAMPLE_REGISTRY['coin.flip'] ?? '').length).toBeGreaterThan(0);
+  });
 });
