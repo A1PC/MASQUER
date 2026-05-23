@@ -22,8 +22,8 @@ interface BrandCoinProps {
  * changes instantly (no animation). Pure presentational — no state, no I/O.
  *
  * Tails sits on the back face (pre-rotated 180deg) so we offset the base
- * rotation by 180 when side === 'tails'. The active spin lays three full
- * turns (1080deg) on top of that baseline.
+ * rotation by 180 when side === 'tails'. The active spin lays five full
+ * turns (1800deg) on top of that baseline — longer + more dramatic.
  */
 export default function BrandCoin({
   side,
@@ -52,8 +52,8 @@ export default function BrandCoin({
       <motion.div
         className="relative h-full w-full"
         style={{ transformStyle: 'preserve-3d' }}
-        animate={{ rotateY: spinning ? baseRotation + 1080 : baseRotation }}
-        transition={spinning ? { duration: 0.9, ease: [0.16, 1, 0.3, 1] } : { duration: 0 }}
+        animate={{ rotateY: spinning ? baseRotation + 1800 : baseRotation }}
+        transition={spinning ? { duration: 1.6, ease: [0.16, 1, 0.3, 1] } : { duration: 0 }}
       >
         {/* Heads face (front) */}
         <div

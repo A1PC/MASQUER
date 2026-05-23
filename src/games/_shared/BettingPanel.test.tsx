@@ -58,4 +58,16 @@ describe('BettingPanel', () => {
     renderPanel({ lastBet: 50 });
     expect(screen.getByText(/Repeat 50/)).toBeInTheDocument();
   });
+
+  it('Repeat does NOT commit when autoCommitRepeat is off', async () => {
+    const { onCommit } = renderPanel({ lastBet: 25 });
+    await userEvent.click(screen.getByText(/Repeat 25/));
+    expect(onCommit).not.toHaveBeenCalled();
+  });
+
+  it('Repeat auto-places the bet when autoCommitRepeat is on', async () => {
+    const { onCommit } = renderPanel({ lastBet: 25, autoCommitRepeat: true });
+    await userEvent.click(screen.getByText(/Repeat 25/));
+    expect(onCommit).toHaveBeenCalledWith(25);
+  });
 });

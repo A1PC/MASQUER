@@ -12,6 +12,10 @@ interface Props {
   onCommit: (amount: number) => void;
   /** True when a bet is committed but the round hasn't been settled yet. */
   locked?: boolean;
+  /** When true, clicking "Repeat last" also commits the bet immediately
+   *  (skipping the manual Place-Bet step). Defaults to false to preserve
+   *  the two-step flow other games rely on. */
+  autoCommitRepeat?: boolean;
   /** Render-prop for the game-specific call buttons (HEADS/TAILS, HIT/STAND...). */
   callButtons: (committedAmount: number | null) => JSX.Element;
 }
@@ -34,6 +38,7 @@ export default function BettingPanel({
   lastBet,
   onCommit,
   locked = false,
+  autoCommitRepeat = false,
   callButtons,
 }: Props): JSX.Element {
   const [amount, setAmount] = useState(0);
@@ -47,8 +52,11 @@ export default function BettingPanel({
     if (!locked) setAmount(0);
   };
   const onRepeat = () => {
-    if (lastBet !== undefined && !locked && lastBet <= balance && lastBet <= max) {
-      setAmount(lastBet);
+    if (lastBet === undefined || locked || lastBet > balance || lastBet > max) return;
+    setAmount(lastBet);
+    if (autoCommitRepeat && lastBet >= min) {
+      onCommit(lastBet);
+      setCommitted(lastBet);
     }
   };
   const onCommitClick = () => {
