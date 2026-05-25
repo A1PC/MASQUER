@@ -1,9 +1,41 @@
 import type { JSX } from 'react';
 import { useEffect, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
-import Card from '@/games/blackjack/Card';
-import type { Card as CardType } from '@/games/blackjack/types';
+import PlayingCard, {
+  type Rank as PCRank,
+  type Suit as PCSuit,
+} from '@/components/brand/PlayingCard';
+import type { Card as CardType, Rank, Suit } from '@/games/blackjack/types';
 import { REVEAL_TIMING } from './config';
+
+/** Adapter: blackjack rank ('A'|'2'..|'K') → MasquerCard rank (1..13). */
+function rankToNumber(rank: Rank): PCRank {
+  if (rank === 'A') return 1;
+  if (rank === 'J') return 11;
+  if (rank === 'Q') return 12;
+  if (rank === 'K') return 13;
+  return Number.parseInt(rank, 10) as PCRank;
+}
+
+/** Adapter: blackjack suit ('♠'|'♥'|'♦'|'♣') → MasquerCard suit ('s'|'h'|'d'|'c'). */
+function suitToLetter(suit: Suit): PCSuit {
+  if (suit === '♠') return 's';
+  if (suit === '♥') return 'h';
+  if (suit === '♦') return 'd';
+  return 'c';
+}
+
+/** Render a blackjack `Card` via the shared MasquerCard, optionally face-down. */
+function Card({ card, faceDown }: { card: CardType; faceDown: boolean }): JSX.Element {
+  return (
+    <PlayingCard
+      rank={rankToNumber(card.rank)}
+      suit={suitToLetter(card.suit)}
+      faceDown={faceDown}
+      size="md"
+    />
+  );
+}
 
 interface Props {
   /** The card to reveal. When null, renders an empty card-sized slot. */
