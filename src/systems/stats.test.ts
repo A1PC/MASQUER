@@ -1149,3 +1149,274 @@ describe('getUserWinRateByGame', () => {
     expect(result[0]!.winRate).toBe(100); // 1 win / 1 non-push
   });
 });
+
+// ─── Phase 15 #6 — Roulette all-time admin stats ────────────────────────
+
+import { columnOf, dozenOf, getRouletteAllTimeStats, getRouletteNumberDistribution } from './stats';
+import type { RouletteRoundDetails, PocketColor } from '@/games/roulette/types';
+
+const RED_NUMBERS = new Set<number>([
+  1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36,
+]);
+
+function colorFor(n: number): PocketColor {
+  if (n === 0) return 'green';
+  return RED_NUMBERS.has(n) ? 'red' : 'black';
+}
+
+function rouletteRow(opts: {
+  id: string;
+  userId: string;
+  number: number;
+  betAmount: number;
+  payout: number;
+  playedAt: number;
+}): {
+  id: string;
+  userId: string;
+  game: 'roulette';
+  betAmount: number;
+  payout: number;
+  netChange: number;
+  outcome: 'win' | 'loss' | 'push';
+  details: RouletteRoundDetails;
+  balanceAfter: number;
+  playedAt: number;
+} {
+  const netChange = opts.payout - opts.betAmount;
+  const outcome: 'win' | 'loss' | 'push' = netChange > 0 ? 'win' : netChange < 0 ? 'loss' : 'push';
+  const color = colorFor(opts.number);
+  const details: RouletteRoundDetails = {
+    spin: { number: opts.number, color, pocketIndex: 0 },
+    bets: [],
+  };
+  return {
+    id: opts.id,
+    userId: opts.userId,
+    game: 'roulette',
+    betAmount: opts.betAmount,
+    payout: opts.payout,
+    netChange,
+    outcome,
+    details,
+    balanceAfter: 1000,
+    playedAt: opts.playedAt,
+  };
+}
+
+/** Seeds 20 roulette rows covering every colour, parity, dozen, column,
+ *  and the zero. Returns the expected aggregation summary. */
+async function seedRouletteRows() {
+  await resetDb();
+  // Numbers chosen to hit each bucket at least once:
+  //   0           — green / no-parity / no-dozen / no-column
+  //   1,2,3       — dozen-1 / cols 1,2,3   (odd, even, odd)
+  //   4,6         — dozen-1 (col 1, col 3) — even, even
+  //   12          — dozen-1 edge (col 3)   — even
+  //   13,14,15    — dozen-2 / cols 1,2,3   (odd, even, odd)
+  //   18          — low edge (dozen-2, col 3) — even
+  //   19          — high edge (dozen-2, col 1) — odd
+  //   24          — dozen-2 edge (col 3) — even
+  //   25,26,27    — dozen-3 / cols 1,2,3   (odd, even, odd)
+  //   34,35,36    — dozen-3 / cols 1,2,3   (even, even, even)
+  // 20 rows total.
+  const numbers = [0, 1, 2, 3, 4, 6, 12, 13, 14, 15, 18, 19, 24, 25, 26, 27, 34, 35, 36, 1];
+  // Stake 10 each; payout pattern alternates win/loss for cumulative house net = 0:
+  //   even-index rows: payout 0 (house +10), odd-index rows: payout 20 (house -10)
+  const rows = numbers.map((n, i) =>
+    rouletteRow({
+      id: `roul-${i}`,
+      userId: 'u-1',
+      number: n,
+      betAmount: 10,
+      payout: i % 2 === 0 ? 0 : 20,
+      playedAt: 1_000_000 + i,
+    }),
+  );
+  await db.rounds.bulkAdd(rows);
+  return numbers;
+}
+
+describe('roulette aggregations — column/dozen helpers', () => {
+  it('columnOf maps zero to 0 and the three columns correctly', () => {
+    expect(columnOf(0)).toBe(0);
+    expect(columnOf(1)).toBe(1);
+    expect(columnOf(2)).toBe(2);
+    expect(columnOf(3)).toBe(3);
+    expect(columnOf(34)).toBe(1);
+    expect(columnOf(35)).toBe(2);
+    expect(columnOf(36)).toBe(3);
+  });
+
+  it('dozenOf maps zero to 0 and the three dozens correctly', () => {
+    expect(dozenOf(0)).toBe(0);
+    expect(dozenOf(1)).toBe(1);
+    expect(dozenOf(12)).toBe(1);
+    expect(dozenOf(13)).toBe(2);
+    expect(dozenOf(24)).toBe(2);
+    expect(dozenOf(25)).toBe(3);
+    expect(dozenOf(36)).toBe(3);
+  });
+});
+
+describe('queries.getRouletteAllTimeStats', () => {
+  beforeEach(async () => {
+    await resetDb();
+    localStorage.removeItem(SESSION_KEY);
+  });
+
+  it('returns zeros when no roulette rounds exist', async () => {
+    const s = await getRouletteAllTimeStats();
+    expect(s).toEqual({
+      ballsSpun: 0,
+      netHouseChips: 0,
+      netPlayerChips: 0,
+      redCount: 0,
+      blackCount: 0,
+      greenCount: 0,
+      oddCount: 0,
+      evenCount: 0,
+      lowCount: 0,
+      highCount: 0,
+      dozenCounts: [0, 0, 0],
+      columnCounts: [0, 0, 0],
+    });
+  });
+
+  it('ignores rounds from other games', async () => {
+    await db.rounds.add({
+      id: 'bj-1',
+      userId: 'u-1',
+      game: 'blackjack',
+      betAmount: 100,
+      payout: 0,
+      netChange: -100,
+      outcome: 'loss',
+      details: {},
+      balanceAfter: 900,
+      playedAt: 1_000,
+    });
+    const s = await getRouletteAllTimeStats();
+    expect(s.ballsSpun).toBe(0);
+    expect(s.netHouseChips).toBe(0);
+  });
+
+  it('aggregates all colours, parities, dozens, columns, and the zero from 20 fixture rows', async () => {
+    const numbers = await seedRouletteRows();
+    const s = await getRouletteAllTimeStats();
+
+    expect(s.ballsSpun).toBe(20);
+    // Even-index rows (10 rows) win 0 → house +10 each = +100; odd-index rows
+    // (10 rows) win 20 → house -10 each = -100. Net = 0.
+    expect(s.netHouseChips).toBe(0);
+    expect(s.netPlayerChips).toBe(0);
+
+    const greens = numbers.filter((n) => n === 0).length;
+    const reds = numbers.filter((n) => n !== 0 && RED_NUMBERS.has(n)).length;
+    const blacks = numbers.filter((n) => n !== 0 && !RED_NUMBERS.has(n)).length;
+    expect(s.greenCount).toBe(greens);
+    expect(s.redCount).toBe(reds);
+    expect(s.blackCount).toBe(blacks);
+    expect(s.greenCount + s.redCount + s.blackCount).toBe(20);
+
+    const odd = numbers.filter((n) => n !== 0 && n % 2 === 1).length;
+    const even = numbers.filter((n) => n !== 0 && n % 2 === 0).length;
+    expect(s.oddCount).toBe(odd);
+    expect(s.evenCount).toBe(even);
+
+    const low = numbers.filter((n) => n >= 1 && n <= 18).length;
+    const high = numbers.filter((n) => n >= 19 && n <= 36).length;
+    expect(s.lowCount).toBe(low);
+    expect(s.highCount).toBe(high);
+
+    const d1 = numbers.filter((n) => n >= 1 && n <= 12).length;
+    const d2 = numbers.filter((n) => n >= 13 && n <= 24).length;
+    const d3 = numbers.filter((n) => n >= 25 && n <= 36).length;
+    expect(s.dozenCounts).toEqual([d1, d2, d3]);
+
+    const c1 = numbers.filter((n) => n !== 0 && n % 3 === 1).length;
+    const c2 = numbers.filter((n) => n !== 0 && n % 3 === 2).length;
+    const c3 = numbers.filter((n) => n !== 0 && n % 3 === 0).length;
+    expect(s.columnCounts).toEqual([c1, c2, c3]);
+
+    // Sanity: dozens sum to the non-zero count.
+    expect(s.dozenCounts[0] + s.dozenCounts[1] + s.dozenCounts[2]).toBe(20 - greens);
+    expect(s.columnCounts[0] + s.columnCounts[1] + s.columnCounts[2]).toBe(20 - greens);
+  });
+
+  it('treats net house chips as positive when the house wins more than it pays', async () => {
+    await db.rounds.bulkAdd([
+      rouletteRow({ id: 'r-1', userId: 'u-1', number: 7, betAmount: 100, payout: 0, playedAt: 1 }),
+      rouletteRow({ id: 'r-2', userId: 'u-1', number: 7, betAmount: 100, payout: 0, playedAt: 2 }),
+    ]);
+    const s = await getRouletteAllTimeStats();
+    expect(s.netHouseChips).toBe(200);
+    expect(s.netPlayerChips).toBe(-200);
+  });
+
+  it('treats net house chips as negative when the house pays more than it takes', async () => {
+    await db.rounds.bulkAdd([
+      rouletteRow({
+        id: 'r-1',
+        userId: 'u-1',
+        number: 7,
+        betAmount: 10,
+        payout: 360,
+        playedAt: 1,
+      }),
+    ]);
+    const s = await getRouletteAllTimeStats();
+    expect(s.netHouseChips).toBe(-350);
+    expect(s.netPlayerChips).toBe(350);
+  });
+});
+
+describe('queries.getRouletteNumberDistribution', () => {
+  beforeEach(async () => {
+    await resetDb();
+    localStorage.removeItem(SESSION_KEY);
+  });
+
+  it('returns 37 entries with the right colour mapping when no data', async () => {
+    const dist = await getRouletteNumberDistribution();
+    expect(dist).toHaveLength(37);
+    expect(dist[0]).toEqual({ number: 0, count: 0, color: 'green' });
+    expect(dist[1]).toEqual({ number: 1, count: 0, color: 'red' });
+    expect(dist[2]).toEqual({ number: 2, count: 0, color: 'black' });
+    expect(dist[36]).toEqual({ number: 36, count: 0, color: 'red' });
+    expect(dist.every((p, i) => p.number === i)).toBe(true);
+  });
+
+  it('counts hits per pocket across the fixture', async () => {
+    await seedRouletteRows();
+    const dist = await getRouletteNumberDistribution();
+    expect(dist).toHaveLength(37);
+    // 1 appears twice in the fixture (first and last), others appear once.
+    expect(dist[1]!.count).toBe(2);
+    expect(dist[0]!.count).toBe(1);
+    expect(dist[36]!.count).toBe(1);
+    // Numbers not in the fixture remain zero.
+    expect(dist[5]!.count).toBe(0);
+    // Totals across all pockets equal ballsSpun.
+    const total = dist.reduce((s, p) => s + p.count, 0);
+    expect(total).toBe(20);
+  });
+
+  it('ignores rounds without spin details', async () => {
+    await db.rounds.add({
+      id: 'bad-row',
+      userId: 'u-1',
+      game: 'roulette',
+      betAmount: 10,
+      payout: 0,
+      netChange: -10,
+      outcome: 'loss',
+      // Intentionally missing spin field — exercise the `if (!d?.spin) continue` guard.
+      details: {},
+      balanceAfter: 990,
+      playedAt: 1,
+    });
+    const dist = await getRouletteNumberDistribution();
+    expect(dist.reduce((s, p) => s + p.count, 0)).toBe(0);
+  });
+});

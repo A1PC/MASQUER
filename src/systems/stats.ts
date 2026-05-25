@@ -1,5 +1,6 @@
 import { db } from '@/db';
 import type { Round } from '@/db';
+import type { RouletteRoundDetails } from '@/games/roulette/types';
 import { WALLET_CONFIG } from '@/systems/wallet';
 
 export type UserStatsRow = {
@@ -563,4 +564,120 @@ export async function getUserWinRateByGame(
   return [...byGame.entries()]
     .map(([game, v]) => ({ game, winRate: v.nonPush === 0 ? 0 : (v.wins / v.nonPush) * 100 }))
     .sort((a, b) => b.winRate - a.winRate);
+}
+
+// ─── Phase 15 #6 — Roulette all-time admin stats ────────────────────────
+
+export interface RouletteAllTimeStats {
+  ballsSpun: number;
+  netHouseChips: number; // positive = house won
+  netPlayerChips: number; // mirror of netHouseChips
+  redCount: number;
+  blackCount: number;
+  greenCount: number;
+  oddCount: number;
+  evenCount: number;
+  lowCount: number;
+  highCount: number;
+  dozenCounts: [number, number, number];
+  columnCounts: [number, number, number];
+}
+
+/** Column membership of each number per BUILD_GUIDE §8.2.
+ *  Column 1: 1,4,7,10,...,34 (n mod 3 === 1)
+ *  Column 2: 2,5,8,11,...,35 (n mod 3 === 2)
+ *  Column 3: 3,6,9,12,...,36 (n mod 3 === 0, n !== 0)
+ */
+export function columnOf(n: number): 0 | 1 | 2 | 3 {
+  if (n === 0) return 0; // not in any column
+  const m = n % 3;
+  if (m === 1) return 1;
+  if (m === 2) return 2;
+  return 3;
+}
+
+export function dozenOf(n: number): 0 | 1 | 2 | 3 {
+  if (n === 0) return 0;
+  if (n <= 12) return 1;
+  if (n <= 24) return 2;
+  return 3;
+}
+
+export async function getRouletteAllTimeStats(): Promise<RouletteAllTimeStats> {
+  const rows = await db.rounds.where('game').equals('roulette').toArray();
+  let ballsSpun = 0;
+  let netHouseChips = 0;
+  let redCount = 0;
+  let blackCount = 0;
+  let greenCount = 0;
+  let oddCount = 0;
+  let evenCount = 0;
+  let lowCount = 0;
+  let highCount = 0;
+  const dozenCounts: [number, number, number] = [0, 0, 0];
+  const columnCounts: [number, number, number] = [0, 0, 0];
+
+  for (const r of rows) {
+    const d = r.details as RouletteRoundDetails | undefined;
+    if (!d?.spin) continue;
+    ballsSpun += 1;
+    netHouseChips += r.betAmount - r.payout;
+    const n = d.spin.number;
+    const c = d.spin.color;
+    if (c === 'red') redCount += 1;
+    else if (c === 'black') blackCount += 1;
+    else greenCount += 1;
+    if (n !== 0) {
+      if (n % 2 === 1) oddCount += 1;
+      else evenCount += 1;
+      if (n <= 18) lowCount += 1;
+      else highCount += 1;
+      const dz = dozenOf(n);
+      if (dz > 0) dozenCounts[dz - 1] += 1;
+      const col = columnOf(n);
+      if (col > 0) columnCounts[col - 1] += 1;
+    }
+  }
+
+  return {
+    ballsSpun,
+    netHouseChips,
+    // Add zero to normalise `-0` (e.g. `-(0)`) to `+0` for strict equality assertions.
+    netPlayerChips: -netHouseChips + 0,
+    redCount,
+    blackCount,
+    greenCount,
+    oddCount,
+    evenCount,
+    lowCount,
+    highCount,
+    dozenCounts,
+    columnCounts,
+  };
+}
+
+export interface RouletteDistributionPoint {
+  number: number; // 0..36
+  count: number;
+  color: 'red' | 'black' | 'green';
+}
+
+/** Static red-pocket set per ADR-0029 (mirrors wheel.ts RED_NUMBERS). */
+const ROULETTE_RED = new Set<number>([
+  1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36,
+]);
+
+export async function getRouletteNumberDistribution(): Promise<RouletteDistributionPoint[]> {
+  const rows = await db.rounds.where('game').equals('roulette').toArray();
+  const counts = new Array<number>(37).fill(0);
+  for (const r of rows) {
+    const d = r.details as RouletteRoundDetails | undefined;
+    if (!d?.spin) continue;
+    counts[d.spin.number]! += 1;
+  }
+  return Array.from({ length: 37 }, (_, n) => ({
+    number: n,
+    count: counts[n]!,
+    color: n === 0 ? 'green' : ROULETTE_RED.has(n) ? 'red' : 'black',
+  }));
 }
