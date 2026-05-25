@@ -35,7 +35,11 @@ export default {
         brass: t.brass,
         ivory: t.ivory,
         porcelain: t.porcelain,
-        jewel: { ruby: t['jewel-ruby'], emerald: t['jewel-emerald'] },
+        jewel: {
+          ruby: t['jewel-ruby'],
+          emerald: t['jewel-emerald'],
+          magenta: t['jewel-magenta'],
+        },
         state: { win: t.win, loss: t.loss, push: t.push },
       },
       fontFamily: {
