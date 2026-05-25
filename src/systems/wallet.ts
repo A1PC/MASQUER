@@ -160,6 +160,51 @@ export async function settleRound(input: {
   }
 }
 
+/**
+ * Record a "spin-only" round — a completed game event in which the player
+ * did NOT stake anything (e.g. a zero-bet roulette auto-spin). Writes a
+ * single `rounds` row with zero stake, zero payout, zero net change and
+ * `outcome: 'push'`. Does NOT touch the balance.
+ *
+ * Use case: ADR-0046 zero-bet auto-spin. The amended ADR refines (does not
+ * contradict) ADR-0016 — every spin now writes exactly one `rounds` row so
+ * the recent-results feed stays in sync with what the player sees on the
+ * wheel, even when no chips moved.
+ *
+ * A synthetic `id`/`betId` is generated (`spin-only-${uuid}`) — the row
+ * doesn't correspond to any `placeBet` handle.
+ */
+export async function recordSpinOnly(input: {
+  userId: string;
+  game: Game;
+  details: unknown;
+}): Promise<SettleResult> {
+  if (!input.userId) return { ok: false, error: 'unknown' };
+  try {
+    const { newBalance, round } = await db.transaction('rw', db.balances, db.rounds, async () => {
+      const balanceRow = await db.balances.get(input.userId);
+      const balanceAfter = balanceRow?.chips ?? 0;
+      const round: Round = {
+        id: `spin-only-${crypto.randomUUID()}`,
+        userId: input.userId,
+        game: input.game,
+        betAmount: 0,
+        payout: 0,
+        netChange: 0,
+        outcome: 'push',
+        details: input.details,
+        balanceAfter,
+        playedAt: Date.now(),
+      };
+      await db.rounds.add(round);
+      return { newBalance: balanceAfter, round };
+    });
+    return { ok: true, newBalance, round };
+  } catch {
+    return { ok: false, error: 'unknown' };
+  }
+}
+
 export async function claimDaily(userId: string): Promise<ClaimDailyResult> {
   if (!userId) return { ok: false, error: 'no_user' };
   try {

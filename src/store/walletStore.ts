@@ -23,6 +23,16 @@ interface WalletState {
     max: number;
   }) => Promise<PlaceBetResult>;
   settleRound: (args: { handle: BetHandle; result: RoundResult }) => Promise<SettleResult>;
+  /**
+   * Record a zero-stake spin (ADR-0046 zero-bet path). Writes one
+   * `rounds` row with `betAmount: 0`, `payout: 0`, `netChange: 0`,
+   * `outcome: 'push'`. Does NOT touch the balance.
+   */
+  recordSpinOnly: (args: {
+    userId: string;
+    game: wallet.Game;
+    details: unknown;
+  }) => Promise<SettleResult>;
   claimDaily: (userId: string) => Promise<ClaimDailyResult>;
 }
 
@@ -52,6 +62,12 @@ export const useWalletStore = create<WalletState>((set) => ({
     const result = await wallet.settleRound(args);
     if (result.ok) set({ balance: result.newBalance });
     return result;
+  },
+
+  recordSpinOnly: async (args) => {
+    // Balance is intentionally untouched — but the live-query feed
+    // observes the new `rounds` row reactively.
+    return wallet.recordSpinOnly(args);
   },
 
   claimDaily: async (userId) => {
