@@ -15,29 +15,41 @@ import { BLACKJACK_CONFIG } from './config';
 import DealerArea from './DealerArea';
 import PlayerArea from './PlayerArea';
 import ActionPanel from './ActionPanel';
+import AceChoicePanel from './AceChoicePanel';
 import InsurancePrompt from './InsurancePrompt';
-import AceValuePrompt from './AceValuePrompt';
+import DeckAnchor from './DeckAnchor';
 import type { RecentResultItem } from '@/games/_shared/RecentResults';
 import type { BlackjackRoundDetails, Outcome } from './types';
 
 /**
- * BlackjackPage — Phase 15 #5 Velvet Duel UI rebuild.
+ * BlackjackPage — Phase 15 #5 Velvet Duel UI (post-test-feedback fix batch).
  *
- * Composition: `GameShell` shell + `DealerArea` (top) + `PlayerArea` (bottom)
- * inside a felt panel; `BettingPanel` for the bet + `ActionPanel` (Hit / Stand /
- * Double / Split) for live play; `InsurancePrompt` Modal on dealer-Ace deal;
- * `AceValuePrompt` Modal whenever the machine enters `awaiting_ace_choice`.
+ * Composition: `GameShell` shell + `DealerArea` (top) + `DeckAnchor` (top-
+ * right, the spatial source of every dealt card) + `PlayerArea` (bottom)
+ * inside a felt panel; `BettingPanel` for the bet; the bottom action slot
+ * shows `ActionPanel` (Hit / Stand / Double / Split) during play, swaps to
+ * `AceChoicePanel` while the machine is in `awaiting_ace_choice`, and the
+ * `InsurancePrompt` Modal still fires on dealer-Ace deals (Insurance keeps
+ * its Modal — it's an opt-in bet that benefits from a focus-trapped commit).
+ *
+ * Card animation: each dealt card animates from the deck anchor → its slot
+ * (translate, ≤400ms) and then flips face-up (rotateY 180→0, ≤300ms). The
+ * dealer's hole card lands face-down and does NOT flip until the machine's
+ * `revealHoleCard` action runs (driven by `holeRevealed`). The four opening-
+ * deal cards are staggered P1 @ 0ms / D1 @ 200ms / P2 @ 400ms / D2 @ 600ms.
+ * `useEffectiveReducedMotion` collapses every animation to instant and fires
+ * a single `card.deal` per batch (instead of one per landing) — handled by
+ * the page so individual `AnimatedCard`s don't need to coordinate.
  *
  * Side effects (orchestration only — no game logic):
- *  · `useSound` plays `chip.place` on bet commit, `card.deal` on every dealt
- *    card (player + dealer), `win.small` on a standard win, `win.medium` on a
- *    natural blackjack or 5-Card Charlie, `loss` on bust / loss.
- *  · `useEffectiveReducedMotion` is consulted for transitions; the shared UI
- *    primitives (`Modal`, `Tooltip`, `Button`) honour it internally.
+ *  · `useSound` plays `chip.place` on bet commit, `card.deal` on each card
+ *    LANDING (or once-per-batch in reduced-motion), `win.small` on a standard
+ *    win, `win.medium` on a natural blackjack or 5-Card Charlie, `loss` on
+ *    bust / loss.
  *  · A session-local `streak` counter (mirrors the coin-flip Flame indicator
  *    pattern at `src/games/coin-flip/CoinFlipPage.tsx`) increments on any
- *    winning hand (incl. natural BJ / Charlie) within a round and resets on a
- *    losing/bust hand, on a `push`-only round, and on mount.
+ *    winning hand within a round and resets on a losing/bust hand, on a
+ *    `push`-only round, and on mount.
  *
  * Wallet integration is unchanged from Phase 3: the machine emits a single
  * `roundResult` and we call `wallet.settleRound` exactly once per round via
@@ -56,16 +68,24 @@ export default function BlackjackPage(): JSX.Element | null {
   const [streak, setStreak] = useState(0);
   // Track the last settled round id so we only react once per settle.
   const lastStreakRoundRef = useRef<string | null>(null);
-  // Track card counts for the dealer + each player hand so we can fire
-  // `card.deal` exactly once per newly-arrived card without duplicates.
-  const lastCardCountsRef = useRef<{ dealer: number; hands: number[] }>({ dealer: 0, hands: [] });
+  // Track card counts for the dealer + each player hand. We use `useState`
+  // (not `useRef`) because the values are READ during render to compute
+  // `firstAnimatedIdx` for each hand — only NEW cards animate; cards present
+  // last render render statically. The effect below updates this state from
+  // each snapshot.context.{dealerCards,hands} change.
+  const [lastCardCounts, setLastCardCounts] = useState<{
+    dealer: number;
+    hands: number[];
+  }>({ dealer: 0, hands: [] });
 
-  // `useEffectiveReducedMotion` is consulted so this component honours the
-  // user/OS reduce-motion preference. Shared primitives use it internally —
-  // we read it here both to acknowledge the contract and to gate any future
-  // page-level micro-animation (deck dealing stagger, badge pulse, …).
-  useEffectiveReducedMotion();
+  const reduceMotion = useEffectiveReducedMotion();
   const { play } = useSound();
+
+  // Snapshot of the previous render's card counts — drives `firstAnimatedIdx`
+  // for both DealerArea + PlayerArea this render. Read from state (not ref)
+  // so the render pass can use it without violating react-hooks/refs.
+  const prevDealerCount = lastCardCounts.dealer;
+  const prevHandCounts = lastCardCounts.hands;
 
   // Bridge: when machine awaits a bet handle, call wallet.placeBet for the main bet.
   useEffect(() => {
@@ -87,24 +107,50 @@ export default function BlackjackPage(): JSX.Element | null {
     }
   }, [snapshot, send, placeBet, user, play]);
 
-  // Fire `card.deal` for every newly-dealt card (dealer + every player hand)
-  // by diffing the snapshot's card counts against the last-seen counts.
+  // Diff the snapshot's card counts vs the last-seen counts to:
+  //   · in reduced-motion: fire a single `card.deal` per batch of new cards;
+  //   · always: update `lastCardCounts` state so the next render's
+  //     `firstAnimatedIdx` reflects "what was on the table before THIS
+  //     render." (Set inside an effect — not during render — so React doesn't
+  //     loop and lint stays happy.)
   useEffect(() => {
     const dealerCount = snapshot.context.dealerCards.length;
     const handCounts = snapshot.context.hands.map((h) => h.cards.length);
 
     let dealtThisTick = 0;
-    if (dealerCount > lastCardCountsRef.current.dealer) {
-      dealtThisTick += dealerCount - lastCardCountsRef.current.dealer;
+    if (dealerCount > lastCardCounts.dealer) {
+      dealtThisTick += dealerCount - lastCardCounts.dealer;
     }
     handCounts.forEach((cnt, i) => {
-      const prev = lastCardCountsRef.current.hands[i] ?? 0;
+      const prev = lastCardCounts.hands[i] ?? 0;
       if (cnt > prev) dealtThisTick += cnt - prev;
     });
-    for (let n = 0; n < dealtThisTick; n++) play('card.deal');
+    // Reduced-motion path: AnimatedCard skips its per-card landing sound, so
+    // we play exactly ONE `card.deal` here to represent the whole batch.
+    if (reduceMotion && dealtThisTick > 0) play('card.deal');
 
-    lastCardCountsRef.current = { dealer: dealerCount, hands: handCounts };
-  }, [snapshot.context.dealerCards, snapshot.context.hands, play]);
+    // Avoid an infinite update loop: only set state if counts actually
+    // changed. Defer via microtask so the setState happens as an external-
+    // subscription callback (the snapshot IS the external system), per
+    // react-hooks/set-state-in-effect — same pattern as the streak effect.
+    const same =
+      dealerCount === lastCardCounts.dealer &&
+      handCounts.length === lastCardCounts.hands.length &&
+      handCounts.every((c, i) => c === lastCardCounts.hands[i]);
+    if (!same) {
+      queueMicrotask(() => setLastCardCounts({ dealer: dealerCount, hands: handCounts }));
+    }
+  }, [snapshot.context.dealerCards, snapshot.context.hands, play, reduceMotion, lastCardCounts]);
+
+  // Card-landing callbacks → fire `card.deal` on the landing of each new card
+  // (the spec: "fire `card.deal` sound on each card LANDING (not start)").
+  // Suppressed in reduced-motion — the batched sound above handles that path.
+  const handleDealerCardLanded = useCallback(() => {
+    if (!reduceMotion) play('card.deal');
+  }, [play, reduceMotion]);
+  const handlePlayerCardLanded = useCallback(() => {
+    if (!reduceMotion) play('card.deal');
+  }, [play, reduceMotion]);
 
   // Bridge: when machine reaches settling, call wallet.settleRound ONCE.
   useEffect(() => {
@@ -178,7 +224,9 @@ export default function BlackjackPage(): JSX.Element | null {
   useEffect(() => {
     if (snapshot.matches('betting')) {
       settledRef.current = null;
-      lastCardCountsRef.current = { dealer: 0, hands: [] };
+      // The card-count diff effect above will resynchronise on the next
+      // dealing render — no need to reset state here (an empty hands array
+      // will naturally drive `lastCardCounts` back to {dealer:0, hands:[]}).
     }
   }, [snapshot]);
 
@@ -299,7 +347,43 @@ export default function BlackjackPage(): JSX.Element | null {
       }))
     : undefined;
 
-  // Determine which bottom panel to show.
+  // ---- Card animation orchestration ------------------------------------
+  // `firstAnimatedIdx` per hand: index of the first card that should fly in
+  // from the deck this render. Cards at indexes < this render statically
+  // (they were already on the table last render).
+  const dealerCards = snapshot.context.dealerCards;
+  const hands = snapshot.context.hands;
+  const dealerFirstAnimated = Math.min(prevDealerCount, dealerCards.length);
+  const handFirstAnimatedIdx = hands.map((h, i) =>
+    Math.min(prevHandCounts[i] ?? 0, h.cards.length),
+  );
+
+  // Opening-deal stagger: when the previous render had no cards anywhere AND
+  // this render has the opening 4 (player hand of 2 + dealer of 2), apply
+  // P1 @ 0 / D1 @ 200 / P2 @ 400 / D2 @ 600. In-game draws use no delay.
+  const isOpeningDeal =
+    prevDealerCount === 0 &&
+    prevHandCounts.every((c) => c === 0) &&
+    dealerCards.length === 2 &&
+    hands.length === 1 &&
+    hands[0]!.cards.length === 2;
+  const openingDealerDelays = isOpeningDeal ? [200, 600] : undefined; // D1, D2(hole)
+  const openingPlayerDelaysPerHand: (number[] | undefined)[] = isOpeningDeal
+    ? [[0, 400]]
+    : hands.map(() => undefined);
+
+  // Per-card highlight: ring the Ace card being valued. The machine's
+  // `acePrompt` carries the exact `{ handIdx, cardIdx }`.
+  const highlightsPerHand: (boolean[] | undefined)[] = hands.map((h, hi) => {
+    if (!acePrompt || !inAcePrompt) return undefined;
+    if (hi !== acePrompt.handIdx) return undefined;
+    return h.cards.map((_, ci) => ci === acePrompt.cardIdx);
+  });
+
+  // Determine which bottom panel to show. Three-way swap:
+  //   · betting / settling → BettingPanel (place a bet, settle a round)
+  //   · awaiting_ace_choice → AceChoicePanel (inline; hand stays visible)
+  //   · everything else → ActionPanel (Hit / Stand / Double / Split)
   let bottomPanel: JSX.Element;
   if (snapshot.matches('betting') || isSettling) {
     bottomPanel = (
@@ -314,8 +398,10 @@ export default function BlackjackPage(): JSX.Element | null {
         callButtons={() => <></>}
       />
     );
+  } else if (inAcePrompt && acePrompt) {
+    bottomPanel = <AceChoicePanel allowEleven={acePrompt.allowEleven} onChoose={handleChooseAce} />;
   } else {
-    // Modals (insurance / ace) overlay this panel; ActionPanel is correct here.
+    // Insurance modal overlays this panel; ActionPanel is correct here.
     bottomPanel = (
       <ActionPanel
         hands={snapshot.context.hands}
@@ -344,8 +430,19 @@ export default function BlackjackPage(): JSX.Element | null {
       bettingPanel={bottomPanel}
       rules={<BlackjackRules />}
     >
-      <div className="flex flex-1 flex-col items-center justify-center gap-5 px-4 py-4">
-        <DealerArea cards={snapshot.context.dealerCards} holeRevealed={holeRevealed} />
+      <div className="relative flex flex-1 flex-col items-center justify-center gap-5 px-4 py-4">
+        {/* Deck anchor — pinned to the top-right of the felt. Decorative
+         *  origin point for every new card's flight; positioned with the
+         *  same fixed offset AnimatedCard uses for its initial transform. */}
+        <DeckAnchor className="absolute right-4 top-4 z-0" />
+
+        <DealerArea
+          cards={dealerCards}
+          holeRevealed={holeRevealed}
+          firstAnimatedIdx={dealerFirstAnimated}
+          {...(openingDealerDelays ? { delaysMs: openingDealerDelays } : {})}
+          onCardLanded={handleDealerCardLanded}
+        />
         <div className="flex items-center gap-3">
           {streak >= 2 && (
             <Badge tone="win" icon="Flame" aria-label={`${streak} win streak`}>
@@ -354,10 +451,14 @@ export default function BlackjackPage(): JSX.Element | null {
           )}
         </div>
         <PlayerArea
-          hands={snapshot.context.hands}
+          hands={hands}
           activeHandIdx={snapshot.context.activeHandIdx}
           inSettlement={isSettling}
           {...(settlements ? { settlements } : {})}
+          firstAnimatedIdxPerHand={handFirstAnimatedIdx}
+          delaysMsPerHand={openingPlayerDelaysPerHand}
+          highlightsPerHand={highlightsPerHand}
+          onCardLanded={handlePlayerCardLanded}
         />
       </div>
 
@@ -366,12 +467,6 @@ export default function BlackjackPage(): JSX.Element | null {
         mainBet={snapshot.context.betAmount}
         onTake={handleTakeInsurance}
         onDecline={() => send({ type: 'DECLINE_INSURANCE' })}
-      />
-
-      <AceValuePrompt
-        open={inAcePrompt && acePrompt !== null}
-        allowEleven={acePrompt?.allowEleven ?? false}
-        onChoose={handleChooseAce}
       />
     </GameShell>
   );

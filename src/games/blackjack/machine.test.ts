@@ -436,11 +436,15 @@ describe('blackjackMachine — player BJ', () => {
 
 describe('blackjackMachine — Velvet Duel dealer interleaving', () => {
   it('player Hit triggers exactly one dealer card AND reveals hole', () => {
+    // Constrain to player total ≤ 10 so the HIT cannot bust (any next card
+    // ≤ 11 keeps the hand ≤ 21). The Phase-15 #5 bust auto-settle amendment
+    // (ADR-0045) makes a busting HIT skip the dealer interleave — we want
+    // the non-busting path here.
     const seedToUse = findSeedForDeal(
       (snap) =>
         snap.value === 'player_action' &&
         snap.context.dealerInterleaving === true &&
-        handTotal(snap.context.hands[0]!.cards).value < 21,
+        handTotal(snap.context.hands[0]!.cards).value <= 10,
     );
     expect(seedToUse).not.toBeNull();
     seed(seedToUse!);
@@ -710,6 +714,115 @@ describe('blackjackMachine — ACE_PROMPT flow', () => {
       if (found) return;
     }
     // Acceptable not to find in range; auto-1 path is below.
+  });
+});
+
+describe('blackjackMachine — bust auto-settle (ADR-0045 amendment)', () => {
+  it('player bust on HIT skips the dealer interleave for that hand', () => {
+    // Find a state where a single HIT busts the player AND dealerInterleaving
+    // is still armed (so the bust → no-interleave path is exercisable).
+    for (let s = 1; s < 1500; s++) {
+      seed(s);
+      const actor = startMachine();
+      const initial = dealRound(actor, { amount: 10 });
+      if (initial.value !== 'player_action') {
+        actor.stop();
+        unseed();
+        continue;
+      }
+      if (!initial.context.dealerInterleaving) {
+        actor.stop();
+        unseed();
+        continue;
+      }
+      // Hit until either we bust (good — assertion runs) or the round ends.
+      let busted = false;
+      let safety = 8;
+      while (safety-- > 0 && actor.getSnapshot().value === 'player_action') {
+        const dealerCountBeforeHit = actor.getSnapshot().context.dealerCards.length;
+        const interleaveArmed = actor.getSnapshot().context.dealerInterleaving;
+        actor.send({ type: 'HIT' });
+        drainAcePrompts(actor);
+        const snap = actor.getSnapshot();
+        const activeHand = snap.context.hands[snap.context.activeHandIdx];
+        const dealerCountAfter = snap.context.dealerCards.length;
+        if (activeHand && handTotal(activeHand.cards).value > 21) {
+          // Bust just occurred. The dealer should NOT have drawn this turn
+          // (no interleave on a bust), so the count must equal pre-HIT.
+          if (interleaveArmed) {
+            expect(dealerCountAfter).toBe(dealerCountBeforeHit);
+          }
+          busted = true;
+          break;
+        }
+      }
+      actor.stop();
+      unseed();
+      if (busted) return;
+    }
+    // Acceptable if no seed in range produced the bust path — the assertion
+    // is conditional on the bust occurring.
+  });
+
+  it('dealer bust during interleave settles all live player hands as wins', () => {
+    // We force the path by repeatedly hitting until the dealer either busts
+    // mid-interleave (assertion path) or stops interleaving (skip seed).
+    for (let s = 1; s < 1500; s++) {
+      seed(s);
+      const actor = startMachine();
+      const initial = dealRound(actor, { amount: 10 });
+      if (initial.value !== 'player_action') {
+        actor.stop();
+        unseed();
+        continue;
+      }
+      if (!initial.context.dealerInterleaving) {
+        actor.stop();
+        unseed();
+        continue;
+      }
+      let safety = 10;
+      while (safety-- > 0 && actor.getSnapshot().value === 'player_action') {
+        const beforeSnap = actor.getSnapshot();
+        const activeHand = beforeSnap.context.hands[beforeSnap.context.activeHandIdx];
+        // Avoid busting the player first — only HIT when ≤ 18.
+        if (activeHand && handTotal(activeHand.cards).value >= 19) {
+          actor.send({ type: 'STAND' });
+          drainAcePrompts(actor);
+          break;
+        }
+        actor.send({ type: 'HIT' });
+        drainAcePrompts(actor);
+        const snap = actor.getSnapshot();
+        const dealerTotal = handTotal(snap.context.dealerCards).value;
+        if (dealerTotal > 21) {
+          // Dealer busted mid-interleave. The machine must route to settling
+          // with all non-busted player hands paid as wins.
+          // Drain to settling (always-ticks should already have taken us
+          // there, but if not, run any remaining cleanup).
+          if (snap.value !== 'settling') {
+            // After dealer bust we mark hands resolved → after_action falls
+            // through. If still in player_action somehow, that's a bug.
+            expect(snap.value).toBe('settling');
+          }
+          const rr = snap.context.roundResult;
+          expect(rr).not.toBeNull();
+          // Every live (non-bust) player hand should be a player-win.
+          for (const h of rr!.details.hands) {
+            if (h.outcome !== 'player-bust') {
+              expect(h.outcome).toBe('player-win');
+            }
+          }
+          actor.stop();
+          unseed();
+          return;
+        }
+      }
+      actor.stop();
+      unseed();
+    }
+    // Acceptable if no seed in range produced a dealer-bust-mid-interleave
+    // path; the assertion above is the load-bearing one when the path fires.
   });
 });
 

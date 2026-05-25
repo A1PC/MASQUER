@@ -17,6 +17,19 @@ interface Props {
   /** Per-hand settlement results — provided only when inSettlement is true.
    *  Indexed alongside `hands[]`. */
   settlements?: readonly HandSettlement[];
+  /** Per-hand index of the first NEW card this render (everything before is
+   *  already on the table and renders statically). Length matches `hands`. */
+  firstAnimatedIdxPerHand?: readonly number[];
+  /** Per-hand array of per-card stagger delays in ms. Outer length matches
+   *  `hands`; inner length matches that hand's `cards`. Used for opening-deal
+   *  P1/P2 stagger. */
+  delaysMsPerHand?: readonly (readonly number[] | undefined)[];
+  /** Per-hand array of per-card highlight flags. Indexed alongside cards.
+   *  Used by the inline Ace panel to ring the card being valued. */
+  highlightsPerHand?: readonly (readonly boolean[] | undefined)[];
+  /** Card-landing callback — receives `(handIdx, cardIdx)`. Used by the page
+   *  to play `card.deal` on LANDING. */
+  onCardLanded?: (handIdx: number, cardIdx: number) => void;
 }
 
 const OUTCOME_LABEL: Record<Outcome, string> = {
@@ -38,6 +51,10 @@ export default function PlayerArea({
   activeHandIdx,
   inSettlement,
   settlements,
+  firstAnimatedIdxPerHand,
+  delaysMsPerHand,
+  highlightsPerHand,
+  onCardLanded,
 }: Props): JSX.Element {
   const handCount = hands.length;
   const cardSize = handCount > 1 ? 'md' : 'lg';
@@ -48,6 +65,9 @@ export default function PlayerArea({
         const isActive = !inSettlement && i === activeHandIdx;
         const isResolved = h.resolved;
         const settlement = settlements?.[i];
+        const firstAnimated = firstAnimatedIdxPerHand?.[i];
+        const delays = delaysMsPerHand?.[i];
+        const highlights = highlightsPerHand?.[i];
         return (
           <Panel
             key={i}
@@ -75,7 +95,14 @@ export default function PlayerArea({
               </span>
             </div>
             <div className="flex justify-center">
-              <HandView cards={h.cards} size={cardSize} />
+              <HandView
+                cards={h.cards}
+                size={cardSize}
+                {...(firstAnimated !== undefined ? { firstAnimatedIdx: firstAnimated } : {})}
+                {...(delays ? { delaysMs: delays } : {})}
+                {...(highlights ? { highlights } : {})}
+                {...(onCardLanded ? { onCardLanded: (cardIdx) => onCardLanded(i, cardIdx) } : {})}
+              />
             </div>
             <div className="mt-1.5 flex items-center justify-center gap-2 font-mono text-[10px] text-ivory/80">
               <span>Bet: {h.betAmount}</span>

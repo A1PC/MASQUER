@@ -1,5 +1,13 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
+
+// Force the static-render path so the underlying `PlayingCard` renders exactly
+// once per card and tests can assert on the visible face. The animation path
+// is exercised in the BlackjackPage suite where the full deal-flow is wired.
+vi.mock('@/motion/useEffectiveReducedMotion', () => ({
+  useEffectiveReducedMotion: () => true,
+}));
+
 import HandView from './HandView';
 import type { Card } from './types';
 
@@ -44,5 +52,14 @@ describe('HandView', () => {
     render(<HandView cards={[c('A', '♠'), { rank: 'K', suit: '♥', faceUp: false }]} />);
     expect(screen.queryByText('K')).toBeNull();
     expect(screen.getByRole('img', { name: /face-down card/i })).toBeInTheDocument();
+  });
+
+  it('applies the gold highlight ring on cards whose highlights flag is true', () => {
+    const { container } = render(
+      <HandView cards={[c('A', '♠'), c('K', '♥')]} highlights={[true, false]} />,
+    );
+    // The highlighted card wrapper bears the `ring-gold/80` token class.
+    const ringed = container.querySelectorAll('.ring-gold\\/80');
+    expect(ringed.length).toBeGreaterThanOrEqual(1);
   });
 });
