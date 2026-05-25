@@ -179,6 +179,45 @@ function loss() {
   return normalize(buf, 0.8);
 }
 
+// Roulette wheel spin — ~600 ms low-pass-filtered noise sweep with fade-in
+// over 100 ms and fade-out over 300 ms. A "whoosh" that captures the wheel
+// accelerating away from rest. Used by RoulettePage on entry to `spinning`.
+function wheelSpin() {
+  const dur = 0.6;
+  const buf = buffer(dur);
+  const rng = makeRng(0x5d0d);
+  let lp = 0;
+  for (let i = 0; i < buf.length; i++) {
+    const t = i / SAMPLE_RATE;
+    const n = rng() * 2 - 1;
+    // Lower cutoff at the start, opens up as the wheel "winds up".
+    const k = 0.06 + 0.18 * (t / dur);
+    lp += k * (n - lp);
+    // 100 ms attack, sustain, 300 ms release.
+    const attack = Math.min(1, t / 0.1);
+    const release = t > dur - 0.3 ? Math.max(0, (dur - t) / 0.3) : 1;
+    const amp = attack * release;
+    buf[i] = lp * amp;
+  }
+  return normalize(buf, 0.7);
+}
+
+// Roulette ball drop — 60 ms enveloped sine at ~700 Hz with a sharp 2 ms
+// attack and 50 ms decay, plus a tiny noise transient for the woody "click"
+// of the ball settling into a pocket. Played by RoulettePage on entry to
+// `settled`.
+function ballDrop() {
+  const buf = buffer(0.08);
+  const rng = makeRng(0xba11);
+  add(buf, (t) => {
+    const tone = sine(t, 700) * env(t, 0.06, 0.002) * 0.85;
+    // Two tiny micro-clicks for a woodier, real-pocket feel.
+    const click = (rng() * 2 - 1) * env(t, 0.012, 0.0005) * 0.4;
+    return tone + click;
+  });
+  return normalize(buf, 0.85);
+}
+
 function ambienceLounge() {
   const seconds = 3;
   const buf = buffer(seconds);
@@ -242,6 +281,8 @@ const FILES = {
   'reel-spin.wav': reelSpin,
   'reel-stop.wav': reelStop,
   'coin-flip.wav': coinFlip,
+  'wheel-spin.wav': wheelSpin,
+  'ball-drop.wav': ballDrop,
   'win-small.wav': winSmall,
   'win-medium.wav': winMedium,
   'win-jackpot.wav': winJackpot,

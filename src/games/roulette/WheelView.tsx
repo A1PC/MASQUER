@@ -99,7 +99,11 @@ export default function WheelView({
   // values of 0 (wheel) and θ_N_prev (ball) — letting Framer Motion run a
   // clean forward animation for both elements.
   const targetIdx = targetNumber !== null ? POCKET_ORDER.indexOf(targetNumber) : 0;
-  const thetaDeg = targetIdx * ARC_DEG;
+  // Pocket N's geometric centre, in viewport degrees (slice spans
+  // [i * ARC_DEG, (i+1) * ARC_DEG] → centre = (i + 0.5) * ARC_DEG).
+  // The ball orbit lands at this angle so the ball visually settles
+  // on the pocket centre, not its leading edge. See ADR-0031 amendment.
+  const thetaDeg = targetIdx * ARC_DEG + ARC_DEG / 2;
 
   const wheelTarget = spinning ? SPIN_TURNS * 360 : 0;
   const ballTarget = targetNumber === null ? 0 : spinning ? thetaDeg - SPIN_TURNS * 360 : thetaDeg;

@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createActor } from 'xstate';
 import { rouletteMachine } from './machine';
 import { makeBet } from './bets';
@@ -17,17 +17,28 @@ function startMachine() {
 }
 
 describe('rouletteMachine — initial state', () => {
-  it('starts in betting with no bets', () => {
-    const a = startMachine();
-    expect(a.getSnapshot().value).toBe('betting');
-    expect(a.getSnapshot().context.bets).toEqual([]);
-    expect(a.getSnapshot().context.spinResult).toBeNull();
-    expect(a.getSnapshot().context.roundResult).toBeNull();
+  it('starts in placing_bets with no bets and an armed betWindowEndsAt', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(1_700_000_000_000);
+    try {
+      const a = startMachine();
+      const snap = a.getSnapshot();
+      expect(snap.value).toBe('placing_bets');
+      expect(snap.context.bets).toEqual([]);
+      expect(snap.context.spinResult).toBeNull();
+      expect(snap.context.roundResult).toBeNull();
+      expect(snap.context.betWindowEndsAt).toBe(
+        1_700_000_000_000 + ROULETTE_CONFIG.INITIAL_BET_WINDOW_MS,
+      );
+      expect(snap.context.pausedAt).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 
-describe('rouletteMachine — PLACE_BET', () => {
-  it('adds a bet to context', () => {
+describe('rouletteMachine — PLACE_BET / REMOVE_BET / CLEAR_ALL', () => {
+  it('PLACE_BET adds a bet', () => {
     const a = startMachine();
     a.send({ type: 'PLACE_BET', bet: placed(makeBet({ type: 'straight', n: 17 }), 5, 'h1') });
     expect(a.getSnapshot().context.bets).toHaveLength(1);
@@ -47,23 +58,14 @@ describe('rouletteMachine — PLACE_BET', () => {
     expect(bets[0]).toMatchObject({ amount: 30, betHandleId: 'h1' });
   });
 
-  it('enforces 10-position cap; 11th new position is dropped (stacking always allowed)', () => {
+  it('ADR-0030 amendment — unlimited bet positions; 15 distinct positions all accepted', () => {
     const a = startMachine();
-    for (let n = 1; n <= 10; n++) {
+    for (let n = 1; n <= 15; n++) {
       a.send({ type: 'PLACE_BET', bet: placed(makeBet({ type: 'straight', n }), 5, `h${n}`) });
     }
-    expect(a.getSnapshot().context.bets).toHaveLength(10);
-    a.send({ type: 'PLACE_BET', bet: placed(makeBet({ type: 'straight', n: 11 }), 5, 'h11') });
-    expect(a.getSnapshot().context.bets).toHaveLength(10);
-
-    // Stacking on an existing position still works.
-    a.send({ type: 'PLACE_BET', bet: placed(makeBet({ type: 'straight', n: 5 }), 25, 'h-stack') });
-    const stacked = a.getSnapshot().context.bets.find((b) => b.key === 'straight:5')!;
-    expect(stacked.amount).toBe(30);
+    expect(a.getSnapshot().context.bets).toHaveLength(15);
   });
-});
 
-describe('rouletteMachine — REMOVE_BET and CLEAR_ALL', () => {
   it('REMOVE_BET drops by key', () => {
     const a = startMachine();
     a.send({ type: 'PLACE_BET', bet: placed(makeBet({ type: 'red' }), 5, 'h-red') });
@@ -80,115 +82,147 @@ describe('rouletteMachine — REMOVE_BET and CLEAR_ALL', () => {
   });
 });
 
-describe('rouletteMachine — SPIN gate', () => {
-  it('SPIN is rejected when there are no bets', () => {
-    const a = startMachine();
-    a.send({ type: 'SPIN' });
-    expect(a.getSnapshot().value).toBe('betting');
-  });
-
-  it('SPIN transitions to spinning when at least one bet exists', () => {
+describe('rouletteMachine — SPIN_NOW transitions', () => {
+  it('SPIN_NOW from placing_bets transitions immediately to spinning + clears window', () => {
     const a = startMachine();
     a.send({ type: 'PLACE_BET', bet: placed(makeBet({ type: 'red' }), 5, 'h') });
-    a.send({ type: 'SPIN' });
+    a.send({ type: 'SPIN_NOW' });
+    const snap = a.getSnapshot();
+    expect(snap.value).toBe('spinning');
+    expect(snap.context.spinResult).not.toBeNull();
+    expect(snap.context.betWindowEndsAt).toBeNull();
+  });
+
+  it('SPIN_NOW with zero bets still transitions to spinning (no guard)', () => {
+    const a = startMachine();
+    a.send({ type: 'SPIN_NOW' });
     expect(a.getSnapshot().value).toBe('spinning');
+    expect(a.getSnapshot().context.bets).toEqual([]);
     expect(a.getSnapshot().context.spinResult).not.toBeNull();
   });
 });
 
-describe('rouletteMachine — spinning delay → settled', () => {
-  it('after SPIN_DURATION_MS, transitions to settled with roundResult populated', async () => {
+describe('rouletteMachine — auto-spin via after delays', () => {
+  beforeEach(() => {
     vi.useFakeTimers();
-    try {
-      const a = startMachine();
-      a.send({ type: 'PLACE_BET', bet: placed(makeBet({ type: 'red' }), 5, 'h') });
-      a.send({ type: 'SPIN' });
-      expect(a.getSnapshot().value).toBe('spinning');
-      await vi.advanceTimersByTimeAsync(ROULETTE_CONFIG.SPIN_DURATION_MS);
-      expect(a.getSnapshot().value).toBe('settled');
-      expect(a.getSnapshot().context.roundResult).not.toBeNull();
-      expect(a.getSnapshot().context.roundResult!.betAmount).toBe(5);
-    } finally {
-      vi.useRealTimers();
-    }
+  });
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
-  it('reduced-motion override (spinDurationMs=0) settles immediately', async () => {
-    vi.useFakeTimers();
-    try {
-      const actor = createActor(rouletteMachine, { input: { spinDurationMs: 0 } });
-      actor.start();
-      actor.send({ type: 'PLACE_BET', bet: placed(makeBet({ type: 'red' }), 5, 'h') });
-      actor.send({ type: 'SPIN' });
-      await vi.advanceTimersByTimeAsync(0);
-      expect(actor.getSnapshot().value).toBe('settled');
-    } finally {
-      vi.useRealTimers();
-    }
+  it('after INITIAL_BET_WINDOW_MS in placing_bets, auto-spins (even with zero bets)', async () => {
+    const a = startMachine();
+    expect(a.getSnapshot().value).toBe('placing_bets');
+    await vi.advanceTimersByTimeAsync(ROULETTE_CONFIG.INITIAL_BET_WINDOW_MS);
+    expect(a.getSnapshot().value).toBe('spinning');
+    expect(a.getSnapshot().context.bets).toEqual([]);
+    expect(a.getSnapshot().context.spinResult).not.toBeNull();
   });
-});
 
-describe('rouletteMachine — NEW_ROUND prepareNextRound', () => {
-  it('clears winning positions, keeps losing ones with cleared handle IDs', async () => {
-    vi.useFakeTimers();
+  it('spinning → settled after SPIN_DURATION_MS; roundResult populated', async () => {
+    const a = startMachine();
+    a.send({ type: 'PLACE_BET', bet: placed(makeBet({ type: 'red' }), 5, 'h') });
+    a.send({ type: 'SPIN_NOW' });
+    expect(a.getSnapshot().value).toBe('spinning');
+    await vi.advanceTimersByTimeAsync(ROULETTE_CONFIG.SPIN_DURATION_MS);
+    expect(a.getSnapshot().value).toBe('settled');
+    expect(a.getSnapshot().context.roundResult).not.toBeNull();
+    expect(a.getSnapshot().context.roundResult!.betAmount).toBe(5);
+  });
+
+  it('settled → between_rounds after RESULT_DISPLAY_MS; prunes winning bets + clears spinResult', async () => {
+    seed(1);
     try {
-      seed(1);
       const a = startMachine();
-
-      // Bet red, black, and a straight: at least one will lose for any non-0 spin.
       a.send({ type: 'PLACE_BET', bet: placed(makeBet({ type: 'red' }), 5, 'h-red') });
       a.send({ type: 'PLACE_BET', bet: placed(makeBet({ type: 'black' }), 7, 'h-black') });
       a.send({ type: 'PLACE_BET', bet: placed(makeBet({ type: 'straight', n: 19 }), 3, 'h-19') });
-
-      a.send({ type: 'SPIN' });
+      a.send({ type: 'SPIN_NOW' });
       await vi.advanceTimersByTimeAsync(ROULETTE_CONFIG.SPIN_DURATION_MS);
-
-      const settled = a.getSnapshot();
-      expect(settled.value).toBe('settled');
-      const winningNumber = settled.context.spinResult!.number;
-
-      a.send({ type: 'NEW_ROUND' });
+      const winningNumber = a.getSnapshot().context.spinResult!.number;
+      await vi.advanceTimersByTimeAsync(ROULETTE_CONFIG.RESULT_DISPLAY_MS);
       const next = a.getSnapshot();
-      expect(next.value).toBe('betting');
+      expect(next.value).toBe('between_rounds');
       expect(next.context.spinResult).toBeNull();
       expect(next.context.roundResult).toBeNull();
-
-      // Each preserved bet should have its key + amount + numbers intact, but betHandleId cleared.
       for (const bet of next.context.bets) {
         expect(bet.betHandleId).toBe('');
         expect(bet.numbers).not.toContain(winningNumber);
       }
     } finally {
-      vi.useRealTimers();
       unseed();
     }
   });
 
-  it('drops all bets when every position wins', async () => {
+  it('between_rounds arms a BETWEEN_ROUNDS_MS window; auto-spins when it elapses', async () => {
+    vi.setSystemTime(1_700_000_000_000);
+    const a = startMachine();
+    a.send({ type: 'SPIN_NOW' });
+    await vi.advanceTimersByTimeAsync(ROULETTE_CONFIG.SPIN_DURATION_MS);
+    await vi.advanceTimersByTimeAsync(ROULETTE_CONFIG.RESULT_DISPLAY_MS);
+    expect(a.getSnapshot().value).toBe('between_rounds');
+    const endsAt = a.getSnapshot().context.betWindowEndsAt;
+    expect(endsAt).not.toBeNull();
+    expect(endsAt! - Date.now()).toBe(ROULETTE_CONFIG.BETWEEN_ROUNDS_MS);
+
+    await vi.advanceTimersByTimeAsync(ROULETTE_CONFIG.BETWEEN_ROUNDS_MS);
+    expect(a.getSnapshot().value).toBe('spinning');
+  });
+
+  it('SPIN_NOW from between_rounds transitions immediately to spinning', async () => {
+    const a = startMachine();
+    a.send({ type: 'SPIN_NOW' });
+    await vi.advanceTimersByTimeAsync(ROULETTE_CONFIG.SPIN_DURATION_MS);
+    await vi.advanceTimersByTimeAsync(ROULETTE_CONFIG.RESULT_DISPLAY_MS);
+    expect(a.getSnapshot().value).toBe('between_rounds');
+    a.send({ type: 'SPIN_NOW' });
+    expect(a.getSnapshot().value).toBe('spinning');
+    expect(a.getSnapshot().context.betWindowEndsAt).toBeNull();
+  });
+
+  it('reduced-motion override (spinDurationMs=0) still settles via the same flow', async () => {
+    const actor = createActor(rouletteMachine, { input: { spinDurationMs: 0 } });
+    actor.start();
+    actor.send({ type: 'PLACE_BET', bet: placed(makeBet({ type: 'red' }), 5, 'h') });
+    actor.send({ type: 'SPIN_NOW' });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(actor.getSnapshot().value).toBe('settled');
+  });
+});
+
+describe('rouletteMachine — pause / resume', () => {
+  beforeEach(() => {
     vi.useFakeTimers();
-    try {
-      // Discover the spin number for this seed via a dry-run actor first.
-      seed(1);
-      const dryActor = startMachine();
-      dryActor.send({ type: 'PLACE_BET', bet: placed(makeBet({ type: 'red' }), 5, 'h') });
-      dryActor.send({ type: 'SPIN' });
-      await vi.advanceTimersByTimeAsync(ROULETTE_CONFIG.SPIN_DURATION_MS);
-      const n = dryActor.getSnapshot().context.spinResult!.number;
-      dryActor.stop();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
 
-      // Now actually bet only on that exact straight number — guaranteed win.
-      seed(1);
-      const a = startMachine();
-      a.send({ type: 'PLACE_BET', bet: placed(makeBet({ type: 'straight', n }), 5, 'h-s') });
-      a.send({ type: 'SPIN' });
-      await vi.advanceTimersByTimeAsync(ROULETTE_CONFIG.SPIN_DURATION_MS);
-      expect(a.getSnapshot().context.roundResult!.outcome).toBe('win');
+  it('PAUSE_TIMER snapshots pausedAt; RESUME_TIMER extends betWindowEndsAt by paused duration', () => {
+    vi.setSystemTime(1_700_000_000_000);
+    const a = startMachine();
+    const originalEndsAt = a.getSnapshot().context.betWindowEndsAt!;
+    expect(originalEndsAt).toBe(1_700_000_000_000 + ROULETTE_CONFIG.INITIAL_BET_WINDOW_MS);
 
-      a.send({ type: 'NEW_ROUND' });
-      expect(a.getSnapshot().context.bets).toEqual([]);
-    } finally {
-      vi.useRealTimers();
-      unseed();
-    }
+    // Player opens the rules modal 5s in → PAUSE_TIMER.
+    vi.setSystemTime(1_700_000_005_000);
+    a.send({ type: 'PAUSE_TIMER' });
+    expect(a.getSnapshot().context.pausedAt).toBe(1_700_000_005_000);
+    // betWindowEndsAt unchanged by pause alone.
+    expect(a.getSnapshot().context.betWindowEndsAt).toBe(originalEndsAt);
+
+    // Player reads for 8s and closes the modal → RESUME_TIMER.
+    vi.setSystemTime(1_700_000_013_000);
+    a.send({ type: 'RESUME_TIMER' });
+    expect(a.getSnapshot().context.pausedAt).toBeNull();
+    expect(a.getSnapshot().context.betWindowEndsAt).toBe(originalEndsAt + 8_000);
+  });
+
+  it('RESUME_TIMER with no pause in flight is a no-op on betWindowEndsAt', () => {
+    vi.setSystemTime(1_700_000_000_000);
+    const a = startMachine();
+    const before = a.getSnapshot().context.betWindowEndsAt;
+    a.send({ type: 'RESUME_TIMER' });
+    expect(a.getSnapshot().context.betWindowEndsAt).toBe(before);
   });
 });

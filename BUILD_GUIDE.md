@@ -266,6 +266,12 @@ See [ADR-0045](docs/adr/0045-blackjack-velvet-duel-variant.md) for the full deci
 - Spin: `rng.randomInt(0, 36)`. The wheel animation is cosmetic; the result is decided by the RNG, then the wheel animates to land on it.
 - `details` records every bet placed and the winning number.
 
+#### Phase 15 #6 amendments (2026-05-25)
+
+- **No 10-position cap.** Players may place unlimited bet positions per round, each up to `MAX_BET` (1000). Total stake is bounded by the player's chip balance. See ADR-0030 amendment.
+- **Auto-spin betting windows.** The wheel auto-spins 30 s after entering the page, then 10 s between rounds. The `SPIN NOW` button skips the current window. Zero-bet auto-spins run (cosmetic) but write no `rounds` row. See ADR-0046.
+- **Ball lands on pocket centre.** The ball's final viewport angle is `(idx + 0.5) * (360 / 37)` so it visually settles on the centre of the winning pocket, not its leading edge. See ADR-0031 amendment.
+
 ### 8.3 Slots
 
 - Start with a **3-reel, single-payline** machine. (Multi-line can come later.)

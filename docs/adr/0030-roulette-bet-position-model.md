@@ -87,3 +87,21 @@ is dropped silently. Stacking on an existing position is always allowed.
 - `src/games/roulette/types.ts`
 - `src/games/roulette/config.ts`
 - Phase 4 spec §3.4, §5, §8, §13
+
+## Amendment (2026-05-25, Phase 15 #6)
+
+The original 10-position cap (`MAX_POSITIONS_PER_ROUND`) was a safety
+rail introduced before the deferred-`placeBet` wallet model was battle-
+tested. With Phase-4's deferred-placeBet model now stable across all
+multi-bet games, the cap is removed: the player may place an unlimited
+number of positions per round, each up to `MAX_BET` (1000). Total
+stake is bounded by the player's chip balance, not by position count.
+
+The bet-key uniqueness contract is unchanged — one `PlacedBet` per
+`BetPositionKey` per round, with subsequent clicks accumulating into
+the existing `amount` field.
+
+Implementation: `addBet` in `src/games/roulette/machine.ts` no longer
+short-circuits when `bets.length >= cap`; `ROULETTE_CONFIG.MAX_POSITIONS_PER_ROUND`
+is deleted from `src/games/roulette/config.ts`. Tests asserting the
+cap-rejection branch are removed.

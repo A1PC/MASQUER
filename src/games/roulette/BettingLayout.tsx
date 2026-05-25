@@ -30,10 +30,13 @@ function cellNumber(visualCol: number, row: number): number {
   return 3 * visualCol - (row - 1);
 }
 
+// Tokens (Phase 15 #6) — match the wheel pocket colours via tailwind theme so
+// the felt and the wheel stay in lock-step. Raw hex values intentionally
+// mirror the `roulette-pocket-*` keys in `tailwind.config.ts`.
 const CELL_FILLS: Record<'red' | 'black' | 'green', string> = {
-  red: '#a3122a',
-  black: '#1a1a1a',
-  green: '#3dd17a',
+  red: '#a3122a', // roulette.pocket-red
+  black: '#1a1a1a', // roulette.pocket
+  green: '#3dd17a', // roulette.pocket-green
 };
 
 type OverlayDef =
@@ -240,7 +243,7 @@ export default function BettingLayout({
   return (
     <div className="mx-auto max-w-[700px]">
       <div className="mb-2 flex items-center justify-between gap-3 px-1">
-        <span className="font-display text-[11px] tracking-wider text-gold">TOTAL BET</span>
+        <span className="font-display text-[11px] tracking-[0.18em] text-gold">TOTAL BET</span>
         <span className="font-mono text-sm text-gold-bright">{total}</span>
         {onClearAll && (
           <button
@@ -249,7 +252,11 @@ export default function BettingLayout({
               if (!disabled && total > 0) onClearAll();
             }}
             disabled={disabled || total === 0}
-            className="rounded-md border border-white/20 bg-transparent px-2 py-1 text-[11px] text-white/60 hover:bg-white/5 disabled:opacity-40"
+            className={[
+              'rounded-md border border-brass/40 bg-transparent px-2 py-1 text-[11px] text-ivory/65',
+              'hover:bg-ivory/5 disabled:opacity-40',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2 focus-visible:ring-offset-felt-table-deep',
+            ].join(' ')}
             aria-label="Clear all bets"
           >
             Clear all bets
@@ -259,12 +266,12 @@ export default function BettingLayout({
       <div
         data-roulette-felt
         data-disabled={disabled ? 'true' : 'false'}
-        className="relative mx-auto overflow-x-auto rounded-lg p-4"
-        style={{
-          background: 'linear-gradient(180deg, #0a3a22 0%, #0b2a18 100%)',
-          boxShadow: 'inset 0 0 0 2px #d4af37, inset 0 0 0 3px #1a1a1a',
-          opacity: disabled ? 0.85 : 1,
-        }}
+        className={[
+          'relative mx-auto overflow-x-auto rounded-lg p-4',
+          'bg-gradient-to-b from-felt-table to-felt-table-deep',
+          'shadow-[inset_0_0_0_2px_theme(colors.brass),inset_0_0_0_3px_theme(colors.roulette.pocket)]',
+        ].join(' ')}
+        style={{ opacity: disabled ? 0.85 : 1 }}
       >
         <div className="relative" style={{ width: FELT_W, height: FELT_H }}>
           {/* Zero cell */}

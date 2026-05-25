@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { cleanup, render, screen } from '@testing-library/react';
 import WheelView from './WheelView';
 import { POCKET_ORDER, colorOf } from './wheel';
 
@@ -141,31 +141,46 @@ describe('<WheelView /> ball orbit (counter-clockwise, lands in winning pocket)'
     expect(document.querySelector('[data-roulette-layer="ball-orbit"]')).toBeNull();
   });
 
-  it('ball orbit while spinning = θ_N - 1800 (5 turns counter-clockwise + lands at pocket N)', () => {
+  it('ball orbit while spinning = θ_N + ARC/2 - 1800 (counter-clockwise to pocket centre)', () => {
     render(<WheelView targetNumber={32} spinning={true} settled={false} durationMs={5000} />);
     const wrap = document.querySelector('[data-roulette-layer="ball-orbit"]');
     const value = Number(wrap!.getAttribute('data-rotate-target'));
-    // idx(32) = 1, θ_N = ARC = 9.7297…. Target = 9.73 - 1800 ≈ -1790.27
-    const expected = ARC - SPIN_TURNS * 360;
+    // idx(32) = 1, θ_N = idx * ARC + ARC/2 (per ADR-0031 amendment).
+    const expected = ARC + ARC / 2 - SPIN_TURNS * 360;
     expect(value).toBeCloseTo(expected, 5);
   });
 
-  it('ball orbit when settled = θ_N (ball at viewport angle of pocket N)', () => {
+  it('ball orbit when settled = θ_N + ARC/2 (ball at viewport CENTRE of pocket N)', () => {
     for (const n of [0, 17, 32, 36]) {
       const { unmount } = render(<WheelView targetNumber={n} spinning={false} settled={true} />);
       const wrap = document.querySelector('[data-roulette-layer="ball-orbit"]');
       const value = Number(wrap!.getAttribute('data-rotate-target'));
       const idx = POCKET_ORDER.indexOf(n);
-      const expected = idx * ARC;
+      const expected = idx * ARC + ARC / 2;
       expect(value).toBeCloseTo(expected, 5);
       unmount();
     }
   });
 
-  it('target 0 → ball settles at rotation 0 (top of wheel, where pocket 0 sits)', () => {
+  it('target 0 → ball settles at ARC/2 (centre of pocket 0 at the top of the wheel)', () => {
     render(<WheelView targetNumber={0} spinning={false} settled={true} />);
     const wrap = document.querySelector('[data-roulette-layer="ball-orbit"]');
-    expect(wrap!.getAttribute('data-rotate-target')).toBe('0');
+    expect(Number(wrap!.getAttribute('data-rotate-target'))).toBeCloseTo(ARC / 2, 5);
+  });
+
+  // ADR-0031 amendment (Phase 15 #6) — parametric invariant for ALL 37
+  // pockets: the ball's final rotation must equal (idx + 0.5) * ARC, i.e. the
+  // geometric centre of the winning pocket, never its leading edge.
+  it('lands the ball on the geometric centre of the winning pocket (all 37)', () => {
+    for (let n = 0; n <= 36; n += 1) {
+      const { container } = render(<WheelView targetNumber={n} spinning={false} settled={true} />);
+      const orbit = container.querySelector('[data-roulette-layer="ball-orbit"]');
+      const target = Number(orbit?.getAttribute('data-rotate-target'));
+      const idx = POCKET_ORDER.indexOf(n);
+      const expected = idx * (360 / 37) + 360 / 37 / 2;
+      expect(target).toBeCloseTo(expected, 6);
+      cleanup();
+    }
   });
 
   it('ball orbit shares the wheel transition (5s when spinning, 0 when settled)', () => {
@@ -180,14 +195,15 @@ describe('<WheelView /> ball orbit (counter-clockwise, lands in winning pocket)'
   });
 });
 
-describe('<WheelView /> visual alignment invariant: ball + pulsed pocket end at same viewport angle', () => {
-  // The invariant: after the spin settles, the visual angle of the ball
-  // (computed from its wrapper rotation) must equal the visual angle of the
-  // pulsed pocket N (computed from θ_N + wheel rotation, both mod 360). If
-  // this passes for every pocket, the visual outcome is guaranteed to match
-  // the RNG result.
+describe('<WheelView /> visual alignment invariant: ball lands on centre of pulsed pocket', () => {
+  // The invariant (post-ADR-0031 amendment): after the spin settles, the
+  // visual angle of the ball must equal the geometric CENTRE of the pulsed
+  // pocket N — `(idx + 0.5) * ARC` (plus wheel rotation, mod 360). Since the
+  // wheel rests at multiples of 360°, that is exactly the ball's viewport
+  // angle. If this passes for every pocket, the visual outcome is guaranteed
+  // to match the RNG result and to centre the ball in the winning slice.
   it.each([0, 1, 17, 22, 32, 35, 36])(
-    'target %i: ball viewport angle === pulsed pocket viewport angle',
+    'target %i: ball viewport angle === centre of pulsed pocket viewport angle',
     (target) => {
       render(<WheelView targetNumber={target} spinning={false} settled={true} />);
 
@@ -197,12 +213,13 @@ describe('<WheelView /> visual alignment invariant: ball + pulsed pocket end at 
       const ballRot = Number(wrap!.getAttribute('data-rotate-target'));
 
       const idx = POCKET_ORDER.indexOf(target);
-      const thetaDeg = idx * (360 / 37);
+      const ARC = 360 / 37;
+      const centreDeg = idx * ARC + ARC / 2;
 
       const ballViewport = ((ballRot % 360) + 360) % 360;
-      const pocketViewport = (((thetaDeg + wheelRot) % 360) + 360) % 360;
+      const pocketCentreViewport = (((centreDeg + wheelRot) % 360) + 360) % 360;
 
-      expect(Math.abs(ballViewport - pocketViewport)).toBeLessThan(0.0001);
+      expect(Math.abs(ballViewport - pocketCentreViewport)).toBeLessThan(0.0001);
     },
   );
 });

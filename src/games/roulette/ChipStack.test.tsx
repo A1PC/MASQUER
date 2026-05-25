@@ -1,6 +1,12 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { render } from '@testing-library/react';
 import ChipStack, { breakdown } from './ChipStack';
+
+// Force reduced-motion path so the Framer-Motion entry animation collapses to
+// instant — keeps tests deterministic / non-flaky.
+vi.mock('@/motion/useEffectiveReducedMotion', () => ({
+  useEffectiveReducedMotion: () => true,
+}));
 
 describe('breakdown', () => {
   it('exact denomination → single chip', () => {
