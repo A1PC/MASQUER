@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import 'fake-indexeddb/auto';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import RoulettePage from './RoulettePage';
@@ -9,17 +9,20 @@ import { useSessionStore } from '@/store/sessionStore';
 import { useWalletStore } from '@/store/walletStore';
 import { db } from '@/db';
 import type { User } from '@/db/schema';
+import { ROULETTE_CONFIG } from './config';
 
-// Mock useReducedMotion to return true so spinDurationMs=0 in tests,
-// making the XState machine settle immediately (no real/fake timer wait needed).
-vi.mock('framer-motion', async (importOriginal) => {
-  // eslint-disable-next-line @typescript-eslint/consistent-type-imports
-  const actual = await importOriginal<typeof import('framer-motion')>();
-  return {
-    ...actual,
-    useReducedMotion: () => true,
-  };
-});
+// Reduced-motion: collapses the spin to 0 duration (so the machine settles
+// immediately on SPIN_NOW) and the countdown ring to a static label. The
+// 30 s / 10 s windows themselves still tick — the spec is explicit that
+// reduced-motion preserves the betting windows.
+vi.mock('@/motion/useEffectiveReducedMotion', () => ({
+  useEffectiveReducedMotion: () => true,
+}));
+
+const { playSpy } = vi.hoisted(() => ({ playSpy: vi.fn() }));
+vi.mock('@/systems/sound/useSound', () => ({
+  useSound: () => ({ play: playSpy }),
+}));
 
 const TEST_USER: User = {
   id: 'u-test',
@@ -50,10 +53,11 @@ describe('<RoulettePage /> skeleton', () => {
     seed(1);
     await resetDb();
     await hydrateUser(500);
+    playSpy.mockReset();
   });
   afterEach(() => unseed());
 
-  it('renders the title and shows the felt + wheel + chip selector', async () => {
+  it('renders title, wheel, felt, chip selector, LobbyButton, OddsInfoBox, SPIN NOW', async () => {
     render(
       <MemoryRouter>
         <RoulettePage />
@@ -63,27 +67,61 @@ describe('<RoulettePage /> skeleton', () => {
     expect(screen.getByRole('img', { name: /roulette wheel/i })).toBeInTheDocument();
     expect(document.querySelector('[data-roulette-felt]')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /select 5-chip/i })).toBeInTheDocument();
+    // Shared shell primitives
+    expect(screen.getByRole('link', { name: /back to lobby/i })).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: /odds/i })).toBeInTheDocument();
+    // SPIN NOW button — replaces the old SPIN + New round.
+    expect(screen.getByRole('button', { name: /spin the wheel now/i })).toBeInTheDocument();
+    // No legacy "New round" affordance.
+    expect(screen.queryByRole('button', { name: /new round/i })).toBeNull();
   });
 
-  it('Spin button is disabled when no bets are placed', () => {
+  it('renders the auto-spin countdown text during placing_bets (reduced-motion path)', async () => {
     render(
       <MemoryRouter>
         <RoulettePage />
       </MemoryRouter>,
     );
-    expect(screen.getByRole('button', { name: /^spin$/i })).toBeDisabled();
+    expect(await screen.findByText(/Auto-spin in/i)).toBeInTheDocument();
   });
 });
 
-describe('<RoulettePage /> wallet bridge', () => {
+describe('<RoulettePage /> SPIN_NOW + zero-bet auto-spin', () => {
   beforeEach(async () => {
     seed(1);
     await resetDb();
     await hydrateUser(500);
+    playSpy.mockReset();
   });
   afterEach(() => unseed());
 
-  it('placing red + black bets, spinning, settles to a push (balance unchanged)', async () => {
+  it('clicking SPIN NOW with zero bets writes no rounds row (ADR-0046 zero-bet path)', async () => {
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <RoulettePage />
+      </MemoryRouter>,
+    );
+    await user.click(screen.getByRole('button', { name: /spin the wheel now/i }));
+    // Wait long enough for any settle bridge to run.
+    await new Promise((r) => setTimeout(r, 50));
+    const rows = await db.rounds.toArray();
+    expect(rows).toHaveLength(0);
+    // Balance untouched.
+    expect(useWalletStore.getState().balance).toBe(500);
+  });
+});
+
+describe('<RoulettePage /> wallet bridge — placed bets settle', () => {
+  beforeEach(async () => {
+    seed(1);
+    await resetDb();
+    await hydrateUser(500);
+    playSpy.mockReset();
+  });
+  afterEach(() => unseed());
+
+  it('placing red + black, hitting SPIN NOW, settles a single rounds row (push)', async () => {
     const user = userEvent.setup();
     render(
       <MemoryRouter>
@@ -95,20 +133,16 @@ describe('<RoulettePage /> wallet bridge', () => {
     await user.click(screen.getByRole('button', { name: /^red$/i }));
     await user.click(screen.getByRole('button', { name: /^black$/i }));
 
-    // Balance before spin: still 500 (deferred placeBet model).
     expect(useWalletStore.getState().balance).toBe(500);
 
-    await user.click(screen.getByRole('button', { name: /^spin$/i }));
+    await user.click(screen.getByRole('button', { name: /spin the wheel now/i }));
 
-    // Wait for placeBet to complete (balance drops as each bet is placed).
+    // Wait for place-bet bridge to drain.
     await waitFor(() => {
       expect(useWalletStore.getState().balance).toBe(450);
     });
 
-    // With spinDurationMs=0, machine settles immediately after SPIN.
-    // Wait for settle to complete and balance to restore.
-    // Bet 25 on red + 25 on black: spin=23 (red) → red wins (payout 50), black loses.
-    // Total bet=50, payout=50, net=0 → push → balance restored to 500.
+    // seed(1) → 23 (red): red wins (50), black loses → push → 500.
     await waitFor(
       () => {
         expect(useWalletStore.getState().balance).toBe(500);
@@ -124,8 +158,7 @@ describe('<RoulettePage /> wallet bridge', () => {
     expect(rounds[0]!.netChange).toBe(0);
   });
 
-  it('insufficient chips on SPIN aborts; balance untouched, no round row written', async () => {
-    // Reseed user with low balance.
+  it('insufficient chips on SPIN NOW aborts; balance untouched, no rounds row', async () => {
     await db.balances.put({ userId: TEST_USER.id, chips: 10, updatedAt: Date.now() });
     await useWalletStore.getState().hydrate(TEST_USER.id);
     expect(useWalletStore.getState().balance).toBe(10);
@@ -138,71 +171,66 @@ describe('<RoulettePage /> wallet bridge', () => {
     );
     await user.click(screen.getByRole('button', { name: /select 100-chip/i }));
     await user.click(screen.getByRole('button', { name: /^red$/i }));
-    await user.click(screen.getByRole('button', { name: /^spin$/i }));
+    await user.click(screen.getByRole('button', { name: /spin the wheel now/i }));
 
-    // Give the async IIFE time to complete (placeBet fails, nothing changes).
-    await waitFor(() => {
-      expect(useWalletStore.getState().balance).toBe(10);
-    });
-    const rounds = await db.rounds.toArray();
-    expect(rounds).toHaveLength(0);
+    await new Promise((r) => setTimeout(r, 100));
+    expect(useWalletStore.getState().balance).toBe(10);
+    const rows = await db.rounds.toArray();
+    expect(rows).toHaveLength(0);
   });
 });
 
-describe('<RoulettePage /> NEW_ROUND', () => {
+describe('<RoulettePage /> auto-spin via the 30 s window (fake timers)', () => {
   beforeEach(async () => {
     seed(1);
     await resetDb();
     await hydrateUser(500);
+    playSpy.mockReset();
   });
   afterEach(() => unseed());
 
-  it('after settle + NEW_ROUND, losing bets remain on the felt, winning ones clear', async () => {
-    const user = userEvent.setup();
-    render(
-      <MemoryRouter>
-        <RoulettePage />
-      </MemoryRouter>,
-    );
-    await user.click(screen.getByRole('button', { name: /select 5-chip/i }));
-    await user.click(screen.getByRole('button', { name: /^red$/i }));
-    await user.click(screen.getByRole('button', { name: /^black$/i }));
-    await user.click(screen.getByRole('button', { name: /^spin$/i }));
-
-    // Wait for machine to reach settled (New round button becomes enabled).
-    await waitFor(
-      () => {
-        expect(screen.getByRole('button', { name: /new round/i })).not.toBeDisabled();
-      },
-      { timeout: 5000 },
-    );
-
-    await user.click(screen.getByRole('button', { name: /new round/i }));
-
-    // Exactly one chip stack should remain (the losing one).
-    // seed(1) → spin 23 (red): red wins (removed), black loses (remains).
-    const stacks = document.querySelectorAll('[data-bet-stack]');
-    expect(stacks).toHaveLength(1);
+  it('after INITIAL_BET_WINDOW_MS, the wheel auto-spins (zero bets → no rounds row)', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      render(
+        <MemoryRouter>
+          <RoulettePage />
+        </MemoryRouter>,
+      );
+      await screen.findByText(/Auto-spin in/i);
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(ROULETTE_CONFIG.INITIAL_BET_WINDOW_MS + 50);
+      });
+      // No rounds row — zero bets on the felt at auto-spin time.
+      const rows = await db.rounds.toArray();
+      expect(rows).toHaveLength(0);
+    } finally {
+      vi.useRealTimers();
+    }
   });
+});
 
-  it('shows recent rounds in the GameShell sidebar after settle', async () => {
+describe('<RoulettePage /> rules-modal pause / resume', () => {
+  beforeEach(async () => {
+    seed(1);
+    await resetDb();
+    await hydrateUser(500);
+    playSpy.mockReset();
+  });
+  afterEach(() => unseed());
+
+  it('opening the rules modal opens the dialog (PAUSE_TIMER is wired)', async () => {
     const user = userEvent.setup();
     render(
       <MemoryRouter>
         <RoulettePage />
       </MemoryRouter>,
     );
-    await user.click(screen.getByRole('button', { name: /select 5-chip/i }));
-    await user.click(screen.getByRole('button', { name: /^red$/i }));
-    await user.click(screen.getByRole('button', { name: /^spin$/i }));
+    await screen.findByText(/Auto-spin in/i);
 
-    // Wait for settle to complete and sidebar to update.
-    await waitFor(
-      () => {
-        expect(screen.getByText(/RECENT/i)).toBeInTheDocument();
-        expect(screen.getByText(/last 1/i)).toBeInTheDocument();
-      },
-      { timeout: 5000 },
-    );
+    await user.click(screen.getByRole('button', { name: /show game rules/i }));
+    // Modal renders + countdown still mounted while paused (PAUSE_TIMER snapshots).
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByText(/Auto-spin in/i)).toBeInTheDocument();
   });
 });

@@ -37,6 +37,13 @@ interface Props {
    * `meta` caption is suppressed.
    */
   oddsInfo?: ReactNode;
+  /**
+   * Optional listener called whenever the rules-modal open state changes.
+   * Used by games with a betting countdown (Roulette, Phase 15 #6) to pause
+   * the timer while the player reads the rules and resume on close. No-op
+   * for games that don't care.
+   */
+  onRulesOpenChange?: (open: boolean) => void;
 }
 
 export default function GameShell({
@@ -49,9 +56,14 @@ export default function GameShell({
   rules,
   lobbyButton,
   oddsInfo,
+  onRulesOpenChange,
 }: Props): JSX.Element {
   useGameVisit(game);
-  const [rulesOpen, setRulesOpen] = useState(false);
+  const [rulesOpen, setRulesOpenState] = useState(false);
+  const setRulesOpen = (next: boolean): void => {
+    setRulesOpenState(next);
+    if (onRulesOpenChange) onRulesOpenChange(next);
+  };
   return (
     <div className="flex h-full flex-col">
       <div className="flex flex-1 overflow-hidden">
