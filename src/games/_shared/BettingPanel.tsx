@@ -17,6 +17,26 @@ interface Props {
    *  (skipping the manual Place-Bet step). Defaults to false to preserve
    *  the two-step flow other games rely on. */
   autoCommitRepeat?: boolean;
+  /**
+   * When true, the panel does NOT render the intermediate PLACE BET button
+   * and does NOT track an internal `committed` state. `callButtons` always
+   * receives the current chip-stack amount (or `null` when 0), and the
+   * caller is responsible for both placing the bet and triggering the
+   * action in one event handler.
+   *
+   * Slots uses this so SPIN itself IS the commit (player chooses chips,
+   * then taps SPIN — no intermediate "place bet" gesture). Default `false`
+   * preserves the two-step flow Blackjack / Coin-flip / Roulette rely on.
+   */
+  singleStepCommit?: boolean;
+  /**
+   * When true, the chip-stack `amount` is NOT cleared after `onCommit`
+   * fires. Used by Slots so the player can SPIN repeatedly with the same
+   * bet without re-selecting chips between rounds. CLEAR BET still
+   * resets explicitly. Default `false` (caller is expected to remount via
+   * `key` if it wants the panel to clear).
+   */
+  persistBetAcrossCommit?: boolean;
   /** Render-prop for the game-specific call buttons (HEADS/TAILS, HIT/STAND...). */
   callButtons: (committedAmount: number | null) => JSX.Element;
 }
@@ -32,6 +52,8 @@ export default function BettingPanel({
   onCommit,
   locked = false,
   autoCommitRepeat = false,
+  singleStepCommit = false,
+  persistBetAcrossCommit = false,
   callButtons,
 }: Props): JSX.Element {
   const [amount, setAmount] = useState(0);
@@ -42,22 +64,28 @@ export default function BettingPanel({
     if (canAdd(d)) setAmount((a) => a + d);
   };
   const onClear = () => {
-    if (!locked) setAmount(0);
+    if (locked) return;
+    setAmount(0);
+    if (persistBetAcrossCommit) setCommitted(null);
   };
   const onRepeat = () => {
     if (lastBet === undefined || locked || lastBet > balance || lastBet > max) return;
     setAmount(lastBet);
     if (autoCommitRepeat && lastBet >= min) {
       onCommit(lastBet);
-      setCommitted(lastBet);
+      if (!persistBetAcrossCommit) setCommitted(lastBet);
     }
   };
   const onCommitClick = () => {
     if (amount < min || amount > max || amount > balance) return;
     onCommit(amount);
-    setCommitted(amount);
+    if (!persistBetAcrossCommit) setCommitted(amount);
   };
   // Allow caller to reset committed state when round settles. Exposed via key prop change in CoinFlipPage.
+  // In single-step mode the panel forwards the live chip-stack amount (or
+  // `null` when zero) so the caller's button can both place the bet and run
+  // the action in one click — no intermediate PLACE BET step.
+  const callButtonArg: number | null = singleStepCommit ? (amount > 0 ? amount : null) : committed;
 
   return (
     <div className="mx-auto max-w-[720px]">
@@ -100,7 +128,7 @@ export default function BettingPanel({
         >
           Clear
         </button>
-        {committed === null && (
+        {!singleStepCommit && committed === null && (
           <button
             onClick={onCommitClick}
             disabled={amount < min || amount > balance}
@@ -111,7 +139,7 @@ export default function BettingPanel({
         )}
       </div>
 
-      <div>{callButtons(committed)}</div>
+      <div>{callButtons(callButtonArg)}</div>
     </div>
   );
 }
