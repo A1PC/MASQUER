@@ -11,6 +11,11 @@ type Game = Round['game'];
 
 interface Props {
   title: string;
+  /**
+   * Short caption shown next to the title for legacy (non-upgraded) games.
+   * Suppressed automatically when `oddsInfo` is provided, since the
+   * OddsInfoBox at the top-right replaces it.
+   */
   meta?: string;
   recentItems?: RecentResultItem[];
   bettingPanel: ReactNode;
@@ -20,15 +25,16 @@ interface Props {
   /** Optional rules content (renders the bottom-left RULES button + overlay modal). */
   rules?: ReactNode;
   /**
-   * Optional slot rendered at the top-left of the header strip — typically the
-   * shared `<LobbyButton />`. Replaces the legacy minimalist "← lobby" link
-   * when provided. Games that haven't been upgraded yet keep the old link.
+   * Optional slot rendered absolutely at the top-LEFT of the game section —
+   * typically the shared `<LobbyButton />`. Games that haven't been upgraded
+   * yet fall back to a minimalist "← lobby" text link in the same position.
    */
   lobbyButton?: ReactNode;
   /**
-   * Optional slot rendered next to the bottom-left RULES button — typically
-   * the shared `<OddsInfoBox />` summarising payouts. Only renders when the
-   * `rules` prop is also provided (the rules button is the visual anchor).
+   * Optional slot rendered absolutely at the top-RIGHT of the game section —
+   * typically the shared `<OddsInfoBox />` summarising payouts. Sits inside
+   * the section (not over the recent-results sidebar). When provided, the
+   * `meta` caption is suppressed.
    */
   oddsInfo?: ReactNode;
 }
@@ -49,15 +55,26 @@ export default function GameShell({
   return (
     <div className="flex h-full flex-col">
       <div className="flex flex-1 overflow-hidden">
-        <section className="flex flex-1 flex-col items-center px-6 pt-7">
-          <div className="mb-4 flex w-full max-w-[520px] items-center justify-between gap-3">
-            {lobbyButton ?? (
-              <Link to="/lobby" className="text-xs text-white/60 hover:text-white">
-                ← lobby
-              </Link>
-            )}
+        <section className="relative flex flex-1 flex-col items-center px-6 pt-7">
+          <div className="pointer-events-none absolute left-4 top-4 z-20">
+            <div className="pointer-events-auto">
+              {lobbyButton ?? (
+                <Link to="/lobby" className="text-xs text-white/60 hover:text-white">
+                  ← lobby
+                </Link>
+              )}
+            </div>
+          </div>
+          {oddsInfo !== undefined && (
+            <div className="pointer-events-none absolute right-4 top-4 z-20">
+              <div className="pointer-events-auto">{oddsInfo}</div>
+            </div>
+          )}
+          <div className="mb-4 flex w-full max-w-[520px] items-baseline justify-center gap-3">
             <h1 className="font-display text-2xl tracking-wider text-gold-bright">{title}</h1>
-            <span className="text-xs text-white/50">{meta}</span>
+            {meta !== undefined && oddsInfo === undefined && (
+              <span className="text-xs text-white/50">{meta}</span>
+            )}
           </div>
           <div className="flex flex-1 flex-col items-center justify-center">{children}</div>
         </section>
@@ -71,9 +88,6 @@ export default function GameShell({
       {rules !== undefined && (
         <>
           <RulesButton onClick={() => setRulesOpen(true)} />
-          {oddsInfo !== undefined && (
-            <div className="fixed bottom-4 left-[155px] z-30">{oddsInfo}</div>
-          )}
           <RulesModal open={rulesOpen} title={title} onClose={() => setRulesOpen(false)}>
             {rules}
           </RulesModal>
