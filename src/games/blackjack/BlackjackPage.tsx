@@ -84,6 +84,17 @@ export default function BlackjackPage(): JSX.Element | null {
     }
   }, [snapshot]);
 
+  // Velvet Duel — temporary bridge for PR B. The proper AceValuePrompt Modal
+  // arrives in PR C; meanwhile auto-resolve any open ACE_PROMPT (prefer 11
+  // when allowed, else 1) so the existing UI flow keeps working end-to-end.
+  // PR C replaces this with a player-facing Modal.
+  useEffect(() => {
+    if (!snapshot.matches('awaiting_ace_choice')) return;
+    const prompt = snapshot.context.acePrompt;
+    if (!prompt) return;
+    send({ type: 'CHOOSE_ACE', value: prompt.allowEleven ? 11 : 1 });
+  }, [snapshot, send]);
+
   const items: RecentResultItem[] = useMemo(
     () =>
       rounds.map((r) => {

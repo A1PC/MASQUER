@@ -6,6 +6,9 @@ import { buildRoundDetails, settleInsurance } from './settle';
 import { BLACKJACK_CONFIG } from './config';
 import type { Card, Hand, InsuranceState } from './types';
 
+/** Step to resume after the player resolves an ACE_PROMPT. */
+type PendingAfterAce = 'after_naturals' | 'after_action';
+
 interface Context {
   shoe: Card[];
   shoeOriginalSize: number;
@@ -15,6 +18,17 @@ interface Context {
   insurance: InsuranceState;
   betAmount: number;
   betHandleIds: string[];
+  /** Velvet Duel — true while the dealer is drawing one card per player action.
+   *  Flips to false the first time the dealer's total reaches 17+ (per H17). */
+  dealerInterleaving: boolean;
+  /** Set true on player Hit/Double/Split-first-card; consumed by `after_action`
+   *  to deal exactly one dealer card when `dealerInterleaving` is true. */
+  pendingDealerDraw: boolean;
+  /** When non-null, the player must resolve a CHOOSE_ACE event before any
+   *  other progress (alternation, settling, next player action). */
+  acePrompt: { handIdx: number; cardIdx: number; allowEleven: boolean } | null;
+  /** Step to resume once acePrompt clears. */
+  pendingAfterAce: PendingAfterAce;
   /** Result of buildRoundDetails — consumed by the page to call wallet.settleRound. Null when no round has been settled yet. */
   roundResult: ReturnType<typeof buildRoundDetails> | null;
 }
@@ -28,8 +42,49 @@ const initialContext = (): Context => ({
   insurance: { status: 'not-offered', bet: 0, payout: 0 },
   betAmount: 0,
   betHandleIds: [],
+  dealerInterleaving: false,
+  pendingDealerDraw: false,
+  acePrompt: null,
+  pendingAfterAce: 'after_naturals',
   roundResult: null,
 });
+
+/** Find the first un-locked Ace on any player hand (deal order: by hand then by card). */
+function findPendingPlayerAce(hands: readonly Hand[]): { handIdx: number; cardIdx: number } | null {
+  for (let h = 0; h < hands.length; h++) {
+    const hand = hands[h]!;
+    for (let c = 0; c < hand.cards.length; c++) {
+      const card = hand.cards[c]!;
+      if (card.rank === 'A' && card.aceValue === undefined) {
+        return { handIdx: h, cardIdx: c };
+      }
+    }
+  }
+  return null;
+}
+
+/** Compute hand total assuming the specified Ace card were treated as 11.
+ *  Used to decide whether `allowEleven` should be offered in an ACE_PROMPT. */
+function totalIfAceWereEleven(hands: readonly Hand[], handIdx: number, cardIdx: number): number {
+  const hand = hands[handIdx]!;
+  const probed: Card[] = hand.cards.map((c, i) =>
+    i === cardIdx ? { ...c, aceValue: 11 as const } : c,
+  );
+  return handTotal(probed).value;
+}
+
+/** Lock an Ace's value on a player hand and return the new hands[] array. */
+function lockAce(hands: readonly Hand[], handIdx: number, cardIdx: number, value: 1 | 11): Hand[] {
+  return hands.map((h, hi) => {
+    if (hi !== handIdx) return h;
+    const cards = h.cards.map((c, ci) => (ci === cardIdx ? { ...c, aceValue: value } : c));
+    const total = handTotal(cards).value;
+    // If locking the Ace pushes the hand to 21+ (e.g. locked-11 busts or
+    // hits 21), mark the hand resolved so no further player actions apply.
+    const resolved = h.resolved || total >= 21;
+    return { ...h, cards, resolved };
+  });
+}
 
 export const blackjackMachine = setup({
   types: {
@@ -43,6 +98,7 @@ export const blackjackMachine = setup({
       | { type: 'STAND' }
       | { type: 'DOUBLE'; betHandleId: string }
       | { type: 'SPLIT'; betHandleId: string }
+      | { type: 'CHOOSE_ACE'; value: 1 | 11 }
       | { type: 'NEW_ROUND' },
   },
   guards: {
@@ -68,9 +124,19 @@ export const blackjackMachine = setup({
       if (!h) return false;
       return canSplit(h, context.hands.length, BLACKJACK_CONFIG.MAX_HANDS);
     },
+    /** Velvet Duel min-stand-14: Stand is illegal on totals below 14. */
+    canStandActive: ({ context }) => {
+      const h = context.hands[context.activeHandIdx];
+      if (!h) return false;
+      return handTotal(h.cards).value >= 14;
+    },
     allHandsResolved: ({ context }) => context.hands.every((h) => h.resolved),
     allHandsBust: ({ context }) => context.hands.every((h) => isBust(h.cards)),
     dealerShouldHit: ({ context }) => dealerShouldHit(context.dealerCards),
+    hasPendingPlayerAce: ({ context }) => findPendingPlayerAce(context.hands) !== null,
+    /** Dealer reached H17 stand threshold mid-interleaving — stop drawing. */
+    dealerInterleaveDone: ({ context }) =>
+      !context.dealerInterleaving || !dealerShouldHit(context.dealerCards),
   },
   actions: {
     initShoe: assign(({ context }) => {
@@ -98,11 +164,18 @@ export const blackjackMachine = setup({
         betAmount: context.betAmount,
         resolved: false,
       };
+      // Velvet Duel: alternation only fires while the dealer's current total
+      // is still below the H17 stand threshold. Compute against both cards
+      // (the hole is dealt but face-down; the alternation tick will flip it
+      // on first fire). Dealer at hard 17+ from the deal → no interleaving.
+      const dealerCards = [d1, dHole];
+      const dealerInterleaving = dealerShouldHit(dealerCards);
       return {
         shoe,
-        dealerCards: [d1, dHole],
+        dealerCards,
         hands: [initialHand],
         activeHandIdx: 0,
+        dealerInterleaving,
       };
     }),
     revealHoleCard: assign(({ context }) => ({
@@ -113,6 +186,29 @@ export const blackjackMachine = setup({
       const c = drawCard(shoe);
       return { shoe, dealerCards: [...context.dealerCards, c] };
     }),
+    /** Velvet Duel: dealer draws ONE card during interleaving. Reveals hole
+     *  first (idempotent), consumes the pendingDealerDraw flag, and recomputes
+     *  whether further alternation should keep firing on future player actions. */
+    dealerInterleaveDraw: assign(({ context }) => {
+      const shoe = [...context.shoe];
+      const dealerCards = context.dealerCards.map((c, i) =>
+        i === 1 && !c.faceUp ? { ...c, faceUp: true } : c,
+      );
+      const drawn = drawCard(shoe);
+      const newDealer = [...dealerCards, drawn];
+      const keepInterleaving = dealerShouldHit(newDealer);
+      return {
+        shoe,
+        dealerCards: newDealer,
+        dealerInterleaving: keepInterleaving,
+        pendingDealerDraw: false,
+      };
+    }),
+    /** Arm the next dealer alternation tick (after a player Hit/Double/Split). */
+    armDealerDraw: assign(() => ({ pendingDealerDraw: true })),
+    /** Clear any pending alternation tick — used by STAND/SURRENDER, where the
+     *  dealer's interleave does NOT fire (per Velvet Duel spec). */
+    clearPendingDealerDraw: assign(() => ({ pendingDealerDraw: false })),
     hitActive: assign(({ context }) => {
       const shoe = [...context.shoe];
       const c = drawCard(shoe);
@@ -206,6 +302,40 @@ export const blackjackMachine = setup({
       const next = context.hands.findIndex((h, i) => i > context.activeHandIdx && !h.resolved);
       return { activeHandIdx: next === -1 ? context.activeHandIdx : next };
     }),
+    /** Compute + set the acePrompt for the first pending player Ace.
+     *  If 11 would bust the hand, auto-locks at 1 and leaves acePrompt null
+     *  (the always-block will re-enter and find the next pending Ace or proceed). */
+    resolveNextAcePrompt: assign(({ context }) => {
+      const pending = findPendingPlayerAce(context.hands);
+      if (!pending) return { acePrompt: null };
+      const elevenTotal = totalIfAceWereEleven(context.hands, pending.handIdx, pending.cardIdx);
+      const allowEleven = elevenTotal <= 21;
+      if (!allowEleven) {
+        // Auto-lock at 1, no prompt. Always-block will recurse to find more aces.
+        return {
+          hands: lockAce(context.hands, pending.handIdx, pending.cardIdx, 1),
+          acePrompt: null,
+        };
+      }
+      return {
+        acePrompt: {
+          handIdx: pending.handIdx,
+          cardIdx: pending.cardIdx,
+          allowEleven: true,
+        },
+      };
+    }),
+    /** Write the chosen Ace value onto the prompted card, clear the prompt. */
+    applyChosenAce: assign(({ context, event }) => {
+      if (event.type !== 'CHOOSE_ACE' || !context.acePrompt) return {};
+      const { handIdx, cardIdx } = context.acePrompt;
+      return {
+        hands: lockAce(context.hands, handIdx, cardIdx, event.value),
+        acePrompt: null,
+      };
+    }),
+    setPendingAfterAceNaturals: assign(() => ({ pendingAfterAce: 'after_naturals' as const })),
+    setPendingAfterAceAction: assign(() => ({ pendingAfterAce: 'after_action' as const })),
     composeRoundResult: assign(({ context }) => ({
       roundResult: buildRoundDetails({
         dealerCards: context.dealerCards,
@@ -228,6 +358,10 @@ export const blackjackMachine = setup({
         insurance: fresh.insurance,
         betAmount: 0,
         betHandleIds: [],
+        dealerInterleaving: false,
+        pendingDealerDraw: false,
+        acePrompt: null,
+        pendingAfterAce: 'after_naturals' as const,
         roundResult: null,
       };
     }),
@@ -273,46 +407,135 @@ export const blackjackMachine = setup({
       },
     },
     checking_naturals: {
-      entry: ['revealHoleCard', 'resolveInsurance'],
+      // Velvet Duel: the dealer's hole stays face-DOWN through the natural-
+      // peek (the dealer secretly peeks). We only reveal it here if the peek
+      // shows a natural BJ (round settles immediately). Otherwise the hole
+      // stays down and flips on the first alternation tick in after_action.
+      entry: ['resolveInsurance'],
       always: [
         {
           guard: 'dealerHasBlackjack',
           target: 'settling',
-          actions: assign(({ context }) => ({
-            hands: context.hands.map((h) => ({ ...h, resolved: true })),
-          })),
+          actions: [
+            'revealHoleCard',
+            assign(({ context }) => ({
+              hands: context.hands.map((h) => ({ ...h, resolved: true })),
+              dealerInterleaving: false,
+            })),
+          ],
         },
         {
           guard: 'playerHasBlackjack',
           target: 'settling',
-          actions: assign(({ context }) => ({
-            hands: context.hands.map((h) => ({ ...h, resolved: true })),
-          })),
+          actions: [
+            'revealHoleCard',
+            assign(({ context }) => ({
+              hands: context.hands.map((h) => ({ ...h, resolved: true })),
+              dealerInterleaving: false,
+            })),
+          ],
         },
-        { target: 'player_action' },
+        { target: 'checking_player_aces', actions: ['setPendingAfterAceNaturals'] },
       ],
+    },
+    /** Velvet Duel — resolve any pending player Aces from the opening deal
+     *  (or a HIT/DOUBLE/SPLIT that drew an Ace) before resuming the next step.
+     *  Auto-locks at 1 silently when 11 would bust; otherwise prompts. */
+    checking_player_aces: {
+      entry: ['resolveNextAcePrompt'],
+      always: [
+        // If resolveNextAcePrompt set acePrompt, wait for the player.
+        {
+          guard: ({ context }) => context.acePrompt !== null,
+          target: 'awaiting_ace_choice',
+        },
+        // No prompt set — either we auto-locked one Ace (recurse) or there
+        // are no more pending Aces and we resume the pending step.
+        {
+          guard: 'hasPendingPlayerAce',
+          target: 'checking_player_aces',
+          reenter: true,
+        },
+        // No pending Aces — resume.
+        {
+          guard: ({ context }) => context.pendingAfterAce === 'after_naturals',
+          target: 'player_action',
+        },
+        { target: 'after_action' },
+      ],
+    },
+    awaiting_ace_choice: {
+      on: {
+        CHOOSE_ACE: {
+          actions: ['applyChosenAce'],
+          target: 'checking_player_aces',
+        },
+      },
     },
     player_action: {
       always: [
-        // If active hand is already resolved (e.g., split-Aces), advance.
+        // If active hand is already resolved (e.g., split-Aces, locked-11 made 21), advance.
         { guard: 'allHandsResolved', target: 'dealer_check' },
       ],
       on: {
-        HIT: { actions: ['hitActive'], target: 'after_action' },
-        STAND: { actions: ['standActive'], target: 'after_action' },
-        DOUBLE: { guard: 'canDoubleActive', actions: ['doubleActive'], target: 'after_action' },
-        SPLIT: { guard: 'canSplitActive', actions: ['splitActive'], target: 'after_action' },
+        HIT: {
+          guard: 'canHitActive',
+          actions: ['hitActive', 'armDealerDraw'],
+          target: 'checking_player_aces_then_action',
+        },
+        STAND: {
+          guard: 'canStandActive',
+          actions: ['standActive', 'clearPendingDealerDraw'],
+          target: 'after_action',
+        },
+        DOUBLE: {
+          guard: 'canDoubleActive',
+          actions: ['doubleActive', 'armDealerDraw'],
+          target: 'checking_player_aces_then_action',
+        },
+        SPLIT: {
+          guard: 'canSplitActive',
+          actions: ['splitActive', 'armDealerDraw'],
+          target: 'checking_player_aces_then_action',
+        },
       },
+    },
+    /** Bridge state — after a HIT/DOUBLE/SPLIT that dealt a player card,
+     *  resolve any pending Aces FIRST (Velvet Duel: no dealer interleave
+     *  between deal and ace prompt) then fall through to after_action. */
+    checking_player_aces_then_action: {
+      entry: ['setPendingAfterAceAction'],
+      always: [{ target: 'checking_player_aces' }],
     },
     after_action: {
       always: [
+        // Velvet Duel: one alternation tick per player action — and only while
+        // the dealer is still interleaving (< 17). pendingDealerDraw guards
+        // against re-firing within the same player turn.
+        {
+          guard: ({ context }) => context.dealerInterleaving && context.pendingDealerDraw,
+          actions: ['dealerInterleaveDraw'],
+          target: 'after_action',
+          reenter: true,
+        },
         { guard: 'allHandsResolved', target: 'dealer_check' },
         { actions: ['advanceToNextHand'], target: 'player_action' },
       ],
     },
     dealer_check: {
-      // If all hands busted, dealer doesn't draw — go straight to settling.
-      always: [{ guard: 'allHandsBust', target: 'settling' }, { target: 'dealer_action' }],
+      // Ensure the hole is face-up before the dealer's finishing draws or
+      // settling — covers paths where alternation never fired (e.g. player
+      // stood on their first action without hitting).
+      entry: ['revealHoleCard'],
+      always: [
+        { guard: 'allHandsBust', target: 'settling' },
+        // If the dealer already finished interleaving (≥17), no further draws.
+        {
+          guard: ({ context }) => !dealerShouldHit(context.dealerCards),
+          target: 'settling',
+        },
+        { target: 'dealer_action' },
+      ],
     },
     dealer_action: {
       // dealer draws per H17 rule; this loops via re-entry

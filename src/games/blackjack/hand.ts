@@ -1,24 +1,35 @@
 import type { Card, Hand, HandTotal, Rank } from './types';
 
 /** Compute hand value, picking the best (highest, not busting) Ace interpretation.
- *  Returns the value AND whether it's "soft" (contains an Ace counted as 11). */
+ *  Returns the value AND whether it's "soft" (contains an Ace counted as 11).
+ *
+ *  Velvet Duel variant: Aces with a locked `aceValue` (player chose 1 or 11 via
+ *  ACE_PROMPT) are honoured verbatim and never demoted by the soft-auto loop.
+ *  Aces without a locked value continue to start at 11 and demote to 1 as
+ *  needed (dealer Aces never lock, so they retain classic soft-auto behaviour). */
 export function handTotal(cards: readonly Card[]): HandTotal {
   let total = 0;
-  let aces = 0;
+  let softAces = 0; // aces currently counted as 11 (unlocked)
   for (const c of cards) {
     if (c.rank === 'A') {
-      aces += 1;
-      total += 11;
+      if (c.aceValue === 1) {
+        total += 1;
+      } else if (c.aceValue === 11) {
+        // Locked-11 — never demote even if it busts (player chose it deliberately).
+        total += 11;
+      } else {
+        total += 11;
+        softAces += 1;
+      }
     } else {
       total += rankValue(c.rank);
     }
   }
-  let acesAsEleven = aces;
-  while (total > 21 && acesAsEleven > 0) {
+  while (total > 21 && softAces > 0) {
     total -= 10;
-    acesAsEleven -= 1;
+    softAces -= 1;
   }
-  return { value: total, soft: acesAsEleven > 0 };
+  return { value: total, soft: softAces > 0 };
 }
 
 export function isBust(cards: readonly Card[]): boolean {

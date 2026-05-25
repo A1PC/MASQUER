@@ -64,6 +64,50 @@ describe('handTotal', () => {
   it('10-J = 20 hard', () => {
     expect(handTotal([card('10'), card('J')])).toEqual({ value: 20, soft: false });
   });
+
+  it('respects a player-locked aceValue=1 when computing total', () => {
+    const cards: Card[] = [
+      { rank: 'A', suit: '♠', faceUp: true, aceValue: 1 },
+      { rank: '5', suit: '♥', faceUp: true },
+    ];
+    expect(handTotal(cards)).toEqual({ value: 6, soft: false });
+  });
+
+  it('respects a player-locked aceValue=11 when computing total', () => {
+    const cards: Card[] = [
+      { rank: 'A', suit: '♠', faceUp: true, aceValue: 11 },
+      { rank: '5', suit: '♥', faceUp: true },
+    ];
+    expect(handTotal(cards)).toEqual({ value: 16, soft: false });
+  });
+
+  it('keeps soft-auto when aceValue is not locked (dealer/unresolved)', () => {
+    const cards: Card[] = [
+      { rank: 'A', suit: '♠', faceUp: true },
+      { rank: '5', suit: '♥', faceUp: true },
+    ];
+    expect(handTotal(cards)).toEqual({ value: 16, soft: true });
+  });
+
+  it('locked-11 Ace is NEVER demoted even when it would bust', () => {
+    // Player deliberately chose 11; respect that even at 12+11 = 23.
+    const cards: Card[] = [
+      { rank: 'Q', suit: '♠', faceUp: true },
+      { rank: '2', suit: '♥', faceUp: true },
+      { rank: 'A', suit: '♦', faceUp: true, aceValue: 11 },
+    ];
+    expect(handTotal(cards)).toEqual({ value: 23, soft: false });
+  });
+
+  it('mix of locked + unlocked aces — unlocked one demotes, locked one stays', () => {
+    // Locked-11 + unlocked-11 + 9 = 31 → unlocked demotes to 1 → 21
+    const cards: Card[] = [
+      { rank: 'A', suit: '♠', faceUp: true, aceValue: 11 },
+      { rank: 'A', suit: '♥', faceUp: true },
+      { rank: '9', suit: '♦', faceUp: true },
+    ];
+    expect(handTotal(cards)).toEqual({ value: 21, soft: false });
+  });
 });
 
 describe('isBust', () => {

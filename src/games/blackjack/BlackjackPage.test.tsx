@@ -47,6 +47,38 @@ async function placeBetAndDeal() {
   });
 }
 
+/** Read the active hand's total from the DOM (PlayerArea renders e.g.
+ *  "HAND 1 · 15" on the active hand). Returns null when no hand is shown. */
+function activeHandTotal(): number | null {
+  const labels = screen.queryAllByText(/HAND \d+ · /);
+  if (labels.length === 0) return null;
+  // The active hand has a leading "▶ " prefix; pick that if present.
+  const active = labels.find((el) => el.textContent?.includes('▶')) ?? labels[0];
+  if (!active) return null;
+  const m = active.textContent?.match(/(\d+)\s*$/);
+  return m ? parseInt(m[1]!, 10) : null;
+}
+
+/** Velvet Duel — STAND is rejected by the machine on totals below 14. Hits
+ *  until the active hand reaches >= 14 (or the round resolves on its own). */
+async function hitUntilStandable() {
+  let safety = 12;
+  while (safety-- > 0) {
+    const hitBtn = screen.queryByText('HIT');
+    if (!hitBtn) return; // round resolved (no action panel)
+    const total = activeHandTotal();
+    if (total !== null && total >= 14) return;
+    await userEvent.click(hitBtn);
+    await waitFor(() => {
+      // Wait one tick for the new card to settle into the DOM.
+      const t = activeHandTotal();
+      // If the round resolved, t will be null — that's fine; we just need
+      // *something* to change. Use a tiny non-blocking assertion to yield.
+      expect(t === null || typeof t === 'number').toBe(true);
+    });
+  }
+}
+
 describe('BlackjackPage', () => {
   // ── Plan-explicit tests ──────────────────────────────────────────────────
 
@@ -75,7 +107,11 @@ describe('BlackjackPage', () => {
     if (screen.queryByText(/INSURANCE/)) {
       await userEvent.click(screen.getByText(/DECLINE/));
     }
-    await userEvent.click(screen.getByText('STAND'));
+    // Velvet Duel: hit until STAND is legal (total >= 14), then stand.
+    await hitUntilStandable();
+    if (screen.queryByText('STAND')) {
+      await userEvent.click(screen.getByText('STAND'));
+    }
     // Wait for the rounds row to appear.
     await waitFor(
       async () => {
@@ -94,7 +130,10 @@ describe('BlackjackPage', () => {
     if (screen.queryByText(/INSURANCE/)) {
       await userEvent.click(screen.getByText(/DECLINE/));
     }
-    await userEvent.click(screen.getByText('STAND'));
+    await hitUntilStandable();
+    if (screen.queryByText('STAND')) {
+      await userEvent.click(screen.getByText('STAND'));
+    }
     await waitFor(
       () => {
         const b = useWalletStore.getState().balance ?? 0;
@@ -198,6 +237,7 @@ describe('BlackjackPage', () => {
     if (screen.queryByText(/INSURANCE/)) {
       await userEvent.click(screen.getByText(/DECLINE/));
     }
+    await hitUntilStandable();
     if (screen.queryByText('STAND')) {
       await userEvent.click(screen.getByText('STAND'));
     }
@@ -286,6 +326,7 @@ describe('BlackjackPage', () => {
     if (screen.queryByText(/INSURANCE/)) {
       await userEvent.click(screen.getByText(/DECLINE/));
     }
+    await hitUntilStandable();
     if (screen.queryByText('STAND')) {
       await userEvent.click(screen.getByText('STAND'));
     }
@@ -319,6 +360,7 @@ describe('BlackjackPage', () => {
     if (screen.queryByText(/INSURANCE/)) {
       await userEvent.click(screen.getByText(/DECLINE/));
     }
+    await hitUntilStandable();
     if (screen.queryByText('STAND')) {
       await userEvent.click(screen.getByText('STAND'));
     }
