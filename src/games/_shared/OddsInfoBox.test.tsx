@@ -27,4 +27,18 @@ describe('OddsInfoBox', () => {
     render(<OddsInfoBox>Win 1:1</OddsInfoBox>);
     expect(screen.getByRole('group', { name: /odds & payouts/i })).toBeInTheDocument();
   });
+
+  it('caps width at 480px so long payout strings wrap rather than stretch', () => {
+    render(
+      <OddsInfoBox>
+        Straight 35:1 · Split 17:1 · Street 11:1 · Corner 8:1 · Six-line 5:1 · Column 2:1 · Dozen
+        2:1 · Red/Black/Odd/Even/Low/High 1:1
+      </OddsInfoBox>,
+    );
+    // Tailwind compiles `max-w-[480px]` to a literal class on the wrapper —
+    // assert via className rather than getComputedStyle (jsdom doesn't load
+    // the Tailwind stylesheet, so style-based checks would be flaky).
+    const group = screen.getByRole('group', { name: /odds & payouts/i });
+    expect(group.className).toMatch(/max-w-\[480px\]/);
+  });
 });
