@@ -67,26 +67,29 @@ export default function GameShell({
   return (
     <div className="flex h-full flex-col">
       <div className="flex flex-1 overflow-hidden">
-        <section className="relative flex flex-1 flex-col items-center px-6 pt-7">
-          <div className="pointer-events-none absolute left-4 top-4 z-20">
-            <div className="pointer-events-auto">
+        <section className="flex flex-1 flex-col items-center px-6 pt-4">
+          <div className="mb-4 flex w-full items-center justify-between gap-4">
+            <div className="flex-shrink-0">
               {lobbyButton ?? (
                 <Link to="/lobby" className="text-xs text-white/60 hover:text-white">
                   ← lobby
                 </Link>
               )}
             </div>
-          </div>
-          {oddsInfo !== undefined && (
-            <div className="pointer-events-none absolute right-4 top-4 z-20">
-              <div className="pointer-events-auto">{oddsInfo}</div>
+            <h1
+              className="min-w-0 flex-1 truncate text-center font-display text-2xl tracking-wider text-gold-bright"
+              title={title}
+            >
+              {title}
+              {meta !== undefined && oddsInfo === undefined && (
+                <span className="ml-3 text-xs font-normal tracking-normal text-white/50">
+                  {meta}
+                </span>
+              )}
+            </h1>
+            <div className="flex-shrink-0">
+              {oddsInfo ?? <div className="w-[1px]" aria-hidden="true" />}
             </div>
-          )}
-          <div className="mb-4 flex w-full max-w-[520px] items-baseline justify-center gap-3">
-            <h1 className="font-display text-2xl tracking-wider text-gold-bright">{title}</h1>
-            {meta !== undefined && oddsInfo === undefined && (
-              <span className="text-xs text-white/50">{meta}</span>
-            )}
           </div>
           <div className="flex flex-1 flex-col items-center justify-center">{children}</div>
         </section>
