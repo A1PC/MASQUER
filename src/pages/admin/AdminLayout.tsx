@@ -9,6 +9,7 @@ const NAV_ITEMS = [
   { to: '/admin/sessions', label: 'Sessions', end: false },
   { to: '/admin/lottery', label: 'Lottery', end: false },
   { to: '/admin/bingo', label: 'Bingo', end: false },
+  { to: '/admin/roulette', label: 'Roulette', end: false },
 ] as const;
 
 export default function AdminLayout(): JSX.Element {
