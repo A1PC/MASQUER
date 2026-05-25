@@ -6,6 +6,10 @@ export interface Card {
   readonly suit: Suit;
   /** True after the card is revealed (dealer's hole card flips to true). */
   readonly faceUp: boolean;
+  /** Player-locked Ace value (1 or 11). Only set for Aces on player hands once
+   *  the player has chosen via the ACE_PROMPT. Dealer Aces never set this and
+   *  retain the soft-auto-11 behaviour in `handTotal`. */
+  readonly aceValue?: 1 | 11;
 }
 
 export interface Hand {
