@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import 'fake-indexeddb/auto';
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import RoulettePage from './RoulettePage';
@@ -188,7 +188,7 @@ describe('<RoulettePage /> wallet bridge — placed bets settle', () => {
   });
 });
 
-describe('<RoulettePage /> auto-spin via the 30 s window (fake timers)', () => {
+describe('<RoulettePage /> auto-spin via the 30 s window', () => {
   beforeEach(async () => {
     seed(1);
     await resetDb();
@@ -198,8 +198,25 @@ describe('<RoulettePage /> auto-spin via the 30 s window (fake timers)', () => {
   afterEach(() => unseed());
 
   it('after INITIAL_BET_WINDOW_MS, the wheel auto-spins (zero bets → one zero-stake row)', async () => {
-    vi.useFakeTimers({ shouldAdvanceTime: true });
-    let restored = false;
+    // ── Why this test uses REAL timers (not fake) ─────────────────────────
+    // The original implementation drove the 30 s bet-window forward with
+    // `vi.useFakeTimers` + `vi.advanceTimersByTimeAsync`, then switched to
+    // real timers to let Dexie/`recordSpinOnly` commit. That combination is
+    // flaky in CI: XState `after(...)` delays + React commit/effect cycle +
+    // fake-indexeddb's setImmediate-via-jsdom-escape all race in ways that
+    // sometimes leave the `settled` state's `useEffect` un-run when we hand
+    // control back to real timers (Phase-12 lesson: fake-timer bursts can
+    // skip microtask deliveries; the symptom in CI was an empty
+    // `db.rounds.toArray()` despite a 2 s waitFor).
+    //
+    // Instead we shrink the auto-spin window to ~50 ms by mutating
+    // `ROULETTE_CONFIG.INITIAL_BET_WINDOW_MS` for this single test (and
+    // restore it in `finally`). The machine reads the value lazily via its
+    // `delays.initialBetWindow` thunk, so the override takes effect on the
+    // next entry to `placing_bets`. Real timers + a generous `waitFor`
+    // timeout then deterministically observe the Dexie write.
+    const realBetWindowMs = ROULETTE_CONFIG.INITIAL_BET_WINDOW_MS;
+    (ROULETTE_CONFIG as { INITIAL_BET_WINDOW_MS: number }).INITIAL_BET_WINDOW_MS = 50;
     try {
       render(
         <MemoryRouter>
@@ -207,34 +224,27 @@ describe('<RoulettePage /> auto-spin via the 30 s window (fake timers)', () => {
         </MemoryRouter>,
       );
       await screen.findByText(/Auto-spin in/i);
-      await act(async () => {
-        // Bet window timer → spinning (entry: setSpinResult).
-        await vi.advanceTimersByTimeAsync(ROULETTE_CONFIG.INITIAL_BET_WINDOW_MS + 50);
-      });
-      // Switch back to real timers BEFORE the spin's after(0) fires so the
-      // React effect that calls `recordSpinOnly` runs against real
-      // microtasks (Dexie's transaction relies on the real microtask
-      // queue). The 0-ms after-delay in reduced-motion mode fires on the
-      // next macrotask, which real timers process naturally.
-      vi.useRealTimers();
-      restored = true;
-      // ADR-0046 amendment: zero-bet auto-spin writes a single zero-stake
-      // `rounds` row so the recent-results feed stays in sync with the wheel.
-      // Poll for up to 2 s — the settle effect schedules the Dexie write as
-      // a microtask after the React render that follows the timer-driven
-      // state transition.
+      // ADR-0046 amendment: the zero-bet auto-spin writes a single
+      // zero-stake `rounds` row so the recent-results feed stays in sync
+      // with the wheel. 5 s timeout covers CI's slower jsdom +
+      // fake-indexeddb pipeline.
       await waitFor(
         async () => {
           const rows = await db.rounds.toArray();
           expect(rows).toHaveLength(1);
           expect(rows[0]!.betAmount).toBe(0);
+          expect(rows[0]!.payout).toBe(0);
+          expect(rows[0]!.netChange).toBe(0);
+          expect(rows[0]!.outcome).toBe('push');
+          expect(rows[0]!.id.startsWith('spin-only-')).toBe(true);
         },
-        { timeout: 2_000 },
+        { timeout: 5_000 },
       );
     } finally {
-      if (!restored) vi.useRealTimers();
+      (ROULETTE_CONFIG as { INITIAL_BET_WINDOW_MS: number }).INITIAL_BET_WINDOW_MS =
+        realBetWindowMs;
     }
-  });
+  }, 10_000);
 });
 
 describe('<RoulettePage /> rules-modal pause / resume', () => {
