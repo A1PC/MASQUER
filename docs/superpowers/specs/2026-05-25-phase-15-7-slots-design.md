@@ -1,7 +1,7 @@
 # Phase 15 sub-project #7 — Slots upgrade
 
-**Status:** Draft for user review.
-**Date:** 2026-05-25.
+**Status:** Draft for user review (amended 2026-05-26 with sticky-bet, layout, and richer symbol art per user feedback).
+**Date:** 2026-05-25 (initial); 2026-05-26 (addendum).
 **Sub-project:** #7 in the Phase 15 umbrella (`2026-05-22-phase-15-umbrella-roadmap-design.md`). Per release order, follows #6 Roulette ✅, precedes #8 Baccarat.
 **Original release:** Phase 5 (`v0.6-slots`, 2026-05-17). 3-reel single-payline, 5 symbols (Cherry/Lemon/Bell/BAR/Seven), weighted to ~86% RTP, tiered win celebration with jackpot coin shower, sequential reel stops at 3 / 5 / 8 s. ADRs 0032 (symbol weights + RTP) and 0033 (tiered celebration) lock the design.
 **Scope answer:** _Pure re-skin (Coin-flip pattern)._ No new symbols (no WILD, no SCATTER, no bonus rounds). Logic byte-stable.
@@ -60,6 +60,29 @@ The jackpot magenta-neon glow (the existing 50× Seven payoff visual) **stays**.
 
 The **felt-table backdrop** + **brass frame around the reels** are the structural changes. Today's `SlotsPage.tsx` likely has a generic dark backdrop; replace with `bg-felt-table` and a `border-brass` frame to match the other upgraded games.
 
+#### 4.3.1 Richer, more realistic symbol art (per user feedback, 2026-05-26)
+
+Today's `SymbolView.tsx` builds each symbol from CSS-only `div`s with radial gradients (decent, but reads as "placeholder" next to the MasquerCard's quality). Replace each symbol with an **inline SVG** that has proper depth and lighting:
+
+- **Cherry** — two cherries with stems + a leaf with veining. Use a radial highlight + edge shadow to convey roundness. Stem in muted green, leaf with a thin veining line. Cluster pattern (left cherry slightly behind right cherry).
+- **Lemon** — ellipse with peel-texture stippling, slightly off-axis to convey 3D. Two small leaf-stem nubs. Inner highlight + outer shadow.
+- **Bell** — gold bell with a brushed-brass gradient (gold-bright → gold-deep on its lower flank), a slim crown / hanger at top, and a clapper at bottom with a subtle shine. Three stylized motion-lines on either side optional (small flourish; skip if cluttered).
+- **BAR** — a chrome-plated nameplate with the word "BAR" embossed in dark velvet on a brushed-brass gradient. Bevel on all four edges. A thin highlight line across the top edge. Letter spacing tight.
+- **Seven** — keep the magenta-neon "7" as the jackpot signature (per ADR-0033), but rebuild as an SVG that has a true neon-tube look: an inner bright magenta stroke, an outer wider semi-transparent magenta halo, and a `filter="url(#sevenGlow)"` SVG `<feGaussianBlur>` glow. Reads as actual neon tubing, not flat text with a shadow.
+
+All five symbols share a 64×64 viewBox by default; the size prop scales uniformly. They are pure components, no animation logic inside (the reel-spin animation lives in `ReelView.tsx`). Each symbol has an aria-label per `SYMBOL_DISPLAY[symbol].label`.
+
+Reference quality bar: think MasquerCard's RoyalArt (silhouette + bordered shading) — not photorealism, but "this looks designed, not coded."
+
+#### 4.3.2 Layout — paytable left, reels larger (per user feedback, 2026-05-26)
+
+Rearrange `SlotsPage.tsx`'s main play area into a two-column layout:
+
+- **Left column** (`~280-320px`, narrow): the `Paytable` panel, vertically aligned with the top of the reels. Moves it out of the bet-bar / under-the-reels position into a sidebar position similar to a real slot cabinet's "winning combinations" plate.
+- **Right column** (flex-grow, wide): the reel cabinet itself — **larger** than today. Today's reels are ~64-80px per symbol; bump to ~100-120px per symbol (implementer tunes by eye). The brass-frame around the reels grows to match.
+
+The layout uses Tailwind `flex` (row, gap-6 or gap-8). On narrower viewports (< `md`), stack: paytable on top, reels below. Game-section padding remains consistent with the other upgraded games.
+
 ### 4.4 Sound (no current `useSound` usage — first integration)
 
 Wire `useSound` (from `@/systems/sound/useSound`, established in #2):
@@ -96,6 +119,41 @@ Rewrite `src/games/slots/rules.tsx` to mirror the section structure of Blackjack
 ### 4.7 Bet preset ladder
 
 `SlotsPage` uses `BettingPanel` from `_shared`. The 1000 chip preset was added in #230 and the ChipDenominationButton was factored in #237, so the chip ladder is already consistent with Blackjack / Coin-flip / Roulette. **No work needed** here — just verify the slots page renders the new chip ladder correctly.
+
+### 4.8 Sticky-bet behaviour (per user feedback, 2026-05-26)
+
+**User requirement, quoted verbatim:** _"Once a user has selected what chip they're betting, allow them to keep clicking the spin button unless they click the clear bet button."_
+
+Current behaviour: after a SPIN commits, the BettingPanel resets (likely via a `bettingPanelKey` remount in `SlotsPage.tsx`), forcing the player to re-select chips before the next spin.
+
+New behaviour:
+
+- After a SPIN settles, the player's placed bet **stays visible** in the BettingPanel.
+- The **SPIN button stays enabled** while balance ≥ current bet (so the player can re-spin with the same amount by clicking SPIN again).
+- The **CLEAR BET button** is the only way to zero out the bet; clicking it resets the panel to 0 and disables SPIN until a chip is chosen.
+- If the player's balance drops below the current bet (after several losses), SPIN disables and the player must lower the bet or take the daily top-up. Existing balance-guard logic in `BettingPanel` already covers this — verify.
+
+**Implementation hints (not prescriptive):**
+
+- The `bettingPanelKey` remount that currently clears the panel after settle should be removed (or only triggered on CLEAR BET).
+- This is distinct from coin-flip's `autoCommitRepeat` opt-in shipped in #221 — coin-flip auto-fires the bet from the chip-ladder; slots keeps it manual. **Do NOT enable** `autoCommitRepeat` on the slots `BettingPanel`. Sticky-bet means "the chip-stack persists" not "we auto-spin for you."
+- The BettingPanel may need a small API addition (e.g. `persistBetAcrossCommit?: boolean` prop) so the behaviour is opt-in per game and doesn't change Blackjack/Coin-flip/Roulette. Implementer's call on shape.
+- Wallet flow unchanged: each SPIN still calls `placeBet` + `settleRound` independently. There's no shared handle across spins.
+
+Tests:
+
+- After a SPIN settles, the player's chip-stack value in the panel matches what they bet (not 0).
+- SPIN button stays enabled when balance ≥ current bet.
+- CLEAR BET zeros the panel and disables SPIN.
+- Spin → settle → spin → settle (same bet) works without re-selecting chips.
+
+### 4.9 Header layout — match other upgraded games (per user feedback, 2026-05-26)
+
+**User requirement, quoted:** _"ensure the return lobby buttons and odds and information buttons are adjusted as per the other games."_
+
+`SlotsPage.tsx` uses the **shared `GameShell`** flex-row header shipped in #238 — passing `lobbyButton={<LobbyButton />}` + `oddsInfo={<OddsInfoBox>...</OddsInfoBox>}` is sufficient; `GameShell` handles positioning identically across all games. Per §4.1 the `meta` prop is removed (auto-suppressed when `oddsInfo` is provided, but explicit removal keeps the call site clean).
+
+The result is identical layout semantics to Blackjack / Coin-flip / Roulette post-#231 / #238: title centered, `LobbyButton` flex-row left, `OddsInfoBox` flex-row right, no possibility of overlap.
 
 ---
 
@@ -136,8 +194,8 @@ All of the above stay in the deferred docket for future consideration. If the us
 ## 8. Self-review
 
 1. **Placeholder scan:** none.
-2. **Internal consistency:** Single-PR scope; logic invariants spelled out; out-of-scope list explicit.
-3. **Scope check:** Smaller than Coin-flip's polish work (which added BrandCoin + sound samples + win-streak + autoCommitRepeat). One PR is the right size.
-4. **Ambiguity check:** Magenta-jackpot decision called out. Reel-stop sound cadence flagged.
+2. **Internal consistency:** Single-PR scope; logic invariants spelled out; out-of-scope list explicit. The 2026-05-26 addendum adds richer symbol art (§4.3.1), a left-rail paytable + larger reels (§4.3.2), sticky-bet (§4.8), and a header-layout confirmation (§4.9). These are all UI-layer changes — logic stays byte-stable.
+3. **Scope check:** Bigger than initial draft after the addendum (5 SVG symbols + layout reflow + sticky-bet API addition), but still one PR. If the implementer finds the SVG art is taking disproportionate time, the symbol rewrite can split into its own follow-up PR — flag at brief time, not after the fact.
+4. **Ambiguity check:** Magenta-jackpot decision called out. Reel-stop sound cadence flagged. Sticky-bet "manual click only, no auto-commit" called out explicitly to avoid being conflated with coin-flip's autoCommitRepeat.
 
 ---
