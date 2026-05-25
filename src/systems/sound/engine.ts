@@ -4,6 +4,8 @@ import coinFlip from '@/assets/audio/coin-flip.wav';
 import diceRoll from '@/assets/audio/dice-roll.wav';
 import reelSpin from '@/assets/audio/reel-spin.wav';
 import reelStop from '@/assets/audio/reel-stop.wav';
+import wheelSpin from '@/assets/audio/wheel-spin.wav';
+import ballDrop from '@/assets/audio/ball-drop.wav';
 import winSmall from '@/assets/audio/win-small.wav';
 import winMedium from '@/assets/audio/win-medium.wav';
 import winJackpot from '@/assets/audio/win-jackpot.wav';
@@ -30,6 +32,8 @@ const SAMPLE_URL: Partial<Record<SoundId, string>> = {
   'dice.roll': diceRoll,
   'reel.spin': reelSpin,
   'reel.stop': reelStop,
+  'wheel.spin': wheelSpin,
+  'ball.drop': ballDrop,
   'win.small': winSmall,
   'win.medium': winMedium,
   'win.jackpot': winJackpot,
