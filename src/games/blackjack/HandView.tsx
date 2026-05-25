@@ -13,14 +13,10 @@ interface Props {
   faceDownIdx?: number;
   /** Card size — `lg` for the centre table, `md` for split / smaller layouts. */
   size?: CardSize;
-  /** Number of cards already present before this render. Cards at indexes
-   *  `[firstAnimatedIdx, cards.length)` are treated as newly dealt and will
-   *  fly in from the deck anchor; earlier indexes render statically.
-   *  Defaults to 0 (animate every card — used on first mount). */
-  firstAnimatedIdx?: number;
   /** Per-card stagger delay in ms, indexed by card position. Length must
-   *  match `cards.length`. Defaults to all-zeros (no stagger). Only consulted
-   *  for cards in the animated window (i.e. indexes ≥ firstAnimatedIdx). */
+   *  match `cards.length`. Defaults to all-zeros (no stagger). Consumed only
+   *  on mount (Framer Motion's `initial` is one-shot) — used by the opening
+   *  deal to sequence P1/D1/P2/D2 cards as they all mount in one render. */
   delaysMs?: readonly number[];
   /** Per-card "highlight" flag — adds a gold pulsing ring around the card.
    *  Used by the inline Ace panel to mark the card being valued. Indexed
@@ -51,13 +47,14 @@ function suitToLetter(suit: Suit): PCSuit {
 }
 
 /** Renders a fanned stack of MasquerCards (wrapped in AnimatedCard) with
- *  overlap so corners remain visible. Cards beyond `firstAnimatedIdx` fly in
- *  from the deck anchor (animation handled by `AnimatedCard`). */
+ *  overlap so corners remain visible. New cards animate on mount via Framer
+ *  Motion's one-shot `initial` (managed inside AnimatedCard); cards already
+ *  mounted from a prior render stay put. Card keys include rank+suit so a
+ *  slot swap (e.g. split) remounts and re-animates. */
 export default function HandView({
   cards,
   faceDownIdx,
   size = 'lg',
-  firstAnimatedIdx = 0,
   delaysMs,
   highlights,
   onCardLanded,
@@ -67,17 +64,15 @@ export default function HandView({
     <div className="flex flex-row">
       {cards.map((c, i) => {
         const isFaceDown = i === faceDownIdx || !c.faceUp;
-        const animateIn = i >= firstAnimatedIdx;
         const delayMs = delaysMs?.[i] ?? 0;
         const highlight = highlights?.[i] ?? false;
         return (
-          <div key={i} className={i === 0 ? '' : overlap}>
+          <div key={`${i}-${c.rank}${c.suit}`} className={i === 0 ? '' : overlap}>
             <AnimatedCard
               rank={rankToNumber(c.rank)}
               suit={suitToLetter(c.suit)}
               faceUp={!isFaceDown}
               size={size}
-              animateIn={animateIn}
               delayMs={delayMs}
               highlight={highlight}
               {...(onCardLanded ? { onLanded: () => onCardLanded(i) } : {})}

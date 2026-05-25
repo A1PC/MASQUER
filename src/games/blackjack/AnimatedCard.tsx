@@ -28,10 +28,6 @@ interface Props {
    *  page to play `card.deal` on LANDING, not on start. Skipped in reduced-
    *  motion mode — the page handles a single batched sound in that path. */
   onLanded?: () => void;
-  /** True when this card just appeared (newly dealt) — should animate.
-   *  False for cards already in the hand from a prior render (no animation;
-   *  static render at slot in face-up/face-down per `faceUp`). */
-  animateIn: boolean;
   /** Extra ring/highlight applied OUTSIDE the flipped surface. Used by the
    *  Ace UI to mark the card the player is choosing a value for. */
   highlight?: boolean;
@@ -57,24 +53,17 @@ const FLIP_S = 0.28;
  * pre-reveal) skip phase 2 — `rotateY` stays at 180 and the back face stays
  * visible.
  *
- * Visual model: the wrapping `motion.div` carries the rotation; the child
- * `PlayingCard` swaps its `faceDown` prop in lockstep with the rotation so
- * that the face shown matches the surface the user is looking at. The brief
- * mirrored flash during the 280ms flip mid-rotation is intentional and a
- * common card-flip trade-off — at this duration it reads as "the card is
- * turning over," not "the art is wrong." A two-surface flip pattern was
- * considered and rejected because it doubles every card's accessible DOM
- * (both faces present at once, even though one is `backface-visibility:
- * hidden`).
+ * The entry animation runs ONCE — on mount — because Framer Motion's `initial`
+ * prop is consumed only at mount. Cards already on the table (mounted in a
+ * prior render) are skipped automatically by React reconciliation: same key →
+ * same mounted instance → no replay. Cards added at the end of a hand (e.g.
+ * a HIT) mount fresh and animate. Round transitions clear hands to `[]` in
+ * the machine, which unmounts every card; the next deal mounts them fresh.
  *
  * Reduced-motion path: both segments collapse to instant — the card simply
  * renders at its slot in its final face-up/face-down state. The page consumes
  * the reduced-motion signal too and fires a single `card.deal` per dealt
  * batch instead of one per landing.
- *
- * Cards that aren't newly dealt (`animateIn === false`) skip the entry
- * animation entirely — used for re-renders after the initial mount so an
- * already-placed card doesn't replay its flight every state tick.
  */
 export default function AnimatedCard({
   rank,
@@ -85,7 +74,6 @@ export default function AnimatedCard({
   fromOffsetX = DEFAULT_FROM_OFFSET_X,
   fromOffsetY = DEFAULT_FROM_OFFSET_Y,
   onLanded,
-  animateIn,
   highlight = false,
   className,
 }: Props): JSX.Element {
@@ -94,7 +82,9 @@ export default function AnimatedCard({
   // the card is mid-flight (rotateY held at 180, back showing). On true, the
   // rotateY tween fires to the final orientation; the child swaps `faceDown`
   // synchronously so the destination surface matches the orientation.
-  const [flightDone, setFlightDone] = useState<boolean>(!animateIn || reduced);
+  // Reduced-motion mounts skip straight to "done" so the static path renders
+  // the final face on first paint.
+  const [flightDone, setFlightDone] = useState<boolean>(reduced);
 
   const handleFlightComplete = useCallback((): void => {
     setFlightDone(true);
@@ -111,8 +101,8 @@ export default function AnimatedCard({
 
   const ringCls = highlight ? 'rounded-[10px] ring-2 ring-gold/80 animate-pulse' : '';
 
-  // Static / reduced-motion / already-placed cards render with no animation.
-  if (!animateIn || reduced) {
+  // Reduced-motion: render statically at slot, no transforms, no callbacks.
+  if (reduced) {
     return (
       <div className={cn('relative inline-block', className, ringCls)}>
         <PlayingCard rank={rank} suit={suit} faceDown={!faceUp} size={size} />
