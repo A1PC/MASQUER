@@ -633,9 +633,9 @@ export async function getRouletteAllTimeStats(): Promise<RouletteAllTimeStats> {
       if (n <= 18) lowCount += 1;
       else highCount += 1;
       const dz = dozenOf(n);
-      if (dz > 0) dozenCounts[dz - 1] += 1;
+      if (dz > 0) dozenCounts[dz - 1]! += 1;
       const col = columnOf(n);
-      if (col > 0) columnCounts[col - 1] += 1;
+      if (col > 0) columnCounts[col - 1]! += 1;
     }
   }
 
