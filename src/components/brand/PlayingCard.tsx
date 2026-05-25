@@ -154,7 +154,12 @@ function Corner({ rank, glyph, size, top, bottom, left, right }: CornerProps): J
 }
 
 /* ------------------------------------------------------------------ */
-/* Royal silhouettes — Jack / Queen / King (filled in by Task A.2)     */
+/* Royal silhouettes — Jack / Queen / King                             */
+/*                                                                     */
+/* Deco crown + masquerade eye-mask + drape, in gold linework with     */
+/* the suit's drape colour (oxblood for red, ink for black). Sized to  */
+/* ~74% of the card's inner area. Decorative — `aria-hidden`; the      */
+/* card's rank label is exposed via the corner text for screen readers.*/
 /* ------------------------------------------------------------------ */
 
 interface RoyalArtProps {
@@ -162,8 +167,93 @@ interface RoyalArtProps {
   red: boolean;
   size: { w: number; h: number };
 }
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function RoyalArt(_: RoyalArtProps): JSX.Element {
-  // Stub — replaced with full SVG silhouettes in Task A.2.
-  return <span />;
+function RoyalArt({ rank, red, size }: RoyalArtProps): JSX.Element {
+  const drape = red ? '#5a1320' : '#0c1711';
+  const gold = '#c79a4b';
+  const face = '#f2e7cc';
+  const w = Math.round(size.w * 0.74);
+  const h = Math.round(size.h * 0.66);
+  return (
+    <svg width={w} height={h} viewBox="0 0 100 130" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+      <rect
+        x="3"
+        y="3"
+        width="94"
+        height="124"
+        fill="none"
+        stroke={gold}
+        strokeWidth="0.9"
+        rx="4"
+      />
+      {rank === 11 && <Jack drape={drape} gold={gold} face={face} />}
+      {rank === 12 && <Queen drape={drape} gold={gold} face={face} />}
+      {rank === 13 && <King drape={drape} gold={gold} face={face} />}
+    </svg>
+  );
+}
+
+interface FigProps {
+  drape: string;
+  gold: string;
+  face: string;
+}
+function Jack({ drape, gold, face }: FigProps): JSX.Element {
+  return (
+    <>
+      {/* hooded courtier — pointed cowl */}
+      <path
+        d="M30,32 L50,18 L70,32 Q72,46 70,68 Q72,84 70,108 L30,108 Q28,84 30,68 Q28,46 30,32 Z"
+        fill={drape}
+      />
+      <ellipse cx="50" cy="60" rx="13" ry="16" fill={face} stroke={gold} strokeWidth="0.6" />
+      <path d="M38,57 C41,54 59,54 62,57 Q59,64 50,64 Q41,64 38,57 Z" fill={gold} />
+      <circle cx="44" cy="59" r="1.2" fill="#0c1711" />
+      <circle cx="56" cy="59" r="1.2" fill="#0c1711" />
+      <path d="M28,108 L72,108 L78,128 L22,128 Z" fill={drape} stroke={gold} strokeWidth="0.6" />
+    </>
+  );
+}
+function Queen({ drape, gold, face }: FigProps): JSX.Element {
+  return (
+    <>
+      <g fill={gold}>
+        <path d="M30,30 L36,18 L42,28 L50,14 L58,28 L64,18 L70,30 Z" />
+        <circle cx="50" cy="14" r="2.2" fill="#a3122a" />
+        <circle cx="36" cy="18" r="1.6" />
+        <circle cx="64" cy="18" r="1.6" />
+      </g>
+      <path
+        d="M28,36 Q26,55 30,70 Q34,80 32,98 L36,108 L64,108 L68,98 Q66,80 70,70 Q74,55 72,36 Q60,44 50,40 Q40,44 28,36 Z"
+        fill={drape}
+      />
+      <ellipse cx="50" cy="58" rx="14" ry="17" fill={face} stroke={gold} strokeWidth="0.6" />
+      <path d="M37,55 C40,52 60,52 63,55 Q60,62 50,62 Q40,62 37,55 Z" fill={gold} />
+      <circle cx="44" cy="57" r="1.2" fill="#0c1711" />
+      <circle cx="56" cy="57" r="1.2" fill="#0c1711" />
+      <path d="M46,68 Q50,71 54,68" stroke="#a3122a" strokeWidth="1.3" fill="none" />
+      <path d="M28,108 L72,108 L78,128 L22,128 Z" fill={drape} stroke={gold} strokeWidth="0.6" />
+      <path d="M48,118 l3,4 l-3,4 l-3,-4 Z" fill={gold} />
+    </>
+  );
+}
+function King({ drape, gold, face }: FigProps): JSX.Element {
+  return (
+    <>
+      <g fill={gold}>
+        <path d="M28,32 L34,14 L44,28 L50,10 L56,28 L66,14 L72,32 Z" />
+        <circle cx="50" cy="10" r="2.4" fill={drape} />
+      </g>
+      <path
+        d="M24,38 Q24,55 28,70 Q32,82 32,102 L36,112 L64,112 L68,102 Q68,82 72,70 Q76,55 76,38 Q60,46 50,42 Q40,46 24,38 Z"
+        fill={drape}
+      />
+      <ellipse cx="50" cy="58" rx="14" ry="17" fill={face} stroke={gold} strokeWidth="0.6" />
+      <path d="M37,55 C40,52 60,52 63,55 Q60,62 50,62 Q40,62 37,55 Z" fill={gold} />
+      <circle cx="44" cy="57" r="1.2" fill="#0c1711" />
+      <circle cx="56" cy="57" r="1.2" fill="#0c1711" />
+      <path d="M44,68 Q50,72 56,68" stroke="#0c1711" strokeWidth="1.4" fill="none" />
+      <path d="M42,72 Q46,80 50,72 Q54,80 58,72" fill="none" stroke="#0c1711" strokeWidth="1.2" />
+      <path d="M28,112 L72,112 L78,128 L22,128 Z" fill={drape} stroke={gold} strokeWidth="0.6" />
+    </>
+  );
 }
