@@ -2,6 +2,8 @@ import type { JSX } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useMachine } from '@xstate/react';
 import GameShell from '@/games/_shared/GameShell';
+import LobbyButton from '@/games/_shared/LobbyButton';
+import OddsInfoBox from '@/games/_shared/OddsInfoBox';
 import BlackjackRules from './rules';
 import BettingPanel from '@/games/_shared/BettingPanel';
 import { useRecentRounds } from '@/systems/hooks/useRecentRounds';
@@ -17,15 +19,13 @@ import PlayerArea from './PlayerArea';
 import ActionPanel from './ActionPanel';
 import AceChoicePanel from './AceChoicePanel';
 import InsurancePrompt from './InsurancePrompt';
-import DeckAnchor from './DeckAnchor';
 import type { RecentResultItem } from '@/games/_shared/RecentResults';
 import type { BlackjackRoundDetails, Outcome } from './types';
 
 /**
  * BlackjackPage — Phase 15 #5 Velvet Duel UI (post-test-feedback fix batch).
  *
- * Composition: `GameShell` shell + `DealerArea` (top) + `DeckAnchor` (top-
- * right, the spatial source of every dealt card) + `PlayerArea` (bottom)
+ * Composition: `GameShell` shell + `DealerArea` (top) + `PlayerArea` (bottom)
  * inside a felt panel; `BettingPanel` for the bet; the bottom action slot
  * shows `ActionPanel` (Hit / Stand / Double / Split) during play, swaps to
  * `AceChoicePanel` while the machine is in `awaiting_ace_choice`, and the
@@ -408,13 +408,12 @@ export default function BlackjackPage(): JSX.Element | null {
       recentItems={items}
       bettingPanel={bottomPanel}
       rules={<BlackjackRules />}
+      lobbyButton={<LobbyButton />}
+      oddsInfo={
+        <OddsInfoBox>Blackjack 3:2 · Win 1:1 · Insurance 2:1 · 5-Card Charlie 3:2</OddsInfoBox>
+      }
     >
       <div className="relative flex flex-1 flex-col items-center justify-center gap-5 px-4 py-4">
-        {/* Deck anchor — pinned to the top-right of the felt. Decorative
-         *  origin point for every new card's flight; positioned with the
-         *  same fixed offset AnimatedCard uses for its initial transform. */}
-        <DeckAnchor className="absolute right-4 top-4 z-0" />
-
         <DealerArea
           cards={dealerCards}
           holeRevealed={holeRevealed}
