@@ -104,7 +104,6 @@ export default function CoinFlipPage(): JSX.Element | null {
   return (
     <GameShell
       title="MASQUER · Coin Flip"
-      meta="1:1 · 1–500"
       game="coin-flip"
       recentItems={items}
       rules={<CoinFlipRules />}
