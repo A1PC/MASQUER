@@ -1,6 +1,8 @@
 import type { JSX } from 'react';
 import { useState } from 'react';
 import GameShell from '@/games/_shared/GameShell';
+import LobbyButton from '@/games/_shared/LobbyButton';
+import OddsInfoBox from '@/games/_shared/OddsInfoBox';
 import CoinFlipRules from './rules';
 import BettingPanel from '@/games/_shared/BettingPanel';
 import { useGameRound } from '@/games/_shared/useGameRound';
@@ -106,6 +108,8 @@ export default function CoinFlipPage(): JSX.Element | null {
       game="coin-flip"
       recentItems={items}
       rules={<CoinFlipRules />}
+      lobbyButton={<LobbyButton />}
+      oddsInfo={<OddsInfoBox>Win 1:1</OddsInfoBox>}
       bettingPanel={
         <BettingPanel
           key={betPanelKey}

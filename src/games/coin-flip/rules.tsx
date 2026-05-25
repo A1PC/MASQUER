@@ -1,44 +1,64 @@
 import type { JSX } from 'react';
+import { Link } from 'react-router';
 
+/**
+ * Coin Flip — concise sectioned rules for the MASQUER Velvet Deco lobby.
+ * Designed to live inside the scrollable RulesModal body; sectioned with
+ * display-tracked headings, no walls of prose.
+ */
 export default function CoinFlipRules(): JSX.Element {
   return (
     <div className="space-y-4">
       <section>
-        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold">HOW TO PLAY</h3>
-        <ol className="ml-5 list-decimal space-y-1">
-          <li>Choose a bet amount between 1 and 500 chips.</li>
-          <li>Pick HEADS or TAILS.</li>
-          <li>The coin flips. If your side comes up, you win.</li>
-        </ol>
+        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold">OBJECT</h3>
+        <p className="text-white/85">
+          Pick the side the coin will land on — <strong>HEADS</strong> or <strong>TAILS</strong>.
+        </p>
       </section>
+
       <section>
-        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold">PAYOUTS</h3>
-        <table className="w-full text-left text-sm">
-          <thead>
-            <tr className="border-b border-gold/30 text-xs uppercase tracking-wider text-white/55">
-              <th className="py-1.5 pr-4">Outcome</th>
-              <th className="py-1.5 pr-4">Payout</th>
-              <th className="py-1.5">Probability</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr className="border-b border-white/5">
-              <td className="py-1.5 pr-4">Your side wins</td>
-              <td className="py-1.5 pr-4">1 : 1</td>
-              <td className="py-1.5">50%</td>
-            </tr>
-            <tr>
-              <td className="py-1.5 pr-4">Other side wins</td>
-              <td className="py-1.5 pr-4">Lose stake</td>
-              <td className="py-1.5">50%</td>
-            </tr>
-          </tbody>
-        </table>
+        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold">PAYOUT</h3>
+        <p className="text-white/85">
+          Win pays <strong>1:1</strong> (your stake back, plus the same amount in winnings). A loss
+          forfeits the stake. No house take.
+        </p>
       </section>
+
       <section>
-        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold">HOUSE EDGE</h3>
-        <p className="text-white/70">
-          0%. This is a fair coin — no house take. Your long-run expected value is exactly your bet.
+        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold">SEEDED RNG</h3>
+        <p className="text-white/85">
+          The coin is flipped by a per-session, seeded PRNG — flips are deterministic from the
+          session seed, never <code>Math.random</code>.
+        </p>
+      </section>
+
+      <section>
+        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold">WIN-STREAK FLAME</h3>
+        <p className="text-white/85">
+          A flame badge appears once you&rsquo;ve won two flips in a row. It resets on any loss or
+          when you reload the table.
+        </p>
+      </section>
+
+      <section>
+        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold">REPEAT BET</h3>
+        <p className="text-white/85">
+          After a settled round, the betting panel shows a <strong>&#8635; Repeat</strong> pill that
+          re-stakes your last bet in one tap (auto-commits, ready to call).
+        </p>
+      </section>
+
+      <section>
+        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold">
+          SOUND &amp; MOTION
+        </h3>
+        <p className="text-white/85">
+          Stingers, the coin spin, and other motion respect the OS <em>prefers-reduced-motion</em>{' '}
+          setting. Toggle them explicitly in{' '}
+          <Link to="/settings" className="text-gold-bright underline hover:text-gold">
+            Settings
+          </Link>
+          .
         </p>
       </section>
     </div>
