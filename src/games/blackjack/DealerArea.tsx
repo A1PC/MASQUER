@@ -1,6 +1,7 @@
 import type { JSX } from 'react';
 import HandView from './HandView';
 import { handTotal } from './hand';
+import { Panel } from '@/components/ui';
 import type { Card } from './types';
 
 interface Props {
@@ -13,14 +14,16 @@ export default function DealerArea({ cards, holeRevealed }: Props): JSX.Element 
   const total = visibleForTotal.length > 0 ? handTotal(visibleForTotal).value : 0;
   const totalLabel = holeRevealed ? `total ${total}` : `showing ${total}`;
   return (
-    <div className="text-center">
-      <div className="mx-auto mb-2 flex max-w-[300px] items-baseline justify-between">
-        <span className="font-display text-[10px] tracking-[1.5px] text-gold">DEALER</span>
-        <span className="font-mono text-[11px] text-white/65">{totalLabel}</span>
+    <Panel surface="felt" className="w-full max-w-[520px] px-5 py-4 text-center">
+      <div className="mx-auto mb-2 flex max-w-[320px] items-baseline justify-between">
+        <span className="font-display text-[11px] tracking-[0.18em] text-gold">DEALER</span>
+        <span className="font-mono text-[11px] text-ivory/70" aria-live="polite">
+          {totalLabel}
+        </span>
       </div>
       <div className="flex justify-center">
-        <HandView cards={cards} {...(!holeRevealed ? { faceDownIdx: 1 } : {})} />
+        <HandView cards={cards} size="lg" {...(!holeRevealed ? { faceDownIdx: 1 } : {})} />
       </div>
-    </div>
+    </Panel>
   );
 }

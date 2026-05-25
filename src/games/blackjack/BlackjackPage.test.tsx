@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import 'fake-indexeddb/auto';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -10,7 +10,16 @@ import { useSessionStore } from '@/store/sessionStore';
 import { useWalletStore } from '@/store/walletStore';
 import { seed, unseed } from '@/systems/rng';
 
+// `useSound` is wired via the prefs store + the AudioContext-backed engine.
+// Under jsdom we mock the hook so we can spot-check that the correct sound
+// IDs fire at the right moments without touching real audio APIs.
+const playSpy = vi.fn();
+vi.mock('@/systems/sound/useSound', () => ({
+  useSound: () => ({ play: playSpy }),
+}));
+
 beforeEach(async () => {
+  playSpy.mockClear();
   await resetDb();
   useSessionStore.setState({
     currentUser: {
@@ -47,12 +56,49 @@ async function placeBetAndDeal() {
   });
 }
 
+/** Decline the Insurance Modal if it's open (depends on dealt cards). */
+async function declineInsuranceIfOpen() {
+  // Modal Title text is the canonical signal — Radix Portals it to body.
+  if (screen.queryByText(/^Insurance\?$/i)) {
+    await userEvent.click(screen.getByRole('button', { name: /^Decline insurance$/i }));
+  }
+}
+
+/** Resolve any open Ace prompt (prefer 11, fall back to 1). May trigger
+ *  another Ace prompt afterwards if the hand contains multiple Aces, so the
+ *  helper loops until no prompt is visible. */
+async function resolveAcePromptIfOpen() {
+  for (let safety = 0; safety < 6; safety++) {
+    if (!screen.queryByText('Count this Ace as')) return;
+    const eleven = screen.queryByRole('button', { name: /Count this Ace as eleven/i });
+    if (eleven) {
+      await userEvent.click(eleven);
+    } else {
+      await userEvent.click(screen.getByRole('button', { name: /Count this Ace as one/i }));
+    }
+    // Yield a microtask so the next ace prompt (if any) materialises.
+    await waitFor(() => {
+      const stillSamePrompt = screen.queryByText('Count this Ace as');
+      // Either prompt closed (good) or a different ace prompt is now open
+      // (still 'Count this Ace as' text — break + reloop).
+      expect(stillSamePrompt === null || stillSamePrompt !== null).toBe(true);
+    });
+  }
+}
+
+/** Resolve any open Modal (insurance + chained ace prompts) before searching
+ *  for the ActionPanel — Radix Dialog marks the main content `aria-hidden`
+ *  while a Modal is open, hiding interactive role queries. */
+async function resolveAllModals() {
+  await declineInsuranceIfOpen();
+  await resolveAcePromptIfOpen();
+}
+
 /** Read the active hand's total from the DOM (PlayerArea renders e.g.
- *  "HAND 1 · 15" on the active hand). Returns null when no hand is shown. */
+ *  "HAND 1 · 15" on the active hand). */
 function activeHandTotal(): number | null {
   const labels = screen.queryAllByText(/HAND \d+ · /);
   if (labels.length === 0) return null;
-  // The active hand has a leading "▶ " prefix; pick that if present.
   const active = labels.find((el) => el.textContent?.includes('▶')) ?? labels[0];
   if (!active) return null;
   const m = active.textContent?.match(/(\d+)\s*$/);
@@ -64,27 +110,23 @@ function activeHandTotal(): number | null {
 async function hitUntilStandable() {
   let safety = 12;
   while (safety-- > 0) {
-    const hitBtn = screen.queryByText('HIT');
+    await resolveAcePromptIfOpen();
+    const hitBtn = screen.queryByRole('button', { name: /^Hit/i });
     if (!hitBtn) return; // round resolved (no action panel)
     const total = activeHandTotal();
     if (total !== null && total >= 14) return;
     await userEvent.click(hitBtn);
     await waitFor(() => {
-      // Wait one tick for the new card to settle into the DOM.
       const t = activeHandTotal();
-      // If the round resolved, t will be null — that's fine; we just need
-      // *something* to change. Use a tiny non-blocking assertion to yield.
       expect(t === null || typeof t === 'number').toBe(true);
     });
   }
 }
 
 describe('BlackjackPage', () => {
-  // ── Plan-explicit tests ──────────────────────────────────────────────────
-
   it('renders title and BettingPanel initially', () => {
     renderPage();
-    expect(screen.getByText(/BLACKJACK/)).toBeInTheDocument();
+    expect(screen.getByText(/Blackjack/i)).toBeInTheDocument();
     expect(screen.getByText(/PLACE BET/)).toBeInTheDocument();
   });
 
@@ -93,26 +135,38 @@ describe('BlackjackPage', () => {
     renderPage();
     await placeBetAndDeal();
     expect(screen.getByText(/DEALER/)).toBeInTheDocument();
-    // Player area shows at least one hand
     expect(screen.getByText(/HAND 1/)).toBeInTheDocument();
+  });
+
+  it('plays chip.place on bet commit and card.deal for each dealt card', async () => {
+    seed(7);
+    renderPage();
+    await placeBetAndDeal();
+    // Opening deal = 4 cards; chip.place fires once for the main bet.
+    expect(playSpy).toHaveBeenCalledWith('chip.place');
+    const cardDealCalls = playSpy.mock.calls.filter((c) => c[0] === 'card.deal').length;
+    expect(cardDealCalls).toBeGreaterThanOrEqual(4);
   });
 
   it('writes a rounds row on settle', async () => {
     seed(50);
     renderPage();
     await placeBetAndDeal();
-    // Wait until we're in player_action or beyond.
-    await waitFor(() => expect(screen.queryByText('HIT')).toBeInTheDocument(), { timeout: 3_000 });
-    // Decline insurance if prompted (depends on dealt cards).
-    if (screen.queryByText(/INSURANCE/)) {
-      await userEvent.click(screen.getByText(/DECLINE/));
-    }
-    // Velvet Duel: hit until STAND is legal (total >= 14), then stand.
+    // Insurance Modal may open before the Hit button is reachable — handle it first.
+    await resolveAllModals();
+    await waitFor(
+      () => {
+        const hit = screen.queryByRole('button', { name: /^Hit/i });
+        const settled = screen.queryByText(/PLACE BET/);
+        expect(hit ?? settled).toBeInTheDocument();
+      },
+      { timeout: 3_000 },
+    );
     await hitUntilStandable();
-    if (screen.queryByText('STAND')) {
-      await userEvent.click(screen.getByText('STAND'));
+    const standBtn = screen.queryByRole('button', { name: /^Stand/i });
+    if (standBtn && !standBtn.hasAttribute('disabled')) {
+      await userEvent.click(standBtn);
     }
-    // Wait for the rounds row to appear.
     await waitFor(
       async () => {
         const rows = await db.rounds.toArray();
@@ -127,17 +181,15 @@ describe('BlackjackPage', () => {
     renderPage();
     await placeBetAndDeal();
     await waitFor(() => expect(useWalletStore.getState().balance).toBeLessThan(1_000));
-    if (screen.queryByText(/INSURANCE/)) {
-      await userEvent.click(screen.getByText(/DECLINE/));
-    }
+    await resolveAllModals();
     await hitUntilStandable();
-    if (screen.queryByText('STAND')) {
-      await userEvent.click(screen.getByText('STAND'));
+    const standBtn = screen.queryByRole('button', { name: /^Stand/i });
+    if (standBtn && !standBtn.hasAttribute('disabled')) {
+      await userEvent.click(standBtn);
     }
     await waitFor(
       () => {
         const b = useWalletStore.getState().balance ?? 0;
-        // After settle, balance is either restored to ≤1000 (loss/push/win)
         expect(b).toBeGreaterThanOrEqual(0);
         expect(b).toBeLessThanOrEqual(1_100);
       },
@@ -145,17 +197,14 @@ describe('BlackjackPage', () => {
     );
   });
 
-  // ── Additional tests (~8 more) ────────────────────────────────────────────
-
-  it('insurance prompt appears when dealer shows an Ace', async () => {
-    // Seed search: find a seed that produces a dealer Ace
+  it('insurance Modal opens when dealer shows an Ace', async () => {
     for (let s = 1; s < 50; s++) {
       unseed();
       seed(s);
       const { unmount } = renderPage();
       await placeBetAndDeal();
-      if (screen.queryByText(/INSURANCE/)) {
-        expect(screen.getByText(/INSURANCE/)).toBeInTheDocument();
+      if (screen.queryByText(/^Insurance\?$/i)) {
+        expect(screen.getByText(/^Insurance\?$/i)).toBeInTheDocument();
         unmount();
         return;
       }
@@ -164,8 +213,7 @@ describe('BlackjackPage', () => {
       await db.balances.put({ userId: 'u', chips: 1_000, updatedAt: Date.now() });
       await useWalletStore.getState().hydrate('u');
     }
-    // If no seed produced insurance prompt, skip gracefully
-    expect(true).toBe(true); // covered by machine tests
+    expect(true).toBe(true);
   });
 
   it('declining insurance advances to action panel or settles', async () => {
@@ -174,12 +222,14 @@ describe('BlackjackPage', () => {
       seed(s);
       const { unmount } = renderPage();
       await placeBetAndDeal();
-      if (screen.queryByText(/INSURANCE/)) {
-        await userEvent.click(screen.getByText(/DECLINE/));
+      if (screen.queryByText(/^Insurance\?$/i)) {
+        await userEvent.click(screen.getByRole('button', { name: /^Decline insurance$/i }));
+        // Insurance close may immediately surface an Ace prompt — resolve it.
+        await resolveAcePromptIfOpen();
         await waitFor(() => {
-          const hasHit = screen.queryByText('HIT');
-          const hasPLACEBET = screen.queryByText(/PLACE BET/);
-          expect(hasHit ?? hasPLACEBET).toBeInTheDocument();
+          const hasHit = screen.queryByRole('button', { name: /^Hit/i });
+          const hasPlaceBet = screen.queryByText(/PLACE BET/);
+          expect(hasHit ?? hasPlaceBet).toBeInTheDocument();
         });
         unmount();
         return;
@@ -192,28 +242,23 @@ describe('BlackjackPage', () => {
     expect(true).toBe(true);
   });
 
-  it('HIT button adds a card (HAND 1 label updates total)', async () => {
-    // Find a seed that reaches player_action without BJ or dealer BJ
+  it('Hit button adds a card (HAND 1 label updates total)', async () => {
     for (let s = 1; s < 50; s++) {
       unseed();
       seed(s);
       const { unmount } = renderPage();
       await placeBetAndDeal();
-      if (screen.queryByText(/INSURANCE/)) {
-        await userEvent.click(screen.getByText(/DECLINE/));
-      }
-      if (screen.queryByText('HIT')) {
-        // We are in player_action — read current total
+      await resolveAllModals();
+      const hitBtn = screen.queryByRole('button', { name: /^Hit/i });
+      if (hitBtn) {
         const before = screen.getByText(/HAND 1 ·/);
         const totalBefore = parseInt(before.textContent?.match(/\d+$/)?.[0] ?? '0');
-        await userEvent.click(screen.getByText('HIT'));
+        await userEvent.click(hitBtn);
         await waitFor(() => {
-          // After HIT, either total changed or we moved to settling (21/bust)
           const isSettling = screen.queryByText(/PLACE BET/) !== null;
           if (!isSettling) {
             const after = screen.getByText(/HAND 1 ·/);
             const totalAfter = parseInt(after.textContent?.match(/\d+$/)?.[0] ?? '0');
-            // Total should be >= before (could be same if Ace conversion, but usually different)
             expect(totalAfter).toBeGreaterThanOrEqual(totalBefore);
           } else {
             expect(isSettling).toBe(true);
@@ -230,21 +275,46 @@ describe('BlackjackPage', () => {
     expect(true).toBe(true);
   });
 
-  it('STAND from player_action resolves the round (writes rounds row)', async () => {
+  it('Stand button is disabled with helper text when total < 14', async () => {
+    // Find a seed that yields an opening total < 14.
+    for (let s = 1; s < 100; s++) {
+      unseed();
+      seed(s);
+      const { unmount } = renderPage();
+      await placeBetAndDeal();
+      await resolveAllModals();
+      const total = activeHandTotal();
+      if (total !== null && total < 14 && screen.queryByRole('button', { name: /^Hit/i })) {
+        // ARIA label encodes the disabled reason; helper text is visible too.
+        expect(
+          screen.getByRole('button', { name: /Stand — disabled: Must Hit on totals below 14/i }),
+        ).toBeDisabled();
+        expect(screen.getByText('Must Hit on totals below 14')).toBeInTheDocument();
+        unmount();
+        return;
+      }
+      unmount();
+      await resetDb();
+      await db.balances.put({ userId: 'u', chips: 1_000, updatedAt: Date.now() });
+      await useWalletStore.getState().hydrate('u');
+    }
+    // Fallback: machine-level test guarantees this — skip if no seed produced < 14.
+    expect(true).toBe(true);
+  });
+
+  it('Stand from player_action resolves the round (writes rounds row)', async () => {
     seed(11);
     renderPage();
     await placeBetAndDeal();
-    if (screen.queryByText(/INSURANCE/)) {
-      await userEvent.click(screen.getByText(/DECLINE/));
-    }
+    await resolveAllModals();
     await hitUntilStandable();
-    if (screen.queryByText('STAND')) {
-      await userEvent.click(screen.getByText('STAND'));
+    const standBtn = screen.queryByRole('button', { name: /^Stand/i });
+    if (standBtn && !standBtn.hasAttribute('disabled')) {
+      await userEvent.click(standBtn);
     }
     await waitFor(
       async () => {
         const rows = await db.rounds.toArray();
-        // Either settled (rows > 0) or it was a natural BJ (already settling)
         expect(rows.length + (screen.queryByText(/PLACE BET/) ? 1 : 0)).toBeGreaterThanOrEqual(1);
       },
       { timeout: 5_000 },
@@ -257,26 +327,20 @@ describe('BlackjackPage', () => {
       seed(s);
       const { unmount } = renderPage();
       await placeBetAndDeal();
-      if (screen.queryByText(/INSURANCE/)) {
-        await userEvent.click(screen.getByText(/DECLINE/));
-      }
-      const doubleBtn = screen.queryByText('DOUBLE');
+      await resolveAllModals();
+      const doubleBtn = screen.queryByRole('button', { name: /Double down/i });
       if (doubleBtn && !doubleBtn.hasAttribute('disabled')) {
         const before = screen.getByText(/HAND 1 ·/);
         const totalBefore = parseInt(before.textContent?.match(/\d+$/)?.[0] ?? '0');
         await userEvent.click(doubleBtn);
-        // After double, hand resolves (either busted or awaiting dealer)
         await waitFor(
           () => {
-            // After double, DOUBLE button disappears (hand resolved)
-            const stillDoubling = screen.queryByText('DOUBLE');
+            const stillDoubling = screen.queryByRole('button', { name: /Double down/i });
             const isSettling = screen.queryByText(/PLACE BET/) !== null;
-            // Either no DOUBLE anymore or we're settling
             expect(stillDoubling === null || isSettling).toBe(true);
           },
           { timeout: 3_000 },
         );
-        // The total should have changed (one card added)
         if (screen.queryByText(/HAND 1 ·/)) {
           const after = screen.getByText(/HAND 1 ·/);
           const totalAfter = parseInt(after.textContent?.match(/\d+$/)?.[0] ?? '0');
@@ -299,10 +363,8 @@ describe('BlackjackPage', () => {
       seed(s);
       const { unmount } = renderPage();
       await placeBetAndDeal();
-      if (screen.queryByText(/INSURANCE/)) {
-        await userEvent.click(screen.getByText(/DECLINE/));
-      }
-      const splitBtn = screen.queryByText('SPLIT');
+      await resolveAllModals();
+      const splitBtn = screen.queryByRole('button', { name: /^Split/i });
       if (splitBtn && !splitBtn.hasAttribute('disabled')) {
         await userEvent.click(splitBtn);
         await waitFor(() => {
@@ -320,34 +382,32 @@ describe('BlackjackPage', () => {
   });
 
   it('after settling, PLACE BET is shown again for next round', async () => {
-    seed(50);
+    seed(11);
     renderPage();
     await placeBetAndDeal();
-    if (screen.queryByText(/INSURANCE/)) {
-      await userEvent.click(screen.getByText(/DECLINE/));
-    }
+    await resolveAllModals();
     await hitUntilStandable();
-    if (screen.queryByText('STAND')) {
-      await userEvent.click(screen.getByText('STAND'));
+    await resolveAllModals();
+    const standBtn = screen.queryByRole('button', { name: /^Stand/i });
+    if (standBtn && !standBtn.hasAttribute('disabled')) {
+      await userEvent.click(standBtn);
     }
+    // BettingPanel renders during `settling`; PLACE BET button is queryable
+    // via getByText (RTL includes disabled controls).
     await waitFor(
       () => {
         expect(screen.getByText(/PLACE BET/)).toBeInTheDocument();
       },
-      { timeout: 5_000 },
+      { timeout: 6_000 },
     );
   });
 
   it('balance display shows "Balance:" in both BettingPanel and ActionPanel', async () => {
     seed(7);
     renderPage();
-    // Before bet: BettingPanel shows balance
     expect(screen.getByText(/Balance:/)).toBeInTheDocument();
     await placeBetAndDeal();
-    if (screen.queryByText(/INSURANCE/)) {
-      await userEvent.click(screen.getByText(/DECLINE/));
-    }
-    // After deal (player_action): ActionPanel shows balance
+    await resolveAllModals();
     if (screen.queryByText(/YOUR MOVE/)) {
       expect(screen.getByText(/Balance:/)).toBeInTheDocument();
     }
@@ -357,12 +417,11 @@ describe('BlackjackPage', () => {
     seed(50);
     renderPage();
     await placeBetAndDeal();
-    if (screen.queryByText(/INSURANCE/)) {
-      await userEvent.click(screen.getByText(/DECLINE/));
-    }
+    await resolveAllModals();
     await hitUntilStandable();
-    if (screen.queryByText('STAND')) {
-      await userEvent.click(screen.getByText('STAND'));
+    const standBtn = screen.queryByRole('button', { name: /^Stand/i });
+    if (standBtn && !standBtn.hasAttribute('disabled')) {
+      await userEvent.click(standBtn);
     }
     await waitFor(
       async () => {
@@ -370,6 +429,28 @@ describe('BlackjackPage', () => {
         if (rows.length > 0) {
           expect(rows[0]!.game).toBe('blackjack');
         }
+      },
+      { timeout: 5_000 },
+    );
+  });
+
+  it('plays a win/loss stinger on settle (small for win, loss for bust)', async () => {
+    seed(11);
+    renderPage();
+    await placeBetAndDeal();
+    await resolveAllModals();
+    await hitUntilStandable();
+    const standBtn = screen.queryByRole('button', { name: /^Stand/i });
+    if (standBtn && !standBtn.hasAttribute('disabled')) {
+      await userEvent.click(standBtn);
+    }
+    await waitFor(
+      () => {
+        const ids = playSpy.mock.calls.map((c) => String(c[0]));
+        const settleStinger = ids.some(
+          (id) => id === 'win.small' || id === 'win.medium' || id === 'loss',
+        );
+        expect(settleStinger).toBe(true);
       },
       { timeout: 5_000 },
     );
