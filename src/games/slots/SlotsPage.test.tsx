@@ -10,7 +10,9 @@ import { db } from '@/db';
 import type { User } from '@/db/schema';
 
 // Mock useReducedMotion to return true so totalSpinDurationMs=0 in tests,
-// making the XState machine settle immediately (no real/fake timer wait needed).
+// making the XState machine settle immediately (no real/fake timer wait
+// needed). useEffectiveReducedMotion reads through this mock when
+// motionPref === 'system' (the default).
 vi.mock('framer-motion', async (importOriginal) => {
   // eslint-disable-next-line @typescript-eslint/consistent-type-imports
   const actual = await importOriginal<typeof import('framer-motion')>();
@@ -19,6 +21,13 @@ vi.mock('framer-motion', async (importOriginal) => {
     useReducedMotion: () => true,
   };
 });
+
+// Mock useSound so we can assert which stingers fire on each lifecycle event
+// without engaging the real Web Audio engine (jsdom has no AudioContext).
+const playMock = vi.fn();
+vi.mock('@/systems/sound/useSound', () => ({
+  useSound: () => ({ play: playMock }),
+}));
 
 const TEST_USER: User = {
   id: 'u-test',
@@ -44,40 +53,61 @@ async function hydrateUser(balance = 500) {
   await useWalletStore.getState().hydrate(TEST_USER.id);
 }
 
-describe('<SlotsPage /> skeleton', () => {
+describe('<SlotsPage /> shell + skeleton', () => {
   beforeEach(async () => {
     seed(1);
+    playMock.mockClear();
     await resetDb();
     await hydrateUser(500);
   });
   afterEach(() => unseed());
 
-  it('renders the SLOTS title, paytable, and 3 reels', async () => {
+  it('renders the MASQUER · Slots title, paytable, and 3 reels', async () => {
     render(
       <MemoryRouter>
         <SlotsPage />
       </MemoryRouter>,
     );
-    expect(await screen.findByText(/SLOTS/i)).toBeInTheDocument();
-    expect(screen.getByText(/PAYOUT TABLE/i)).toBeInTheDocument();
+    expect(await screen.findByText(/MASQUER\s*·\s*Slots/i)).toBeInTheDocument();
+    expect(screen.getByText(/payout table/i)).toBeInTheDocument();
     expect(document.querySelector('[data-reel-index="0"]')).toBeInTheDocument();
     expect(document.querySelector('[data-reel-index="1"]')).toBeInTheDocument();
     expect(document.querySelector('[data-reel-index="2"]')).toBeInTheDocument();
   });
 
-  it('Spin button is disabled when bet is 0', () => {
+  it('renders the shared LobbyButton and the OddsInfoBox header bar', () => {
     render(
       <MemoryRouter>
         <SlotsPage />
       </MemoryRouter>,
     );
-    expect(screen.getByRole('button', { name: /^spin$/i })).toBeDisabled();
+    expect(screen.getByRole('link', { name: /back to lobby/i })).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: /odds & payouts/i })).toBeInTheDocument();
+  });
+
+  it('does NOT render a PLACE BET button (single-step commit via SPIN)', () => {
+    render(
+      <MemoryRouter>
+        <SlotsPage />
+      </MemoryRouter>,
+    );
+    expect(screen.queryByRole('button', { name: /place bet/i })).toBeNull();
+  });
+
+  it('SPIN button is disabled when bet is 0', () => {
+    render(
+      <MemoryRouter>
+        <SlotsPage />
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole('button', { name: /spin the reels/i })).toBeDisabled();
   });
 });
 
-describe('<SlotsPage /> wallet bridge', () => {
+describe('<SlotsPage /> wallet bridge — single-step SPIN', () => {
   beforeEach(async () => {
     seed(1);
+    playMock.mockClear();
     await resetDb();
     await hydrateUser(500);
   });
@@ -85,7 +115,7 @@ describe('<SlotsPage /> wallet bridge', () => {
     unseed();
   });
 
-  it('placing a bet + spinning deducts chips and credits payout if win, records a round', async () => {
+  it('chip click + SPIN deducts chips, settles the round, and credits any payout', async () => {
     const user = userEvent.setup();
     render(
       <MemoryRouter>
@@ -93,18 +123,17 @@ describe('<SlotsPage /> wallet bridge', () => {
       </MemoryRouter>,
     );
 
-    // BettingPanel: chip selector + PLACE BET
+    // Single-step flow: pick a chip, click SPIN. No PLACE BET in between.
     await user.click(screen.getByRole('button', { name: /add 25 chips to bet/i }));
-    await user.click(screen.getByRole('button', { name: /place bet/i }));
-    await user.click(screen.getByRole('button', { name: /^spin$/i }));
+    await user.click(screen.getByRole('button', { name: /spin the reels/i }));
 
-    // After placeBet: 500 - 25 = 475
+    // After placeBet: 500 - 25 = 475.
     await waitFor(() => {
       expect(useWalletStore.getState().balance).toBe(475);
     });
 
-    // With reducedMotion=true, totalSpinDurationMs=0, so machine settles immediately.
-    // Wait for settle to complete.
+    // reducedMotion=true → totalSpinDurationMs=0 → machine settles
+    // immediately and the settle bridge writes one rounds row.
     await waitFor(async () => {
       const r = await db.rounds.where('userId').equals(TEST_USER.id).toArray();
       expect(r).toHaveLength(1);
@@ -113,16 +142,107 @@ describe('<SlotsPage /> wallet bridge', () => {
     const finalRounds = await db.rounds.where('userId').equals(TEST_USER.id).toArray();
     expect(finalRounds[0]!.game).toBe('slots');
     expect(finalRounds[0]!.betAmount).toBe(25);
-    // Final balance = 475 + rounds[0].payout (consistency check)
     await waitFor(() => {
       expect(useWalletStore.getState().balance).toBe(475 + finalRounds[0]!.payout);
     });
   });
 });
 
+describe('<SlotsPage /> sticky bet across spins', () => {
+  beforeEach(async () => {
+    seed(1);
+    playMock.mockClear();
+    await resetDb();
+    await hydrateUser(500);
+  });
+  afterEach(() => {
+    unseed();
+  });
+
+  it('after a settled SPIN the chip stack persists; SPIN can fire again without re-selecting chips', async () => {
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <SlotsPage />
+      </MemoryRouter>,
+    );
+
+    await user.click(screen.getByRole('button', { name: /add 5 chips to bet/i }));
+    await user.click(screen.getByRole('button', { name: /spin the reels/i }));
+
+    await waitFor(async () => {
+      const r = await db.rounds.where('userId').equals(TEST_USER.id).toArray();
+      expect(r).toHaveLength(1);
+    });
+
+    // Sticky bet: the BettingPanel still reads "5" — no re-selection needed.
+    expect(screen.getByText('Bet amount').parentElement).toHaveTextContent('5');
+
+    // SPIN again (same bet).
+    const spin = screen.getByRole('button', { name: /spin the reels/i });
+    expect(spin).not.toBeDisabled();
+    await user.click(spin);
+
+    await waitFor(async () => {
+      const r = await db.rounds.where('userId').equals(TEST_USER.id).toArray();
+      expect(r).toHaveLength(2);
+    });
+    const rounds = await db.rounds.where('userId').equals(TEST_USER.id).toArray();
+    expect(rounds.every((r) => r.betAmount === 5)).toBe(true);
+  });
+
+  it('CLEAR zeros the chip stack and disables SPIN', async () => {
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <SlotsPage />
+      </MemoryRouter>,
+    );
+
+    await user.click(screen.getByRole('button', { name: /add 25 chips to bet/i }));
+    expect(screen.getByRole('button', { name: /spin the reels/i })).not.toBeDisabled();
+    await user.click(screen.getByRole('button', { name: /clear/i }));
+    expect(screen.getByText('Bet amount').parentElement).toHaveTextContent('0');
+    expect(screen.getByRole('button', { name: /spin the reels/i })).toBeDisabled();
+  });
+});
+
+describe('<SlotsPage /> sound stingers', () => {
+  beforeEach(async () => {
+    seed(1);
+    playMock.mockClear();
+    await resetDb();
+    await hydrateUser(500);
+  });
+  afterEach(() => {
+    unseed();
+  });
+
+  it('reducedMotion=true (mocked) → no sound stingers fire on SPIN / settle', async () => {
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <SlotsPage />
+      </MemoryRouter>,
+    );
+
+    await user.click(screen.getByRole('button', { name: /add 5 chips to bet/i }));
+    await user.click(screen.getByRole('button', { name: /spin the reels/i }));
+
+    await waitFor(async () => {
+      const r = await db.rounds.where('userId').equals(TEST_USER.id).toArray();
+      expect(r).toHaveLength(1);
+    });
+
+    // Reduced motion short-circuits ALL audio (matches ADR-0033 amendment).
+    expect(playMock).not.toHaveBeenCalled();
+  });
+});
+
 describe('<SlotsPage /> recent results sidebar', () => {
   beforeEach(async () => {
     seed(1);
+    playMock.mockClear();
     await resetDb();
     await hydrateUser(500);
   });
@@ -138,8 +258,7 @@ describe('<SlotsPage /> recent results sidebar', () => {
       </MemoryRouter>,
     );
     await user.click(screen.getByRole('button', { name: /add 5 chips to bet/i }));
-    await user.click(screen.getByRole('button', { name: /place bet/i }));
-    await user.click(screen.getByRole('button', { name: /^spin$/i }));
+    await user.click(screen.getByRole('button', { name: /spin the reels/i }));
 
     await waitFor(
       () => {
@@ -154,6 +273,7 @@ describe('<SlotsPage /> recent results sidebar', () => {
 describe('<SlotsPage /> win celebration tiers', () => {
   beforeEach(async () => {
     seed(1);
+    playMock.mockClear();
     await resetDb();
     await hydrateUser(500);
   });
@@ -169,8 +289,7 @@ describe('<SlotsPage /> win celebration tiers', () => {
       </MemoryRouter>,
     );
     await user.click(screen.getByRole('button', { name: /add 5 chips to bet/i }));
-    await user.click(screen.getByRole('button', { name: /place bet/i }));
-    await user.click(screen.getByRole('button', { name: /^spin$/i }));
+    await user.click(screen.getByRole('button', { name: /spin the reels/i }));
 
     await waitFor(
       () => {
