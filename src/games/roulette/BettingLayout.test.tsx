@@ -381,6 +381,27 @@ describe('<BettingLayout /> footer and disabled state', () => {
     expect(screen.getByRole('button', { name: /straight bet on 17/i })).toBeDisabled();
   });
 
+  it('ADR-0030 amendment — renders unlimited bet positions (15-position smoke)', () => {
+    const bets: PlacedBet[] = Array.from({ length: 15 }, (_, i) => ({
+      key: `straight:${i + 1}`,
+      type: 'straight',
+      numbers: [i + 1],
+      payoutMultiple: 35,
+      amount: 5,
+      betHandleId: `h${i + 1}`,
+    }));
+    render(
+      <BettingLayout
+        bets={bets}
+        disabled={false}
+        chipAmount={5}
+        onPlaceBet={() => {}}
+        onRemoveBet={() => {}}
+      />,
+    );
+    expect(document.querySelectorAll('[data-bet-stack]')).toHaveLength(15);
+  });
+
   it('the most recently placed bet has data-selected on its chip stack', () => {
     render(
       <BettingLayout
