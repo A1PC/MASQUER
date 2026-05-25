@@ -232,6 +232,17 @@ Each game's `logic.ts` is pure and unit-tested. Each game returns a standard `Ro
   - Player bust or lower total: loss.
 - `details` JSON records both hands and the actions taken.
 
+#### 8.1.1 Velvet Duel variant (Phase 15)
+
+Phase 15 layers a deliberate gameplay drama on top of the Phase-3 baseline, recorded in **ADR-0045**. All Phase-3 mechanics (split-to-4, DAS, double, insurance, surrender, H17, natural 3:2, the seeded 6-deck shoe, integer money, one-row-per-round) are preserved unchanged; the variant only **adds** rules.
+
+- **Dealer interleaves card-by-card.** After every player `Hit`, `Double`, or first card dealt to a new split hand, the dealer's hole flips face-up (idempotent) and the dealer draws exactly one additional face-up card. Alternation stops the moment the dealer reaches the H17 stand threshold; if alternation never fires, the dealer plays out his hand normally after the player is done. `STAND` does not trigger an alternation tick.
+- **Min-stand-14.** The player must `Hit` on any total below 14. The XState `STAND` guard rejects illegal stands; the page UI mirrors the restriction with a disabled `Stand` button and a "Must Hit on totals below 14" helper line.
+- **Player chooses each Ace's value (1 or 11).** Whenever a player Ace is dealt (opening deal, Hit, Double, or split-second-card), the machine emits an `ACE_PROMPT` with an `allowEleven` flag. The flag is `false` (and the Ace auto-locks at 1 with no prompt) iff 11 would push the hand above 21; otherwise the player resolves via `CHOOSE_ACE`. Multiple Aces prompt sequentially in deal order; `handTotal()` honours locked Ace values verbatim and never demotes a locked-11. Dealer Aces never prompt and retain classic soft-auto behaviour.
+- **5-Card Charlie 3:2 bonus.** A winning hand that contains 5 or more cards pays `floor(bet * 2.5)` (stake + 1.5× winnings) instead of the standard 1:1. Applies only on `player-win` (no bonus on push, loss, or bust) and is mutually exclusive with the natural-blackjack 3:2 (a natural is exactly 2 cards). On split hands, the bonus is evaluated per hand independently. `BlackjackRoundDetails.hands[]` carries a per-hand `fiveCardCharlie` flag for stats / Recent Results surfacing.
+
+See [ADR-0045](docs/adr/0045-blackjack-velvet-duel-variant.md) for the full decision record (rationale, alternatives considered, consequences).
+
 ### 8.2 Roulette
 
 - **European wheel** (single zero, 37 pockets: 0 and 1–36). House edge stays fair-ish and the table is simpler than American.
