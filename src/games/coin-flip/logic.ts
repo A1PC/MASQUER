@@ -25,5 +25,5 @@ export function playRound(input: { call: CoinSide; betAmount: number }): RoundRe
 
 export const COIN_FLIP_CONFIG = {
   MIN_BET: 1,
-  MAX_BET: 500,
+  MAX_BET: 1000,
 } as const;
