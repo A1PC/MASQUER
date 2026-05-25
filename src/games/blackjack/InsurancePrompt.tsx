@@ -1,37 +1,54 @@
 import type { JSX } from 'react';
+import { Modal, Button } from '@/components/ui';
 import { BLACKJACK_CONFIG } from './config';
 
 interface Props {
+  /** True while the machine is in `insurance_prompt`. */
+  open: boolean;
   mainBet: number;
   onTake: () => void;
   onDecline: () => void;
 }
 
-export default function InsurancePrompt({ mainBet, onTake, onDecline }: Props): JSX.Element {
+/**
+ * `InsurancePrompt` — opens when the dealer shows an Ace. The player may pay
+ * half their main bet for a 2:1 side-bet that pays out if the dealer's hole
+ * card completes a natural blackjack. Rendered through the shared `Modal`
+ * primitive so it inherits the focus-trap + Escape + scrim contract; the
+ * decline button is the safe default and is the first focusable action.
+ */
+export default function InsurancePrompt({ open, mainBet, onTake, onDecline }: Props): JSX.Element {
   const insuranceBet = Math.floor(mainBet * BLACKJACK_CONFIG.INSURANCE_RATIO);
   const winnings = insuranceBet * 2;
   return (
-    <div className="mx-auto max-w-[420px] rounded-lg border border-gold-bright bg-gold-bright/[0.06] p-4 text-center">
-      <div className="mb-2 font-display text-[13px] tracking-[1.5px] text-gold-bright">
-        INSURANCE?
-      </div>
-      <p className="mb-3 text-[11px] text-white/70">
-        Pay {insuranceBet} (half your bet) to win {winnings} if dealer has blackjack.
-      </p>
-      <div className="flex justify-center gap-2">
-        <button
-          onClick={onTake}
-          className="rounded-md border-2 border-gold bg-casino-red px-5 py-2.5 font-display text-[12px] tracking-[1px] text-white"
-        >
-          TAKE +{insuranceBet}
-        </button>
-        <button
+    <Modal
+      open={open}
+      onOpenChange={() => {
+        /* Non-dismissable — player MUST take or decline. */
+      }}
+      title="Insurance?"
+      description={`Pay ${insuranceBet} (half your bet) to win ${winnings} if the dealer has blackjack.`}
+    >
+      <div className="mt-4 flex justify-end gap-2.5">
+        <Button
+          variant="secondary"
+          size="lg"
           onClick={onDecline}
-          className="rounded-md border-2 border-gold/50 bg-transparent px-5 py-2.5 font-display text-[12px] tracking-[1px] text-white"
+          aria-label="Decline insurance"
+          className="min-h-[44px]"
         >
-          DECLINE
-        </button>
+          Decline
+        </Button>
+        <Button
+          variant="primary"
+          size="lg"
+          onClick={onTake}
+          aria-label={`Take insurance for ${insuranceBet} chips`}
+          className="min-h-[44px]"
+        >
+          Take +{insuranceBet}
+        </Button>
       </div>
-    </div>
+    </Modal>
   );
 }

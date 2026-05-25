@@ -1,39 +1,103 @@
 import type { JSX } from 'react';
 import HandView from './HandView';
 import { handTotal } from './hand';
-import type { Hand as HandType } from './types';
+import { Badge, Panel, cn } from '@/components/ui';
+import type { Hand as HandType, Outcome } from './types';
+
+interface HandSettlement {
+  readonly outcome: Outcome;
+  readonly payout: number;
+  readonly fiveCardCharlie: boolean;
+}
 
 interface Props {
   hands: readonly HandType[];
   activeHandIdx: number;
   inSettlement: boolean;
+  /** Per-hand settlement results — provided only when inSettlement is true.
+   *  Indexed alongside `hands[]`. */
+  settlements?: readonly HandSettlement[];
 }
 
-export default function PlayerArea({ hands, activeHandIdx, inSettlement }: Props): JSX.Element {
+const OUTCOME_LABEL: Record<Outcome, string> = {
+  'player-blackjack': 'BLACKJACK',
+  'player-win': 'WIN',
+  push: 'PUSH',
+  'player-loss': 'LOSS',
+  'player-bust': 'BUST',
+};
+
+function toneFor(outcome: Outcome): 'win' | 'loss' | 'neutral' {
+  if (outcome === 'player-blackjack' || outcome === 'player-win') return 'win';
+  if (outcome === 'push') return 'neutral';
+  return 'loss';
+}
+
+export default function PlayerArea({
+  hands,
+  activeHandIdx,
+  inSettlement,
+  settlements,
+}: Props): JSX.Element {
+  const handCount = hands.length;
+  const cardSize = handCount > 1 ? 'md' : 'lg';
   return (
-    <div className="flex justify-center gap-4">
+    <div className="flex flex-wrap justify-center gap-3.5" role="group" aria-label="Your hands">
       {hands.map((h, i) => {
         const total = handTotal(h.cards).value;
         const isActive = !inSettlement && i === activeHandIdx;
         const isResolved = h.resolved;
+        const settlement = settlements?.[i];
         return (
-          <div
+          <Panel
             key={i}
-            className={`rounded-lg p-2 text-center ${
+            surface="felt"
+            className={cn(
+              'p-3 text-center transition-shadow duration-200',
               isActive
-                ? 'border-2 border-neon-cyan bg-neon-cyan/5 shadow-[0_0_14px_rgba(61,240,255,0.25)]'
-                : 'border-2 border-gold/25 opacity-65'
-            } ${isResolved && !isActive ? 'opacity-55' : ''}`}
+                ? 'shadow-[0_0_18px_rgba(230,192,104,0.35)] outline outline-2 outline-gold'
+                : isResolved && !isActive
+                  ? 'opacity-70'
+                  : 'opacity-90',
+            )}
+            aria-current={isActive ? 'true' : undefined}
+            aria-label={`Hand ${i + 1}, total ${total}${isActive ? ', active' : ''}`}
           >
             <div
-              className={`mb-1 font-display text-[9px] tracking-[1.5px] ${isActive ? 'text-neon-cyan' : 'text-gold'}`}
+              className={cn(
+                'mb-1 flex items-center justify-center gap-1.5 font-display text-[10px] tracking-[0.18em]',
+                isActive ? 'text-gold-bright' : 'text-gold',
+              )}
             >
-              {isActive ? '▶ ' : ''}
-              HAND {i + 1} · {total}
+              {isActive && <span aria-hidden>▶</span>}
+              <span>
+                HAND {i + 1} · {total}
+              </span>
             </div>
-            <HandView cards={h.cards} />
-            <div className="mt-1.5 font-mono text-[10px] text-gold-bright">Bet: {h.betAmount}</div>
-          </div>
+            <div className="flex justify-center">
+              <HandView cards={h.cards} size={cardSize} />
+            </div>
+            <div className="mt-1.5 flex items-center justify-center gap-2 font-mono text-[10px] text-ivory/80">
+              <span>Bet: {h.betAmount}</span>
+              {h.doubled && (
+                <Badge tone="info" className="px-1.5 py-0">
+                  Doubled
+                </Badge>
+              )}
+            </div>
+            {settlement && (
+              <div className="mt-2 flex flex-wrap justify-center gap-1.5">
+                <Badge tone={toneFor(settlement.outcome)}>
+                  {OUTCOME_LABEL[settlement.outcome]}
+                </Badge>
+                {settlement.fiveCardCharlie && (
+                  <Badge tone="win" icon="Sparkles" aria-label="Five Card Charlie bonus">
+                    5-Card Charlie
+                  </Badge>
+                )}
+              </div>
+            )}
+          </Panel>
         );
       })}
     </div>
