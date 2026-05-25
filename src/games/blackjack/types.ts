@@ -50,6 +50,10 @@ export interface HandResult {
   readonly dealerTotal: number;
   /** Payout (gross return to player including bet). 0 on loss/bust. */
   readonly payout: number;
+  /** True when the hand wins with 5+ cards (Velvet Duel 5-Card Charlie 3:2 bonus
+   *  applied). False on push, loss, or any 2/3/4-card win (the standard 1:1).
+   *  Mutually exclusive with natural blackjack (a natural is by definition 2 cards). */
+  readonly fiveCardCharlie: boolean;
 }
 
 export type InsuranceStatus = 'not-offered' | 'declined' | 'won' | 'lost';
@@ -70,6 +74,8 @@ export interface BlackjackRoundDetails {
     readonly fromSplitAces: boolean;
     readonly outcome: Outcome;
     readonly payout: number;
+    /** Velvet Duel 5-Card Charlie bonus flag (true on a 5+ card winning hand). */
+    readonly fiveCardCharlie: boolean;
   }>;
   readonly insurance: InsuranceState;
   /** All bet handle IDs placed during this round (for traceability; see ADR-0028). */

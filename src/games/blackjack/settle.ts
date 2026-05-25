@@ -45,7 +45,15 @@ export function settlePlayerHand(hand: Hand, dealerCards: readonly Card[]): Hand
     payout = 0;
   }
 
-  return { handIdx: 0, outcome, playerTotal, dealerTotal, payout };
+  // Velvet Duel 5-Card Charlie: on a non-natural win with 5+ cards, pay 3:2
+  // (stake + 1.5× winnings → floor(bet * 2.5)). A natural blackjack is exactly
+  // 2 cards so the conditions are mutually exclusive. No bonus on push/loss.
+  const fiveCardCharlie = outcome === 'player-win' && hand.cards.length >= 5;
+  if (fiveCardCharlie) {
+    payout = Math.floor(hand.betAmount * 2.5);
+  }
+
+  return { handIdx: 0, outcome, playerTotal, dealerTotal, payout, fiveCardCharlie };
 }
 
 /** Aggregate per-hand results + insurance into the round-level summary the wallet expects. */
@@ -84,6 +92,7 @@ export function buildRoundDetails(input: {
       fromSplitAces: h.fromSplitAces,
       outcome: handResults[i]!.outcome,
       payout: handResults[i]!.payout,
+      fiveCardCharlie: handResults[i]!.fiveCardCharlie,
     })),
     insurance: input.insurance,
     betHandleIds: input.betHandleIds,

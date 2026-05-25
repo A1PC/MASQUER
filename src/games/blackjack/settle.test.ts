@@ -126,6 +126,107 @@ describe('settlePlayerHand', () => {
     expect(r.outcome).toBe('player-win');
     expect(r.payout).toBe(40);
   });
+
+  it('non-Charlie win has fiveCardCharlie=false', () => {
+    const r = settlePlayerHand(makeHand({ cards: [card('K'), card('Q')], betAmount: 10 }), [
+      card('K'),
+      card('8'),
+    ]);
+    expect(r.outcome).toBe('player-win');
+    expect(r.fiveCardCharlie).toBe(false);
+    expect(r.payout).toBe(20);
+  });
+
+  it('pays 5-Card Charlie 3:2 on a 5-card win (no natural collision)', () => {
+    // Player: 5+3+2+4+6 = 20 across 5 cards; dealer: K+9 = 19. Player wins.
+    const r = settlePlayerHand(
+      makeHand({
+        cards: [card('5', '♠'), card('3', '♥'), card('2', '♦'), card('4', '♣'), card('6', '♥')],
+        betAmount: 100,
+      }),
+      [card('K', '♠'), card('9', '♦')],
+    );
+    expect(r.outcome).toBe('player-win');
+    expect(r.fiveCardCharlie).toBe(true);
+    expect(r.payout).toBe(250); // floor(100 * 2.5) = bet + 1.5× winnings
+  });
+
+  it('floors the 5-Card Charlie payout on an odd bet (bet 5 → floor(12.5)=12)', () => {
+    const r = settlePlayerHand(
+      makeHand({
+        cards: [card('5', '♠'), card('3', '♥'), card('2', '♦'), card('4', '♣'), card('6', '♥')],
+        betAmount: 5,
+      }),
+      [card('K', '♠'), card('9', '♦')],
+    );
+    expect(r.outcome).toBe('player-win');
+    expect(r.fiveCardCharlie).toBe(true);
+    expect(r.payout).toBe(12);
+  });
+
+  it('5-Card Charlie bonus also triggers when dealer busts on a 5+ card hand', () => {
+    const r = settlePlayerHand(
+      makeHand({
+        cards: [card('2', '♠'), card('3', '♥'), card('2', '♦'), card('4', '♣'), card('6', '♥')],
+        betAmount: 20,
+      }), // 17 over 5 cards
+      [card('K', '♠'), card('Q', '♦'), card('5', '♣')], // bust 25
+    );
+    expect(r.outcome).toBe('player-win');
+    expect(r.fiveCardCharlie).toBe(true);
+    expect(r.payout).toBe(50); // floor(20 * 2.5)
+  });
+
+  it('no Charlie bonus on loss with 5 cards', () => {
+    // Player 5+3+2+4+5 = 19; dealer K+Q = 20 → loss.
+    const r = settlePlayerHand(
+      makeHand({
+        cards: [card('5', '♠'), card('3', '♥'), card('2', '♦'), card('4', '♣'), card('5', '♥')],
+        betAmount: 100,
+      }),
+      [card('K', '♠'), card('Q', '♦')],
+    );
+    expect(r.outcome).toBe('player-loss');
+    expect(r.fiveCardCharlie).toBe(false);
+    expect(r.payout).toBe(0);
+  });
+
+  it('no Charlie bonus on a 5-card push', () => {
+    // Player 5+3+2+4+6 = 20; dealer K+Q = 20 → push.
+    const r = settlePlayerHand(
+      makeHand({
+        cards: [card('5', '♠'), card('3', '♥'), card('2', '♦'), card('4', '♣'), card('6', '♥')],
+        betAmount: 80,
+      }),
+      [card('K', '♠'), card('Q', '♦')],
+    );
+    expect(r.outcome).toBe('push');
+    expect(r.fiveCardCharlie).toBe(false);
+    expect(r.payout).toBe(80);
+  });
+
+  it('no Charlie bonus on a 5-card bust', () => {
+    const r = settlePlayerHand(
+      makeHand({
+        cards: [card('5', '♠'), card('5', '♥'), card('5', '♦'), card('5', '♣'), card('5', '♥')],
+        betAmount: 50,
+      }), // 25 bust
+      [card('K', '♠'), card('Q', '♦')],
+    );
+    expect(r.outcome).toBe('player-bust');
+    expect(r.fiveCardCharlie).toBe(false);
+    expect(r.payout).toBe(0);
+  });
+
+  it('natural blackjack is 2 cards and keeps its 3:2 — Charlie does not collide', () => {
+    const r = settlePlayerHand(makeHand({ cards: [card('A'), card('K')], betAmount: 10 }), [
+      card('5'),
+      card('K'),
+    ]);
+    expect(r.outcome).toBe('player-blackjack');
+    expect(r.fiveCardCharlie).toBe(false);
+    expect(r.payout).toBe(25);
+  });
 });
 
 describe('settleInsurance', () => {
@@ -221,5 +322,47 @@ describe('buildRoundDetails', () => {
     });
     expect(result.details.insurance.status).toBe('won');
     expect(result.details.insurance.bet).toBe(25);
+  });
+
+  it('per-hand fiveCardCharlie flag is propagated into details.hands[]', () => {
+    const result = buildRoundDetails({
+      dealerCards: [card('K'), card('Q')], // dealer 20
+      hands: [
+        makeHand({
+          cards: [card('5'), card('3'), card('2'), card('4'), card('K')],
+          betAmount: 100,
+        }), // 5+3+2+4+10 = bust? No: 14+10=24 → actually busts. Use 5+3+2+4+6=20 over 5 cards.
+        makeHand({ cards: [card('K'), card('Q')], betAmount: 100 }), // 20 → push
+      ],
+      insurance: noInsurance,
+      betHandleIds: ['bh1', 'bh2'],
+      config,
+    });
+    // First hand 5+3+2+4+10 = 24 → bust → no Charlie.
+    expect(result.details.hands[0]!.outcome).toBe('player-bust');
+    expect(result.details.hands[0]!.fiveCardCharlie).toBe(false);
+    expect(result.details.hands[1]!.outcome).toBe('push');
+    expect(result.details.hands[1]!.fiveCardCharlie).toBe(false);
+  });
+
+  it('5-Card Charlie payout flows through buildRoundDetails totals', () => {
+    const result = buildRoundDetails({
+      dealerCards: [card('K'), card('9')], // dealer 19
+      hands: [
+        makeHand({
+          cards: [card('5'), card('3'), card('2'), card('4'), card('6')],
+          betAmount: 100,
+        }), // 20 over 5 cards → Charlie win
+      ],
+      insurance: noInsurance,
+      betHandleIds: ['bh1'],
+      config,
+    });
+    expect(result.details.hands[0]!.fiveCardCharlie).toBe(true);
+    expect(result.details.hands[0]!.outcome).toBe('player-win');
+    // floor(100 * 2.5) = 250.
+    expect(result.totalPayout).toBe(250);
+    expect(result.totalBet).toBe(100);
+    expect(result.primaryOutcome).toBe('win');
   });
 });
