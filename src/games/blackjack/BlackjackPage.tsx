@@ -68,24 +68,19 @@ export default function BlackjackPage(): JSX.Element | null {
   const [streak, setStreak] = useState(0);
   // Track the last settled round id so we only react once per settle.
   const lastStreakRoundRef = useRef<string | null>(null);
-  // Track card counts for the dealer + each player hand. We use `useState`
-  // (not `useRef`) because the values are READ during render to compute
-  // `firstAnimatedIdx` for each hand — only NEW cards animate; cards present
-  // last render render statically. The effect below updates this state from
-  // each snapshot.context.{dealerCards,hands} change.
-  const [lastCardCounts, setLastCardCounts] = useState<{
-    dealer: number;
-    hands: number[];
-  }>({ dealer: 0, hands: [] });
+  // Previously-seen card counts used ONLY by the reduced-motion sound effect
+  // to batch a single `card.deal` per dealt batch. Held in a ref (not state)
+  // so updating it does NOT trigger a re-render — re-renders during animation
+  // were yanking the in-flight motion.divs and replacing them with static
+  // ones, causing cards to snap to rest with no visible flight. Animations
+  // are now driven purely by Framer Motion's one-shot `initial` on mount.
+  const lastCardCountsRef = useRef<{ dealer: number; hands: number[] }>({
+    dealer: 0,
+    hands: [],
+  });
 
   const reduceMotion = useEffectiveReducedMotion();
   const { play } = useSound();
-
-  // Snapshot of the previous render's card counts — drives `firstAnimatedIdx`
-  // for both DealerArea + PlayerArea this render. Read from state (not ref)
-  // so the render pass can use it without violating react-hooks/refs.
-  const prevDealerCount = lastCardCounts.dealer;
-  const prevHandCounts = lastCardCounts.hands;
 
   // Bridge: when machine awaits a bet handle, call wallet.placeBet for the main bet.
   useEffect(() => {
@@ -107,40 +102,26 @@ export default function BlackjackPage(): JSX.Element | null {
     }
   }, [snapshot, send, placeBet, user, play]);
 
-  // Diff the snapshot's card counts vs the last-seen counts to:
-  //   · in reduced-motion: fire a single `card.deal` per batch of new cards;
-  //   · always: update `lastCardCounts` state so the next render's
-  //     `firstAnimatedIdx` reflects "what was on the table before THIS
-  //     render." (Set inside an effect — not during render — so React doesn't
-  //     loop and lint stays happy.)
+  // Reduced-motion sound batcher: diff the snapshot's card counts vs the
+  // last-seen counts. When new cards appeared this tick AND reduced-motion is
+  // active (so per-card `onLanded` won't fire), play one `card.deal` per
+  // batch. Refs (not state) so this never triggers a re-render — re-renders
+  // during a flight animation would unmount/remount the motion.divs.
   useEffect(() => {
     const dealerCount = snapshot.context.dealerCards.length;
     const handCounts = snapshot.context.hands.map((h) => h.cards.length);
+    const prev = lastCardCountsRef.current;
 
     let dealtThisTick = 0;
-    if (dealerCount > lastCardCounts.dealer) {
-      dealtThisTick += dealerCount - lastCardCounts.dealer;
-    }
+    if (dealerCount > prev.dealer) dealtThisTick += dealerCount - prev.dealer;
     handCounts.forEach((cnt, i) => {
-      const prev = lastCardCounts.hands[i] ?? 0;
-      if (cnt > prev) dealtThisTick += cnt - prev;
+      const p = prev.hands[i] ?? 0;
+      if (cnt > p) dealtThisTick += cnt - p;
     });
-    // Reduced-motion path: AnimatedCard skips its per-card landing sound, so
-    // we play exactly ONE `card.deal` here to represent the whole batch.
     if (reduceMotion && dealtThisTick > 0) play('card.deal');
 
-    // Avoid an infinite update loop: only set state if counts actually
-    // changed. Defer via microtask so the setState happens as an external-
-    // subscription callback (the snapshot IS the external system), per
-    // react-hooks/set-state-in-effect — same pattern as the streak effect.
-    const same =
-      dealerCount === lastCardCounts.dealer &&
-      handCounts.length === lastCardCounts.hands.length &&
-      handCounts.every((c, i) => c === lastCardCounts.hands[i]);
-    if (!same) {
-      queueMicrotask(() => setLastCardCounts({ dealer: dealerCount, hands: handCounts }));
-    }
-  }, [snapshot.context.dealerCards, snapshot.context.hands, play, reduceMotion, lastCardCounts]);
+    lastCardCountsRef.current = { dealer: dealerCount, hands: handCounts };
+  }, [snapshot.context.dealerCards, snapshot.context.hands, play, reduceMotion]);
 
   // Card-landing callbacks → fire `card.deal` on the landing of each new card
   // (the spec: "fire `card.deal` sound on each card LANDING (not start)").
@@ -348,27 +329,25 @@ export default function BlackjackPage(): JSX.Element | null {
     : undefined;
 
   // ---- Card animation orchestration ------------------------------------
-  // `firstAnimatedIdx` per hand: index of the first card that should fly in
-  // from the deck this render. Cards at indexes < this render statically
-  // (they were already on the table last render).
+  // Animations are driven by Framer Motion's one-shot `initial` inside
+  // AnimatedCard — newly-mounted cards animate; cards already on the table
+  // stay put. React reconciliation (HandView keys cards by `${idx}-${rank}${suit}`)
+  // ensures new cards mount fresh while existing ones survive re-renders.
+  // Round transitions clear hands/dealerCards to [], which unmounts every
+  // card so the next deal mounts them fresh.
   const dealerCards = snapshot.context.dealerCards;
   const hands = snapshot.context.hands;
-  const dealerFirstAnimated = Math.min(prevDealerCount, dealerCards.length);
-  const handFirstAnimatedIdx = hands.map((h, i) =>
-    Math.min(prevHandCounts[i] ?? 0, h.cards.length),
-  );
 
-  // Opening-deal stagger: when the previous render had no cards anywhere AND
-  // this render has the opening 4 (player hand of 2 + dealer of 2), apply
-  // P1 @ 0 / D1 @ 200 / P2 @ 400 / D2 @ 600. In-game draws use no delay.
-  const isOpeningDeal =
-    prevDealerCount === 0 &&
-    prevHandCounts.every((c) => c === 0) &&
-    dealerCards.length === 2 &&
-    hands.length === 1 &&
-    hands[0]!.cards.length === 2;
-  const openingDealerDelays = isOpeningDeal ? [200, 600] : undefined; // D1, D2(hole)
-  const openingPlayerDelaysPerHand: (number[] | undefined)[] = isOpeningDeal
+  // Opening-deal stagger: when the table shape is exactly the opening four
+  // (1 player hand × 2 cards + 2 dealer cards), pass position-based delays.
+  // These are consumed only when the cards MOUNT (Framer Motion `initial` is
+  // one-shot); subsequent renders pass the same delays but they're no-ops
+  // because the motion.divs are already past `initial`. In-game draws never
+  // match this shape and so use no delay.
+  const isOpeningDealShape =
+    dealerCards.length === 2 && hands.length === 1 && hands[0]!.cards.length === 2;
+  const openingDealerDelays = isOpeningDealShape ? [200, 600] : undefined; // D1, D2(hole)
+  const openingPlayerDelaysPerHand: (number[] | undefined)[] = isOpeningDealShape
     ? [[0, 400]]
     : hands.map(() => undefined);
 
@@ -439,7 +418,6 @@ export default function BlackjackPage(): JSX.Element | null {
         <DealerArea
           cards={dealerCards}
           holeRevealed={holeRevealed}
-          firstAnimatedIdx={dealerFirstAnimated}
           {...(openingDealerDelays ? { delaysMs: openingDealerDelays } : {})}
           onCardLanded={handleDealerCardLanded}
         />
@@ -455,7 +433,6 @@ export default function BlackjackPage(): JSX.Element | null {
           activeHandIdx={snapshot.context.activeHandIdx}
           inSettlement={isSettling}
           {...(settlements ? { settlements } : {})}
-          firstAnimatedIdxPerHand={handFirstAnimatedIdx}
           delaysMsPerHand={openingPlayerDelaysPerHand}
           highlightsPerHand={highlightsPerHand}
           onCardLanded={handlePlayerCardLanded}

@@ -6,11 +6,8 @@ import type { Card } from './types';
 interface Props {
   cards: readonly Card[];
   holeRevealed: boolean;
-  /** Indexes of cards in `cards` that are new this render and should fly in
-   *  from the deck anchor. Cards before this index render statically. */
-  firstAnimatedIdx?: number;
-  /** Per-card stagger delays (ms) — only consulted for animated indexes.
-   *  Used during the opening deal to sequence P1/D1/P2/D2. */
+  /** Per-card stagger delays (ms) — used during the opening deal to sequence
+   *  P1/D1/P2/D2. Consumed only at mount (Framer Motion `initial` is one-shot). */
   delaysMs?: readonly number[];
   /** Card-landing callback used by the page to play `card.deal` on LANDING. */
   onCardLanded?: (idx: number) => void;
@@ -26,7 +23,6 @@ interface Props {
 export default function DealerArea({
   cards,
   holeRevealed,
-  firstAnimatedIdx,
   delaysMs,
   onCardLanded,
 }: Props): JSX.Element {
@@ -40,7 +36,6 @@ export default function DealerArea({
           cards={cards}
           size="lg"
           {...(!holeRevealed ? { faceDownIdx: 1 } : {})}
-          {...(firstAnimatedIdx !== undefined ? { firstAnimatedIdx } : {})}
           {...(delaysMs ? { delaysMs } : {})}
           {...(onCardLanded ? { onCardLanded } : {})}
         />
