@@ -72,8 +72,8 @@ describe('playRound', () => {
     expect(heads).toBeLessThan(600);
   });
 
-  it('config exports MIN_BET=1 and MAX_BET=500', () => {
+  it('config exports MIN_BET=1 and MAX_BET=1000', () => {
     expect(COIN_FLIP_CONFIG.MIN_BET).toBe(1);
-    expect(COIN_FLIP_CONFIG.MAX_BET).toBe(500);
+    expect(COIN_FLIP_CONFIG.MAX_BET).toBe(1000);
   });
 });
