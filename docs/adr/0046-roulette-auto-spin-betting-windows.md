@@ -1,12 +1,13 @@
 # ADR-0046: Roulette — auto-spin betting windows
 
-- Status: Accepted
+- Status: Accepted (amended 2026-05-25 — zero-bet spin now writes a row)
 - Date: 2026-05-25
 - Deciders: @adamzspare
 - Supersedes: the legacy explicit `SPIN` event in the original
   Phase-4 roulette machine.
 - Amends: ADR-0031 (spin animation contract — spin trigger only;
-  animation contract unchanged).
+  animation contract unchanged); refines ADR-0016 (every spin is now
+  a "round" for record-keeping; zero-stake spins are zero-stake rounds).
 
 ## Context
 
@@ -60,11 +61,37 @@ Replace the three-state machine with a four-state timed cycle:
   (auto-driven by `RESULT_DISPLAY_MS`).
 
 **Zero-bet path.** The auto-spin transition has **no** guard. If
-the timer expires with `bets.length === 0`, the wheel spins anyway
-(cosmetic only). The page's settle-bridge no-ops when there are no
-handles to settle — no `rounds` row is written. ADR-0016's "one
-rounds row per round" contract is preserved because a zero-stake
-spin is, by ADR-0016's own wording, a non-event.
+the timer expires with `bets.length === 0`, the wheel spins anyway.
+
+**Amendment (2026-05-25).** Every spin now writes exactly one
+`rounds` row, INCLUDING zero-stake spins. The original rule (zero-
+bet spins are "non-events" with no row) was reversed after player
+feedback: when the auto-spin fires with no chips on the felt, the
+wheel still produces a real visible result (a number + colour), and
+that result was vanishing from the recent-results sidebar — players
+felt the feed was lying about the wheel's history.
+
+The settle bridge now branches on `bets.length`:
+
+- **bets.length > 0** → existing path: `wallet.settleRound` writes
+  one `rounds` row carrying the bet outcome (win / loss / push).
+- **bets.length === 0** → new path: `wallet.recordSpinOnly` writes
+  one `rounds` row with `betAmount: 0`, `payout: 0`, `netChange:
+0`, `outcome: 'push'`, `details: { spin, bets: [] }`, and a
+  synthesised `id` of the form `spin-only-${uuid}`. Balance is
+  **not** touched.
+
+This refines (does not contradict) ADR-0016. ADR-0016's rule was
+"every completed game round writes exactly one row." Under the
+amendment a zero-stake auto-spin is itself a completed game round —
+just one in which no chips moved. The row's `outcome: 'push'`
+correctly signals that no money moved.
+
+The roulette stats functions (`getRouletteNumberDistribution`,
+hot/cold pockets, etc.) already iterate `rounds.where('game')
+.equals('roulette')` and read `details.spin.number` — they pick up
+zero-stake rows automatically, so the admin pocket-distribution
+chart now reflects every spin, not just the played ones.
 
 **Pause behaviour.** The timer pauses when the player opens the
 RULES modal (they're reading; the dealer waits) and resumes on
