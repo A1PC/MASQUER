@@ -20,11 +20,27 @@ function renderPanel(props: Partial<Parameters<typeof BettingPanel>[0]> = {}) {
 }
 
 describe('BettingPanel', () => {
-  it('renders default chip denominations', () => {
-    renderPanel();
-    for (const d of [1, 5, 25, 100, 500]) {
+  it('renders default chip denominations (including the 1000 high-roller chip)', () => {
+    renderPanel({ balance: 5000 });
+    for (const d of [1, 5, 25, 100, 500, 1000]) {
       expect(screen.getByLabelText(`Add ${d} chips to bet`)).toBeInTheDocument();
     }
+  });
+
+  it('commits a 1000-chip bet via the 1000 preset', async () => {
+    const { onCommit } = renderPanel({ balance: 5000, max: 1000 });
+    await userEvent.click(screen.getByLabelText('Add 1000 chips to bet'));
+    // The bet display also reads "1000" — query within the bet readout to
+    // disambiguate from the chip button's own "1000" label.
+    expect(screen.getByText('Bet amount').parentElement).toHaveTextContent('1000');
+    await userEvent.click(screen.getByText(/PLACE BET/));
+    expect(onCommit).toHaveBeenCalledWith(1000);
+  });
+
+  it('disables the 1000 chip when balance is below 1000', () => {
+    renderPanel({ balance: 500, max: 1000 });
+    const chip = screen.getByLabelText('Add 1000 chips to bet');
+    expect(chip).toBeDisabled();
   });
 
   it('clicking a chip adds to bet amount', async () => {

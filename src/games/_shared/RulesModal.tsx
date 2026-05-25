@@ -75,7 +75,20 @@ export default function RulesModal({ open, title, children, onClose }: Props): J
                 ×
               </button>
             </header>
-            <div className="overflow-y-auto px-5 py-4 text-sm leading-relaxed text-white/85">
+            <div
+              data-rules-body
+              className={
+                // Scrollable rules body with a subtle scroll-shadow indicator.
+                // The `mask-image` linear-gradient fades the top and bottom
+                // edges (a soft fade rather than a hard cut) so users see at a
+                // glance that content extends beyond the visible region. The
+                // `max-h-[60vh]` ensures the body never exceeds the readable
+                // sweet spot regardless of viewport size, and `overflow-y-auto`
+                // turns clipped content into a vertical scroll region.
+                'max-h-[60vh] overflow-y-auto px-5 py-4 text-sm leading-relaxed text-white/85 ' +
+                '[mask-image:linear-gradient(to_bottom,transparent,#000_24px,#000_calc(100%-24px),transparent)]'
+              }
+            >
               {children}
             </div>
           </motion.div>
