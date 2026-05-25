@@ -188,7 +188,13 @@ export const blackjackMachine = setup({
     }),
     /** Velvet Duel: dealer draws ONE card during interleaving. Reveals hole
      *  first (idempotent), consumes the pendingDealerDraw flag, and recomputes
-     *  whether further alternation should keep firing on future player actions. */
+     *  whether further alternation should keep firing on future player actions.
+     *
+     *  Bust auto-settle (ADR-0045 amendment): if the dealer busts on this
+     *  interleave draw, alternation stops immediately and all still-live
+     *  (non-bust) player hands are flagged resolved so `after_action` falls
+     *  through directly to settling (which pays them as wins). Already-busted
+     *  hands stay busted. */
     dealerInterleaveDraw: assign(({ context }) => {
       const shoe = [...context.shoe];
       const dealerCards = context.dealerCards.map((c, i) =>
@@ -196,16 +202,32 @@ export const blackjackMachine = setup({
       );
       const drawn = drawCard(shoe);
       const newDealer = [...dealerCards, drawn];
-      const keepInterleaving = dealerShouldHit(newDealer);
+      const dealerBust = isBust(newDealer);
+      const keepInterleaving = !dealerBust && dealerShouldHit(newDealer);
+      // When dealer busts mid-interleave, mark every still-live player hand
+      // resolved so we go straight to settling on the next always-tick. Hands
+      // that have already busted remain resolved (they don't win retroactively).
+      const hands = dealerBust
+        ? context.hands.map((h) => (isBust(h.cards) ? h : { ...h, resolved: true }))
+        : context.hands;
       return {
         shoe,
         dealerCards: newDealer,
         dealerInterleaving: keepInterleaving,
         pendingDealerDraw: false,
+        hands,
       };
     }),
-    /** Arm the next dealer alternation tick (after a player Hit/Double/Split). */
-    armDealerDraw: assign(() => ({ pendingDealerDraw: true })),
+    /** Arm the next dealer alternation tick (after a player Hit/Double/Split).
+     *  Bust auto-settle (ADR-0045): if the action that ran immediately before
+     *  this one busted the active hand, do NOT arm — the player can't win this
+     *  hand any more, so the dealer interleave is skipped (`after_action` will
+     *  fall through to the next hand / dealer_check). */
+    armDealerDraw: assign(({ context }) => {
+      const active = context.hands[context.activeHandIdx];
+      if (active && isBust(active.cards)) return {};
+      return { pendingDealerDraw: true };
+    }),
     /** Clear any pending alternation tick — used by STAND/SURRENDER, where the
      *  dealer's interleave does NOT fire (per Velvet Duel spec). */
     clearPendingDealerDraw: assign(() => ({ pendingDealerDraw: false })),

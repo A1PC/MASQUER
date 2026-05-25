@@ -75,6 +75,10 @@ recording) is preserved unchanged.
    "5-CARD CHARLIE +1.5×" and PR C's sound layer plays `win.medium` (one
    tier up from the standard `win.small`).
 
+5. **Bust ends the Velvet Duel alternation:** player bust on HIT skips the
+   dealer interleave for that hand; dealer bust during an interleave draw
+   settles all live player hands immediately as wins.
+
 The unchanged Phase-3 mechanics carried forward without modification:
 
 - **Insurance + peek** (ADR-0023). Runs at deal time before any alternation.
