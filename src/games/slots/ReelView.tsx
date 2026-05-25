@@ -20,7 +20,13 @@ export interface ReelProps {
   winning?: boolean;
 }
 
-const CELL_SIZE = 128; // px — each reel cell. Sized to dominate the play area.
+/** Per-reel cell size (px). Bumped from the original 80px to 110px in
+ *  Phase 15 #7 so the SVG symbol art reads at a comfortable, focal size
+ *  inside the new two-column layout. The reel column stays the visual
+ *  centrepiece of the page (spec §4.3.2). */
+const CELL_SIZE = 110;
+const SYMBOL_SCALE = 0.86; // Leaves a small brass border around each cell.
+const SYMBOL_SIZE = Math.round(CELL_SIZE * SYMBOL_SCALE);
 
 /** Idle filler symbols (deterministic — purely cosmetic). */
 const IDLE_FILLERS: readonly [SymbolType, SymbolType] = ['cherry', 'lemon'];
@@ -53,7 +59,7 @@ export default function ReelView({
   return (
     <div
       data-reel-index={reelIndex}
-      className="relative overflow-hidden rounded border border-gold/30 bg-felt-deep"
+      className="relative overflow-hidden rounded-md border-2 border-brass bg-felt-table-deep shadow-[inset_0_0_18px_rgba(0,0,0,0.55)]"
       style={{
         width: CELL_SIZE,
         height: CELL_SIZE * 3,
@@ -76,7 +82,7 @@ export default function ReelView({
         >
           {strip.map((sym, i) => (
             <div key={i} className="flex items-center justify-center" style={{ height: CELL_SIZE }}>
-              <SymbolView symbol={sym} size={CELL_SIZE} />
+              <SymbolView symbol={sym} size={SYMBOL_SIZE} />
             </div>
           ))}
         </motion.div>
@@ -84,31 +90,31 @@ export default function ReelView({
         <>
           <div
             data-roulette-cell-position="top"
-            className="flex items-center justify-center"
+            className="flex items-center justify-center border-b border-brass/30"
             style={{ height: CELL_SIZE }}
           >
-            <SymbolView symbol={IDLE_FILLERS[0]} size={CELL_SIZE} />
+            <SymbolView symbol={IDLE_FILLERS[0]} size={SYMBOL_SIZE} />
           </div>
           <div
             data-roulette-cell-position="centre"
             {...(winning ? { 'data-winning': 'true' } : {})}
-            className="flex items-center justify-center"
+            className="flex items-center justify-center border-b border-brass/30"
             style={{
               height: CELL_SIZE,
               boxShadow: winning
-                ? 'inset 0 0 12px rgba(255,224,102,0.5), inset 0 0 24px rgba(255,224,102,0.25)'
+                ? 'inset 0 0 14px rgba(230,192,104,0.55), inset 0 0 28px rgba(230,192,104,0.28)'
                 : undefined,
-              background: winning ? 'rgba(212,175,55,0.08)' : undefined,
+              background: winning ? 'rgba(230,192,104,0.09)' : undefined,
             }}
           >
-            <SymbolView symbol={symbol ?? IDLE_FILLERS[0]} size={CELL_SIZE} winning={winning} />
+            <SymbolView symbol={symbol ?? IDLE_FILLERS[0]} size={SYMBOL_SIZE} winning={winning} />
           </div>
           <div
             data-roulette-cell-position="bottom"
             className="flex items-center justify-center"
             style={{ height: CELL_SIZE }}
           >
-            <SymbolView symbol={IDLE_FILLERS[1]} size={CELL_SIZE} />
+            <SymbolView symbol={IDLE_FILLERS[1]} size={SYMBOL_SIZE} />
           </div>
         </>
       )}

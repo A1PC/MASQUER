@@ -23,19 +23,18 @@ const ROWS: readonly Row[] = [
   { key: 'two-cherry', symbols: ['cherry', 'cherry', null] }, // 3rd cell blank
 ];
 
-const ICON_SIZE = 36;
+const ICON_SIZE = 32;
 
 export default function Paytable({ winningKey = null }: Props): JSX.Element {
   return (
     <div
       data-roulette-layer="paytable"
-      className="rounded-md border border-gold/30 bg-felt-deep px-5 py-4"
-      style={{ width: 280 }}
+      className="w-[300px] rounded-md border border-brass/70 bg-felt-table-deep px-4 py-4 shadow-[inset_0_0_18px_rgba(0,0,0,0.4)]"
     >
-      <div className="mb-3 text-center font-display text-[13px] tracking-[2.5px] text-gold">
-        PAYOUT TABLE
+      <div className="mb-3 text-center font-display text-[12px] uppercase tracking-[0.22em] text-gold">
+        Payout Table
       </div>
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-1.5">
         {ROWS.map((row) => {
           const isWinner = winningKey === row.key;
           return (
@@ -43,13 +42,13 @@ export default function Paytable({ winningKey = null }: Props): JSX.Element {
               key={row.key}
               data-payout-key={row.key}
               {...(isWinner ? { 'data-winning': 'true' } : {})}
-              className="grid grid-cols-[auto_auto_1fr_auto] items-center gap-3 rounded px-2 py-1.5"
-              style={{
-                background: isWinner ? 'rgba(212,175,55,0.18)' : 'transparent',
-                transition: 'background 0.2s ease-out',
-              }}
+              className={[
+                'grid grid-cols-[auto_1fr_auto] items-center gap-2 rounded-sm px-2 py-1.5',
+                'transition-colors duration-200',
+                isWinner ? 'bg-gold/20 ring-1 ring-gold/50' : 'bg-transparent',
+              ].join(' ')}
             >
-              <div className="flex gap-1">
+              <div className="flex gap-0.5">
                 {row.symbols.map((s, i) =>
                   s ? (
                     <SymbolView key={i} symbol={s} size={ICON_SIZE} />
@@ -58,9 +57,10 @@ export default function Paytable({ winningKey = null }: Props): JSX.Element {
                   ),
                 )}
               </div>
-              <span className="text-[12px] text-white/40">→</span>
-              <span className="text-[12px] text-white/70" />
-              <span className="font-mono text-[14px] font-bold text-gold-bright">
+              <span className="text-right font-mono text-[11px] uppercase tracking-wider text-ivory/55">
+                {ROW_LABELS[row.key]}
+              </span>
+              <span className="font-mono text-[15px] font-bold text-gold-bright">
                 {SLOTS_PAYTABLE[row.key]}×
               </span>
             </div>
@@ -70,3 +70,13 @@ export default function Paytable({ winningKey = null }: Props): JSX.Element {
     </div>
   );
 }
+
+/** Compact label for each paytable row — short enough to fit on the left rail. */
+const ROW_LABELS: Record<PayoutHit['key'], string> = {
+  'seven-seven-seven': 'Jackpot',
+  'bar-bar-bar': '3× BAR',
+  'bell-bell-bell': '3× Bell',
+  'lemon-lemon-lemon': '3× Lemon',
+  'cherry-cherry-cherry': '3× Cherry',
+  'two-cherry': '2× Cherry',
+};
