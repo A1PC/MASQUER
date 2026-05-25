@@ -42,8 +42,11 @@ const TIMER_RING_CIRC = 2 * Math.PI * TIMER_RING_RADIUS;
  * Wallet bridge: on entry to `spinning` we deferred-place each on-felt bet
  * via `wallet.placeBet` (refund pattern on partial failure). The settle
  * bridge on entry to `settled` calls `wallet.settleRound` exactly once per
- * spin. A zero-bet auto-spin runs cosmetically and writes no rounds row
- * (ADR-0016 contract preserved).
+ * spin when there are staked bets. A zero-bet auto-spin runs cosmetically
+ * and calls `wallet.recordSpinOnly` to write a single zero-stake
+ * (`betAmount: 0`, `payout: 0`, `netChange: 0`, `outcome: 'push'`)
+ * `rounds` row so every spin appears in the recent-results feed
+ * (ADR-0046 amendment 2026-05-25; refines ADR-0016).
  */
 export default function RoulettePage(): JSX.Element | null {
   const user = useCurrentUser();
@@ -59,6 +62,7 @@ export default function RoulettePage(): JSX.Element | null {
 
   const placeBet = useWalletStore((s) => s.placeBet);
   const settleRound = useWalletStore((s) => s.settleRound);
+  const recordSpinOnly = useWalletStore((s) => s.recordSpinOnly);
 
   // Map of bet-position key → wallet bet-handle id for the current spin.
   const handlesRef = useRef<Map<string, string>>(new Map());
@@ -140,10 +144,28 @@ export default function RoulettePage(): JSX.Element | null {
   useEffect(() => {
     if (!inSettled || !user) return;
     play('ball.drop');
+    const spinResult = state.context.spinResult;
     const rr = state.context.roundResult;
-    if (!rr) return;
     const firstKey = state.context.bets[0]?.key;
-    if (!firstKey) return; // zero-bet auto-spin — no rounds row (ADR-0016).
+
+    // ── Zero-bet auto-spin: write a single zero-stake rounds row so the
+    //    spin appears in the recent-results feed (ADR-0046 amendment,
+    //    refines ADR-0016). Use the spin number+payload as the dedupe tag.
+    if (!firstKey) {
+      if (!spinResult) return;
+      const settleTag = `spin-only-${spinResult.number}-${spinResult.pocketIndex}`;
+      if (settledRef.current === settleTag) return;
+      settledRef.current = settleTag;
+      const details: RouletteRoundDetails = { spin: spinResult, bets: [] };
+      void recordSpinOnly({
+        userId: user.id,
+        game: 'roulette',
+        details,
+      });
+      return;
+    }
+
+    if (!rr) return;
     const settleTag = `${firstKey}-${rr.betAmount}-${rr.payout}`;
     if (settledRef.current === settleTag) return;
     settledRef.current = settleTag;
@@ -178,7 +200,16 @@ export default function RoulettePage(): JSX.Element | null {
         play('loss');
       }
     })();
-  }, [inSettled, user, state.context.roundResult, state.context.bets, settleRound, play]);
+  }, [
+    inSettled,
+    user,
+    state.context.roundResult,
+    state.context.bets,
+    state.context.spinResult,
+    settleRound,
+    recordSpinOnly,
+    play,
+  ]);
 
   // Clear settled-ref when leaving `settled` so the next round can settle.
   useEffect(() => {

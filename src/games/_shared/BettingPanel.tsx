@@ -1,5 +1,6 @@
 import type { JSX } from 'react';
 import { useState } from 'react';
+import ChipDenominationButton from './ChipDenominationButton';
 
 interface Props {
   min: number;
@@ -21,18 +22,6 @@ interface Props {
 }
 
 const DEFAULT_DENOMINATIONS = [1, 5, 25, 100, 500, 1000] as const;
-
-const CHIP_STYLES: Record<number, { bg: string; border: string; text: string; inner?: string }> = {
-  1: { bg: '#fff', border: '#fff', text: '#06120c', inner: '#06120c' },
-  5: { bg: '#e85d75', border: '#e85d75', text: '#fff', inner: '#fff' },
-  25: { bg: '#27c4d6', border: '#27c4d6', text: '#fff', inner: '#fff' },
-  100: { bg: '#3dd17a', border: '#3dd17a', text: '#fff', inner: '#fff' },
-  500: { bg: '#1a1a1a', border: '#d4af37', text: '#ffe066' },
-  // 1000 — the high-roller chip. Velvet (oxblood) face with a brass border
-  // and ivory text, slotting into the MASQUER Velvet Deco palette while
-  // staying visually distinct from the black-and-gold 500.
-  1000: { bg: '#5a1320', border: '#c79a4b', text: '#f2e7cc', inner: '#c79a4b' },
-};
 
 export default function BettingPanel({
   min,
@@ -80,30 +69,15 @@ export default function BettingPanel({
       </div>
       <div className="mb-2.5 flex items-center gap-2">
         <span className="mr-1 text-[11px] uppercase tracking-wider text-white/50">Add:</span>
-        {denominations.map((d) => {
-          const styles = CHIP_STYLES[d] ?? CHIP_STYLES[100]!;
-          return (
-            <button
-              key={d}
-              onClick={() => onChipClick(d)}
-              disabled={!canAdd(d)}
-              aria-label={`Add ${d} chips to bet`}
-              className={
-                'grid h-10 w-10 place-items-center rounded-full font-bold disabled:opacity-40 ' +
-                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold ' +
-                (d >= 1000 ? 'text-[9px]' : 'text-[11px]')
-              }
-              style={{
-                background: styles.bg,
-                color: styles.text,
-                border: `3px solid ${styles.border}`,
-                ...(styles.inner ? { boxShadow: `inset 0 0 0 2px ${styles.inner}` } : {}),
-              }}
-            >
-              {d}
-            </button>
-          );
-        })}
+        {denominations.map((d) => (
+          <ChipDenominationButton
+            key={d}
+            denomination={d}
+            disabled={!canAdd(d)}
+            onClick={() => onChipClick(d)}
+            ariaLabel={`Add ${d} chips to bet`}
+          />
+        ))}
         {lastBet !== undefined && lastBet > 0 && !locked && (
           <button
             onClick={onRepeat}
