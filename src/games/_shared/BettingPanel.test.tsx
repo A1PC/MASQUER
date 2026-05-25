@@ -87,3 +87,103 @@ describe('BettingPanel', () => {
     expect(onCommit).toHaveBeenCalledWith(25);
   });
 });
+
+describe('BettingPanel — singleStepCommit + persistBetAcrossCommit (slots)', () => {
+  it('singleStepCommit: renders no PLACE BET; callButtons receives the live amount', async () => {
+    const onCommit = vi.fn();
+    render(
+      <BettingPanel
+        min={5}
+        max={1000}
+        balance={1000}
+        onCommit={onCommit}
+        singleStepCommit
+        callButtons={(amount) => (
+          <button
+            data-testid="action"
+            data-amount={amount === null ? 'null' : String(amount)}
+            onClick={() => {
+              if (amount !== null) onCommit(amount);
+            }}
+          >
+            ACT
+          </button>
+        )}
+      />,
+    );
+    expect(screen.queryByRole('button', { name: /place bet/i })).toBeNull();
+    // Before any chip click, callButtons sees null (no bet yet).
+    expect(screen.getByTestId('action').getAttribute('data-amount')).toBe('null');
+    await userEvent.click(screen.getByLabelText('Add 25 chips to bet'));
+    expect(screen.getByTestId('action').getAttribute('data-amount')).toBe('25');
+    await userEvent.click(screen.getByTestId('action'));
+    expect(onCommit).toHaveBeenCalledWith(25);
+  });
+
+  it('persistBetAcrossCommit: amount stays after onCommit; CLEAR resets it', async () => {
+    const onCommit = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <BettingPanel
+        min={5}
+        max={1000}
+        balance={1000}
+        onCommit={onCommit}
+        singleStepCommit
+        persistBetAcrossCommit
+        callButtons={(amount) => (
+          <button
+            data-testid="action"
+            onClick={() => {
+              if (amount !== null) onCommit(amount);
+            }}
+          >
+            ACT
+          </button>
+        )}
+      />,
+    );
+    await user.click(screen.getByLabelText('Add 25 chips to bet'));
+    await user.click(screen.getByTestId('action'));
+    // Bet persists — second click also fires onCommit with the same amount.
+    await user.click(screen.getByTestId('action'));
+    expect(onCommit).toHaveBeenNthCalledWith(1, 25);
+    expect(onCommit).toHaveBeenNthCalledWith(2, 25);
+    // CLEAR zeros the bet so the next action no longer commits.
+    await user.click(screen.getByText(/Clear/));
+    await user.click(screen.getByTestId('action'));
+    expect(onCommit).toHaveBeenCalledTimes(2);
+  });
+
+  it('singleStepCommit without persist: amount also persists (no internal reset) — caller must remount to clear', async () => {
+    // Document the actual behaviour: the panel never auto-resets `amount`;
+    // it only resets when (a) CLEAR is clicked or (b) the caller remounts
+    // via `key`. `persistBetAcrossCommit` only changes the `committed`
+    // tracking (relevant when not in single-step mode). This test guards
+    // against accidental amount-reset regressions.
+    const onCommit = vi.fn();
+    render(
+      <BettingPanel
+        min={5}
+        max={1000}
+        balance={1000}
+        onCommit={onCommit}
+        singleStepCommit
+        callButtons={(amount) => (
+          <button
+            data-testid="action"
+            data-amount={amount === null ? 'null' : String(amount)}
+            onClick={() => {
+              if (amount !== null) onCommit(amount);
+            }}
+          >
+            ACT
+          </button>
+        )}
+      />,
+    );
+    await userEvent.click(screen.getByLabelText('Add 5 chips to bet'));
+    await userEvent.click(screen.getByTestId('action'));
+    expect(screen.getByTestId('action').getAttribute('data-amount')).toBe('5');
+  });
+});

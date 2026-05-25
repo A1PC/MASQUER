@@ -14,6 +14,13 @@ export const colors = {
   porcelain: '#ffffff',
   'jewel-ruby': '#7a1422',
   'jewel-emerald': '#1f6b4a',
+  /**
+   * Magenta neon for the Slots jackpot signature (3× Seven). ADR-0033 locks
+   * this as the per-tier visual cue. Phase 15 #7 promotes the existing
+   * `#ff5cf2` from inline hex to a brand token so Slots' celebration overlay
+   * + the Seven SVG tube can reference it via class / CSS var.
+   */
+  'jewel-magenta': '#ff5cf2',
   win: '#e6c068',
   loss: '#7a1f2b',
   push: '#8a7a55',

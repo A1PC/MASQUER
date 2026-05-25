@@ -78,3 +78,26 @@ The numeric outcome and the wallet flow are unchanged.
 - `src/games/slots/logic.ts` — `winTierOf`
 - `src/games/slots/SlotsPage.tsx` — celebration tier rendering
 - Phase 5 spec §14, §15
+
+## Amendment (2026-05-26, Phase 15 #7)
+
+Phase 15 #7 promotes the jackpot magenta `#ff5cf2` to a brand token
+(`jewel-magenta`) in `src/theme/tokens.ts` + `tailwind.config.ts`, so
+both the Seven SVG tubing and the WinCelebration overlay reference it
+via the design system rather than inline hex. The tier-celebration
+semantics (small / medium / jackpot thresholds, durations, visual
+shape) are unchanged.
+
+Sound stingers are wired through `useSound` per the Phase 2 hook:
+`win.small` (small tier), `win.medium` (medium tier), `win.jackpot`
+(jackpot tier), and `loss` on a no-win settle. The samples already
+exist in `src/assets/audio/` and were registered in `ids.ts` /
+`engine.ts` during earlier sound passes — no new generation needed
+for #7. The reel-stop punctuation also fires `reel.stop` three times
+per spin at the configured `REEL_STOP_TIMES_MS` cadence.
+
+Reduced-motion users (via `useEffectiveReducedMotion`) hear NO
+stingers and see NO tier visuals — matches the existing reduced-motion
+short-circuit on the visual side. The reel-stop sound is also
+suppressed under reduced motion (one fewer affordance, but consistent
+with the rest of the brand — reduced motion means reduced everything).
