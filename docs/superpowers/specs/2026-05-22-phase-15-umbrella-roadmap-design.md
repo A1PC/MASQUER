@@ -118,7 +118,7 @@ This umbrella's **Progress** table is updated as each sub-project completes.
 | 2     | Motion & Sound infrastructure     | ✅ Done (3 PRs, merged)           |
 | 3     | Shell & navigation overhaul       | ✅ Done (3 PRs + fixes, merged)   |
 | 4     | Coin-flip upgrade                 | ✅ Done (single PR + fix, merged) |
-| 5     | Blackjack upgrade                 | In progress (spec)                |
+| 5     | Blackjack upgrade                 | ✅ Done (3 PRs, merged)           |
 | 6     | Roulette upgrade                  | Not started                       |
 | 7     | Slots upgrade                     | Not started                       |
 | 8     | Baccarat upgrade                  | Not started                       |
