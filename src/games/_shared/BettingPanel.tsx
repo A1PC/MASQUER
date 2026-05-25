@@ -20,7 +20,7 @@ interface Props {
   callButtons: (committedAmount: number | null) => JSX.Element;
 }
 
-const DEFAULT_DENOMINATIONS = [1, 5, 25, 100, 500] as const;
+const DEFAULT_DENOMINATIONS = [1, 5, 25, 100, 500, 1000] as const;
 
 const CHIP_STYLES: Record<number, { bg: string; border: string; text: string; inner?: string }> = {
   1: { bg: '#fff', border: '#fff', text: '#06120c', inner: '#06120c' },
@@ -28,6 +28,10 @@ const CHIP_STYLES: Record<number, { bg: string; border: string; text: string; in
   25: { bg: '#27c4d6', border: '#27c4d6', text: '#fff', inner: '#fff' },
   100: { bg: '#3dd17a', border: '#3dd17a', text: '#fff', inner: '#fff' },
   500: { bg: '#1a1a1a', border: '#d4af37', text: '#ffe066' },
+  // 1000 — the high-roller chip. Velvet (oxblood) face with a brass border
+  // and ivory text, slotting into the MASQUER Velvet Deco palette while
+  // staying visually distinct from the black-and-gold 500.
+  1000: { bg: '#5a1320', border: '#c79a4b', text: '#f2e7cc', inner: '#c79a4b' },
 };
 
 export default function BettingPanel({
@@ -84,7 +88,11 @@ export default function BettingPanel({
               onClick={() => onChipClick(d)}
               disabled={!canAdd(d)}
               aria-label={`Add ${d} chips to bet`}
-              className="grid h-10 w-10 place-items-center rounded-full text-[11px] font-bold disabled:opacity-40"
+              className={
+                'grid h-10 w-10 place-items-center rounded-full font-bold disabled:opacity-40 ' +
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold ' +
+                (d >= 1000 ? 'text-[9px]' : 'text-[11px]')
+              }
               style={{
                 background: styles.bg,
                 color: styles.text,

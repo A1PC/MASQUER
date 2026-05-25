@@ -1,78 +1,93 @@
 import type { JSX } from 'react';
 
+/**
+ * Blackjack — MASQUER Velvet Duel rules.
+ *
+ * Tight, sectioned and scannable. Designed to fit comfortably in the
+ * scrollable RulesModal body. Every section starts with a display-tracked
+ * eyebrow heading; bullets are short — no walls of prose.
+ */
 export default function BlackjackRules(): JSX.Element {
   return (
     <div className="space-y-4">
       <section>
-        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold">HOW TO PLAY</h3>
-        <ol className="ml-5 list-decimal space-y-1">
-          <li>Place a bet between 5 and 1000 chips, then DEAL.</li>
-          <li>You and the dealer each get 2 cards. The dealer&rsquo;s second card is face-down.</li>
-          <li>Beat the dealer to 21 without going over. Aces count as 1 or 11; face cards = 10.</li>
-          <li>
-            Choose HIT (draw a card), STAND (end your turn), DOUBLE (double bet + one card), or
-            SPLIT (if your two cards match rank).
-          </li>
-          <li>If your total exceeds 21 you BUST and lose immediately.</li>
-          <li>
-            After you stand, the dealer flips and draws to 17 (hits on soft 17 — see &ldquo;House
-            rules&rdquo; below).
-          </li>
-        </ol>
+        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold">OBJECT</h3>
+        <p className="text-white/85">
+          Beat the dealer&rsquo;s hand without going over 21 (a &ldquo;bust&rdquo;).
+        </p>
       </section>
+
       <section>
-        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold">PAYOUTS</h3>
-        <table className="w-full text-left text-sm">
-          <thead>
-            <tr className="border-b border-gold/30 text-xs uppercase tracking-wider text-white/55">
-              <th className="py-1.5 pr-4">Outcome</th>
-              <th className="py-1.5">Payout</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr className="border-b border-white/5">
-              <td className="py-1.5 pr-4">Natural Blackjack (A + 10-value, first 2 cards)</td>
-              <td className="py-1.5">3 : 2</td>
-            </tr>
-            <tr className="border-b border-white/5">
-              <td className="py-1.5 pr-4">Standard win</td>
-              <td className="py-1.5">1 : 1</td>
-            </tr>
-            <tr className="border-b border-white/5">
-              <td className="py-1.5 pr-4">Push (tie)</td>
-              <td className="py-1.5">Stake returned</td>
-            </tr>
-            <tr className="border-b border-white/5">
-              <td className="py-1.5 pr-4">Insurance (when dealer shows Ace)</td>
-              <td className="py-1.5">2 : 1 on the insurance bet</td>
-            </tr>
-            <tr>
-              <td className="py-1.5 pr-4">Loss / Bust</td>
-              <td className="py-1.5">Lose stake</td>
-            </tr>
-          </tbody>
-        </table>
-      </section>
-      <section>
-        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold">HOUSE RULES</h3>
+        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold">CARD VALUES</h3>
         <ul className="ml-5 list-disc space-y-1 text-white/85">
+          <li>2&ndash;10 count at face value.</li>
+          <li>J / Q / K count as 10.</li>
           <li>
-            <strong>H17</strong> — dealer hits on soft 17.
-          </li>
-          <li>
-            <strong>DAS</strong> — Double After Split is allowed.
-          </li>
-          <li>
-            <strong>Split to 4</strong> — you can split up to 4 times per round.
-          </li>
-          <li>
-            <strong>Split Aces</strong> — receive one card each and stand; no further actions.
-          </li>
-          <li>
-            <strong>Insurance</strong> offered when the dealer shows an Ace; pays 2:1 if the dealer
-            has Blackjack.
+            <strong>Ace counts as 1 or 11 — you choose.</strong> If choosing 11 would bust you, the
+            Ace auto-locks at 1.
           </li>
         </ul>
+      </section>
+
+      <section>
+        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold">NATURAL BLACKJACK</h3>
+        <p className="text-white/85">
+          Ace + any 10-value (10/J/Q/K) on your opening two cards pays <strong>3:2</strong>.
+        </p>
+      </section>
+
+      <section>
+        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold">
+          VELVET DUEL ALTERNATION
+        </h3>
+        <p className="text-white/85">
+          After each Hit or Stand the dealer reveals one card before you act again. The duel
+          continues until the dealer reaches 17 or higher (<strong>H17</strong>: dealer stands on
+          soft 17).
+        </p>
+      </section>
+
+      <section>
+        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold">MINIMUM STAND 14</h3>
+        <p className="text-white/85">
+          Stand is disabled while your hand total is below 14 — a house rule unique to MASQUER.
+        </p>
+      </section>
+
+      <section>
+        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold">5-CARD CHARLIE</h3>
+        <p className="text-white/85">
+          Holding 5 cards without busting (and without a natural Blackjack) pays{' '}
+          <strong>3:2</strong>.
+        </p>
+      </section>
+
+      <section>
+        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold">SIDE PLAYS</h3>
+        <ul className="ml-5 list-disc space-y-1 text-white/85">
+          <li>
+            <strong>Split</strong> — matching opening pair? Split into two hands; one extra bet per
+            split (up to 4 hands).
+          </li>
+          <li>
+            <strong>Double</strong> — double your bet and take exactly one more card.
+          </li>
+          <li>
+            <strong>Insurance</strong> — offered when the dealer shows an Ace; pays 2:1 if the
+            dealer has Blackjack.
+          </li>
+          <li>
+            <strong>Surrender</strong> — forfeit half your bet to fold a weak opening hand.
+          </li>
+        </ul>
+      </section>
+
+      <section>
+        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold">BUST AUTO-SETTLE</h3>
+        <p className="text-white/85">
+          Busting yourself ends the hand immediately. If the dealer busts mid-alternation, every one
+          of your live hands is paid instantly.
+        </p>
       </section>
     </div>
   );

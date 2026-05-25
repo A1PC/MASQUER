@@ -133,7 +133,10 @@ async function hitUntilStandable() {
 describe('BlackjackPage', () => {
   it('renders title and BettingPanel initially', () => {
     renderPage();
-    expect(screen.getByText(/Blackjack/i)).toBeInTheDocument();
+    // Title is the only `<h1>` containing "Blackjack" — narrow the query so
+    // the rules-modal heading and other "Blackjack"-containing elements
+    // don't trip the matcher.
+    expect(screen.getByRole('heading', { level: 1, name: /Blackjack/i })).toBeInTheDocument();
     expect(screen.getByText(/PLACE BET/)).toBeInTheDocument();
   });
 
