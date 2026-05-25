@@ -296,7 +296,7 @@ export default function RoulettePage(): JSX.Element | null {
 
   return (
     <GameShell
-      title="ROULETTE"
+      title="MASQUER · Roulette"
       game="roulette"
       lobbyButton={<LobbyButton />}
       oddsInfo={
