@@ -78,8 +78,17 @@ function MiniBar({ label, count, total, fillClass }: MiniBarProps): JSX.Element 
 export default function AdminRoulettePage(): JSX.Element {
   const stats = useLiveQuery(() => getRouletteAllTimeStats(), [], EMPTY_STATS);
   const distribution = useLiveQuery(() => getRouletteNumberDistribution(), [], EMPTY_DIST);
+  // Dexie's `.where(...).reverse()` iterates by the queried index (`game`),
+  // and within the matching set it ties-break by primary key. Roulette
+  // rounds.id is a wallet betId string (or 'spin-only-…' from #237), which
+  // sorts lexicographically, NOT chronologically — so reverse() did not
+  // give "newest first". Sort by `playedAt` in memory instead. Admin pages
+  // are loaded infrequently and the scan is bounded by total roulette rows.
   const recentRounds = useLiveQuery(
-    () => db.rounds.where('game').equals('roulette').reverse().limit(20).toArray(),
+    async () => {
+      const all = await db.rounds.where('game').equals('roulette').toArray();
+      return all.sort((a, b) => b.playedAt - a.playedAt).slice(0, 20);
+    },
     [],
     EMPTY_ROUNDS,
   );
@@ -231,7 +240,9 @@ export default function AdminRoulettePage(): JSX.Element {
         </section>
       </div>
 
-      {/* Recent spins table */}
+      {/* Recent spins table — styled to match the baccarat / slots admin
+       *  patterns. Number + colour collapse into one circular pocket
+       *  badge that reads like the wheel itself (red / black / green). */}
       <section aria-label="Recent roulette spins">
         <h2 className="mb-2 font-display text-xs tracking-wider text-white/60">
           RECENT SPINS (LAST 20)
@@ -243,8 +254,7 @@ export default function AdminRoulettePage(): JSX.Element {
             <thead>
               <tr className="border-b border-gold/30 uppercase tracking-wider text-white/40">
                 <th className="py-2 pr-3">Played at</th>
-                <th className="py-2 pr-3">Number</th>
-                <th className="py-2 pr-3">Colour</th>
+                <th className="py-2 pr-3">Pocket</th>
                 <th className="py-2 pr-3 text-right">Bet</th>
                 <th className="py-2 pr-3 text-right">Payout</th>
                 <th className="py-2 text-right">House P/L</th>
@@ -256,19 +266,28 @@ export default function AdminRoulettePage(): JSX.Element {
                 const n = d?.spin?.number ?? 0;
                 const color = d?.spin?.color ?? pocketColor(n);
                 const housePl = r.betAmount - r.payout;
-                const colorClass =
+                const badgeBg =
                   color === 'red'
-                    ? 'text-[#e85a6a]'
-                    : color === 'black'
-                      ? 'text-white/80'
-                      : 'text-[#5dd9a0]';
+                    ? 'bg-roulette-pocket-red'
+                    : color === 'green'
+                      ? 'bg-roulette-pocket-green'
+                      : 'bg-roulette-pocket';
+                // Black + red bg → ivory text; green bg → dark text for contrast.
+                const badgeText = color === 'green' ? 'text-[#06120c]' : 'text-ivory';
                 return (
                   <tr key={r.id} className="border-b border-white/5">
                     <td className="py-1.5 pr-3 tabular-nums text-white/70">
                       {new Date(r.playedAt).toISOString().slice(0, 19).replace('T', ' ')}
                     </td>
-                    <td className="py-1.5 pr-3 font-display text-gold-bright tabular-nums">{n}</td>
-                    <td className={`py-1.5 pr-3 capitalize ${colorClass}`}>{color}</td>
+                    <td className="py-1.5 pr-3">
+                      <span
+                        data-pocket-color={color}
+                        data-pocket-number={n}
+                        className={`inline-flex h-6 w-6 items-center justify-center rounded-full border border-brass/60 font-display text-[11px] tabular-nums ${badgeBg} ${badgeText}`}
+                      >
+                        {n}
+                      </span>
+                    </td>
                     <td className="py-1.5 pr-3 text-right tabular-nums">
                       {r.betAmount.toLocaleString()}
                     </td>

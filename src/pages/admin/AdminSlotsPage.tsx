@@ -87,8 +87,14 @@ export default function AdminSlotsPage(): JSX.Element {
   const stats = useLiveQuery(() => getSlotsAllTimeStats(), [], EMPTY_STATS);
   const combos = useLiveQuery(() => getSlotsCombinationDistribution(), [], EMPTY_COMBOS);
   const symbolDist = useLiveQuery(() => getSlotsSymbolDistribution(), [], EMPTY_SYMBOLS);
+  // `.where(...).reverse()` ties-break by primary key (lexicographic on
+  // betId strings), not by `playedAt` — so it did not give "newest first".
+  // Sort in memory; admin pages tolerate the full scan.
   const recentRounds = useLiveQuery(
-    () => db.rounds.where('game').equals('slots').reverse().limit(20).toArray(),
+    async () => {
+      const all = await db.rounds.where('game').equals('slots').toArray();
+      return all.sort((a, b) => b.playedAt - a.playedAt).slice(0, 20);
+    },
     [],
     EMPTY_ROUNDS,
   );
