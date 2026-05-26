@@ -2,6 +2,7 @@ import { db } from '@/db';
 import type { Round } from '@/db';
 import type { RouletteRoundDetails } from '@/games/roulette/types';
 import type { SlotsRoundDetails, Symbol as SlotsSymbol } from '@/games/slots/types';
+import type { RoundResult as BaccaratRoundResult } from '@/games/baccarat/types';
 import { SLOTS_PAYTABLE } from '@/games/slots/config';
 import { WALLET_CONFIG } from '@/systems/wallet';
 
@@ -836,4 +837,158 @@ export async function getSlotsSymbolDistribution(): Promise<SlotsSymbolDistribut
     });
   }
   return SLOTS_SYMBOLS_ORDER.map((s) => dist[s]);
+}
+
+// ─── Phase 15 #8 — Baccarat all-time admin stats ──────────────────────
+
+export interface BaccaratAllTimeStats {
+  /** Count of baccarat rounds with valid winner details. */
+  roundsPlayed: number;
+  /** Sum of betAmount across all valid rounds. */
+  totalWagered: number;
+  /** Sum of payout across all valid rounds. */
+  totalPaid: number;
+  /** totalWagered - totalPaid (positive = house won). */
+  netHouseChips: number;
+  /** Mirror of netHouseChips. */
+  netPlayerChips: number;
+  /** totalPaid / totalWagered (null if no wagering). */
+  actualRtp: number | null;
+  /** Outcome distribution. */
+  playerWins: number;
+  bankerWins: number;
+  ties: number;
+  /** Winner won on a 2-card 8/9. */
+  naturalWins: number;
+  /** Both sides went natural (typically a tie or close win). */
+  doubleNaturals: number;
+  /** First-two-card pair status per side. */
+  playerPairs: number;
+  bankerPairs: number;
+  /** Big = 5–6 cards (one side took a third card); Small = 4 cards (both stood). */
+  bigCount: number;
+  smallCount: number;
+  /** Dragon = winner won by ≥ 4 with a non-natural. */
+  playerDragons: number;
+  bankerDragons: number;
+}
+
+export async function getBaccaratAllTimeStats(): Promise<BaccaratAllTimeStats> {
+  const rows = await db.rounds.where('game').equals('baccarat').toArray();
+  let roundsPlayed = 0;
+  let totalWagered = 0;
+  let totalPaid = 0;
+  let playerWins = 0;
+  let bankerWins = 0;
+  let ties = 0;
+  let naturalWins = 0;
+  let doubleNaturals = 0;
+  let playerPairs = 0;
+  let bankerPairs = 0;
+  let bigCount = 0;
+  let smallCount = 0;
+  let playerDragons = 0;
+  let bankerDragons = 0;
+  for (const r of rows) {
+    const d = r.details as BaccaratRoundResult | undefined;
+    if (!d?.winner) continue;
+    roundsPlayed += 1;
+    totalWagered += r.betAmount;
+    totalPaid += r.payout;
+    if (d.winner === 'player') playerWins += 1;
+    else if (d.winner === 'banker') bankerWins += 1;
+    else ties += 1;
+    if (d.winnerNatural) naturalWins += 1;
+    if (d.bothNatural) doubleNaturals += 1;
+    if (d.playerPair) playerPairs += 1;
+    if (d.bankerPair) bankerPairs += 1;
+    // Big = 5–6 cards (one side took a third); Small = 4 cards (both stood).
+    if (d.totalCards === 4) smallCount += 1;
+    else if (d.totalCards >= 5) bigCount += 1;
+    // Dragon = winning side wins by ≥ 4 with a non-natural.
+    if (d.margin >= 4 && !d.winnerNatural) {
+      if (d.winner === 'player') playerDragons += 1;
+      else if (d.winner === 'banker') bankerDragons += 1;
+    }
+  }
+  const netHouseChips = totalWagered - totalPaid;
+  return {
+    roundsPlayed,
+    totalWagered,
+    totalPaid,
+    netHouseChips,
+    // Add zero to normalise `-0` (e.g. `-(0)`) to `+0` for strict equality assertions.
+    netPlayerChips: -netHouseChips + 0,
+    actualRtp: totalWagered > 0 ? totalPaid / totalWagered : null,
+    playerWins,
+    bankerWins,
+    ties,
+    naturalWins,
+    doubleNaturals,
+    playerPairs,
+    bankerPairs,
+    bigCount,
+    smallCount,
+    playerDragons,
+    bankerDragons,
+  };
+}
+
+export interface BaccaratWinnerCount {
+  winner: 'player' | 'banker' | 'tie';
+  count: number;
+}
+
+const BACCARAT_WINNER_ORDER: readonly BaccaratWinnerCount['winner'][] = [
+  'player',
+  'banker',
+  'tie',
+] as const;
+
+export async function getBaccaratWinnerDistribution(): Promise<BaccaratWinnerCount[]> {
+  const rows = await db.rounds.where('game').equals('baccarat').toArray();
+  const counts: Record<BaccaratWinnerCount['winner'], number> = { player: 0, banker: 0, tie: 0 };
+  for (const r of rows) {
+    const d = r.details as BaccaratRoundResult | undefined;
+    if (!d?.winner) continue;
+    counts[d.winner] += 1;
+  }
+  return BACCARAT_WINNER_ORDER.map((winner) => ({ winner, count: counts[winner] }));
+}
+
+export interface BaccaratStreakStats {
+  longestPlayerStreak: number;
+  longestBankerStreak: number;
+  longestTieStreak: number;
+}
+
+/** Walk rows chronologically and track the current run; reset on winner change.
+ *  Shoe-life metrics (cut-card-passed events) are deferred — those aren't
+ *  necessarily logged in `rounds.details`, so streaks ship instead. */
+export async function getBaccaratStreakStats(): Promise<BaccaratStreakStats> {
+  const rows = await db.rounds.where('game').equals('baccarat').toArray();
+  rows.sort((a, b) => a.playedAt - b.playedAt);
+  let curWinner: BaccaratRoundResult['winner'] | null = null;
+  let curRun = 0;
+  let longestPlayer = 0;
+  let longestBanker = 0;
+  let longestTie = 0;
+  for (const r of rows) {
+    const d = r.details as BaccaratRoundResult | undefined;
+    if (!d?.winner) continue;
+    if (d.winner === curWinner) {
+      curRun += 1;
+    } else {
+      curWinner = d.winner;
+      curRun = 1;
+    }
+    if (curWinner === 'player' && curRun > longestPlayer) longestPlayer = curRun;
+    else if (curWinner === 'banker' && curRun > longestBanker) longestBanker = curRun;
+    else if (curWinner === 'tie' && curRun > longestTie) longestTie = curRun;
+  }
+  return {
+    longestPlayerStreak: longestPlayer,
+    longestBankerStreak: longestBanker,
+    longestTieStreak: longestTie,
+  };
 }

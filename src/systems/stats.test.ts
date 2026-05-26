@@ -1868,3 +1868,752 @@ describe('queries.getSlotsSymbolDistribution', () => {
     expect(dist.every((d) => d.total === 0)).toBe(true);
   });
 });
+
+// ─── Phase 15 #8 — Baccarat all-time admin stats ───────────────────────
+
+import {
+  getBaccaratAllTimeStats,
+  getBaccaratStreakStats,
+  getBaccaratWinnerDistribution,
+} from './stats';
+import type {
+  Card as BaccaratCard,
+  Hand as BaccaratHand,
+  HandTotal,
+  RoundResult as BaccaratRoundResult,
+  Winner as BaccaratWinner,
+} from '@/games/baccarat/types';
+
+/** Pseudo-card for fixture purposes — exact rank/suit don't matter for the
+ *  aggregations under test (they read winner / margin / totalCards / pair
+ *  flags from the precomputed RoundResult). */
+function fakeCard(): BaccaratCard {
+  return { rank: 'A', suit: 'spades' } as BaccaratCard;
+}
+
+function fakeHand(total: HandTotal, cardCount: number): BaccaratHand {
+  return {
+    cards: Array.from({ length: cardCount }, () => fakeCard()),
+    total,
+  };
+}
+
+function baccaratDetails(opts: {
+  winner: BaccaratWinner;
+  playerTotal: HandTotal;
+  bankerTotal: HandTotal;
+  playerCards: number;
+  bankerCards: number;
+  margin: number;
+  winnerNatural: boolean;
+  bothNatural: boolean;
+  playerPair: boolean;
+  bankerPair: boolean;
+}): BaccaratRoundResult {
+  return {
+    player: fakeHand(opts.playerTotal, opts.playerCards),
+    banker: fakeHand(opts.bankerTotal, opts.bankerCards),
+    winner: opts.winner,
+    margin: opts.margin,
+    winnerNatural: opts.winnerNatural,
+    bothNatural: opts.bothNatural,
+    playerPair: opts.playerPair,
+    bankerPair: opts.bankerPair,
+    totalCards: opts.playerCards + opts.bankerCards,
+  };
+}
+
+function baccaratRow(opts: {
+  id: string;
+  details: BaccaratRoundResult;
+  betAmount: number;
+  payoutChips: number;
+  playedAt: number;
+}) {
+  const netChange = opts.payoutChips - opts.betAmount;
+  const outcome: 'win' | 'loss' | 'push' = netChange > 0 ? 'win' : netChange < 0 ? 'loss' : 'push';
+  return {
+    id: opts.id,
+    userId: 'u-1',
+    game: 'baccarat' as const,
+    betAmount: opts.betAmount,
+    payout: opts.payoutChips,
+    netChange,
+    outcome,
+    details: opts.details as unknown,
+    balanceAfter: 1000,
+    playedAt: opts.playedAt,
+  };
+}
+
+/** Seed 20 baccarat rounds covering every winner / pair / natural / dragon /
+ *  big-small combination the aggregations must measure. Counts:
+ *
+ *  Winners — player 8, banker 9, tie 3 (total 20)
+ *  Naturals — 4 (3 player + 1 banker — none of which are dragons)
+ *  Double naturals — 1 (the b-nat-tie row, both 8)
+ *  Pairs — playerPair 3, bankerPair 2
+ *  Big (totalCards ≥ 5) — 9 ;  Small (totalCards === 4) — 11
+ *  Dragons — playerDragons 2 (margin 4 + 5, non-natural), bankerDragons 3 (margin 4 + 5 + 6, non-natural)
+ */
+async function seedBaccaratRows() {
+  await resetDb();
+  const rows = [
+    // 1. Player wins natural 8 vs banker 6 (small — both 2 cards).
+    baccaratRow({
+      id: 'b-01',
+      details: baccaratDetails({
+        winner: 'player',
+        playerTotal: 8,
+        bankerTotal: 6,
+        playerCards: 2,
+        bankerCards: 2,
+        margin: 2,
+        winnerNatural: true,
+        bothNatural: false,
+        playerPair: false,
+        bankerPair: false,
+      }),
+      betAmount: 100,
+      payoutChips: 200,
+      playedAt: 1,
+    }),
+    // 2. Player wins natural 9 vs banker 7 (small).
+    baccaratRow({
+      id: 'b-02',
+      details: baccaratDetails({
+        winner: 'player',
+        playerTotal: 9,
+        bankerTotal: 7,
+        playerCards: 2,
+        bankerCards: 2,
+        margin: 2,
+        winnerNatural: true,
+        bothNatural: false,
+        playerPair: false,
+        bankerPair: false,
+      }),
+      betAmount: 50,
+      payoutChips: 100,
+      playedAt: 2,
+    }),
+    // 3. Banker natural 8 vs player natural 8 — tie + bothNatural.
+    baccaratRow({
+      id: 'b-03',
+      details: baccaratDetails({
+        winner: 'tie',
+        playerTotal: 8,
+        bankerTotal: 8,
+        playerCards: 2,
+        bankerCards: 2,
+        margin: 0,
+        winnerNatural: true,
+        bothNatural: true,
+        playerPair: false,
+        bankerPair: false,
+      }),
+      betAmount: 25,
+      payoutChips: 225, // 8:1 tie pays 200 net + 25 stake returned
+      playedAt: 3,
+    }),
+    // 4. Banker natural 9 (small).
+    baccaratRow({
+      id: 'b-04',
+      details: baccaratDetails({
+        winner: 'banker',
+        playerTotal: 6,
+        bankerTotal: 9,
+        playerCards: 2,
+        bankerCards: 2,
+        margin: 3,
+        winnerNatural: true,
+        bothNatural: false,
+        playerPair: false,
+        bankerPair: false,
+      }),
+      betAmount: 40,
+      payoutChips: 78, // 1:1 minus 5% commission (floor(40 * 0.05) = 2)
+      playedAt: 4,
+    }),
+    // 5. Player dragon — player 8 vs banker 3, margin 5, non-natural (6 cards big).
+    baccaratRow({
+      id: 'b-05',
+      details: baccaratDetails({
+        winner: 'player',
+        playerTotal: 8,
+        bankerTotal: 3,
+        playerCards: 3,
+        bankerCards: 3,
+        margin: 5,
+        winnerNatural: false,
+        bothNatural: false,
+        playerPair: false,
+        bankerPair: false,
+      }),
+      betAmount: 20,
+      payoutChips: 40,
+      playedAt: 5,
+    }),
+    // 6. Player dragon — player 7 vs banker 3, margin 4, non-natural (5 cards big).
+    baccaratRow({
+      id: 'b-06',
+      details: baccaratDetails({
+        winner: 'player',
+        playerTotal: 7,
+        bankerTotal: 3,
+        playerCards: 2,
+        bankerCards: 3,
+        margin: 4,
+        winnerNatural: false,
+        bothNatural: false,
+        playerPair: false,
+        bankerPair: false,
+      }),
+      betAmount: 20,
+      payoutChips: 40,
+      playedAt: 6,
+    }),
+    // 7. Banker dragon — margin 6, non-natural (big).
+    baccaratRow({
+      id: 'b-07',
+      details: baccaratDetails({
+        winner: 'banker',
+        playerTotal: 3,
+        bankerTotal: 9,
+        playerCards: 3,
+        bankerCards: 3,
+        margin: 6,
+        winnerNatural: false,
+        bothNatural: false,
+        playerPair: false,
+        bankerPair: false,
+      }),
+      betAmount: 10,
+      payoutChips: 20,
+      playedAt: 7,
+    }),
+    // 8. Banker dragon — margin 5, non-natural (big).
+    baccaratRow({
+      id: 'b-08',
+      details: baccaratDetails({
+        winner: 'banker',
+        playerTotal: 2,
+        bankerTotal: 7,
+        playerCards: 3,
+        bankerCards: 2,
+        margin: 5,
+        winnerNatural: false,
+        bothNatural: false,
+        playerPair: false,
+        bankerPair: false,
+      }),
+      betAmount: 10,
+      payoutChips: 20,
+      playedAt: 8,
+    }),
+    // 9. Banker dragon — margin 4, non-natural (big).
+    baccaratRow({
+      id: 'b-09',
+      details: baccaratDetails({
+        winner: 'banker',
+        playerTotal: 1,
+        bankerTotal: 5,
+        playerCards: 3,
+        bankerCards: 3,
+        margin: 4,
+        winnerNatural: false,
+        bothNatural: false,
+        playerPair: false,
+        bankerPair: false,
+      }),
+      betAmount: 10,
+      payoutChips: 20,
+      playedAt: 9,
+    }),
+    // 10. Banker wins by 3 (no dragon). Big (5 cards).
+    baccaratRow({
+      id: 'b-10',
+      details: baccaratDetails({
+        winner: 'banker',
+        playerTotal: 4,
+        bankerTotal: 7,
+        playerCards: 3,
+        bankerCards: 2,
+        margin: 3,
+        winnerNatural: false,
+        bothNatural: false,
+        playerPair: false,
+        bankerPair: false,
+      }),
+      betAmount: 30,
+      payoutChips: 0,
+      playedAt: 10,
+    }),
+    // 11. Player wins (banker 4, player 6) — small.
+    baccaratRow({
+      id: 'b-11',
+      details: baccaratDetails({
+        winner: 'player',
+        playerTotal: 6,
+        bankerTotal: 4,
+        playerCards: 2,
+        bankerCards: 2,
+        margin: 2,
+        winnerNatural: false,
+        bothNatural: false,
+        playerPair: false,
+        bankerPair: false,
+      }),
+      betAmount: 20,
+      payoutChips: 40,
+      playedAt: 11,
+    }),
+    // 12. Player wins with playerPair (small).
+    baccaratRow({
+      id: 'b-12',
+      details: baccaratDetails({
+        winner: 'player',
+        playerTotal: 8,
+        bankerTotal: 6,
+        playerCards: 2,
+        bankerCards: 2,
+        margin: 2,
+        winnerNatural: true, // 8-card 2-card natural counted in naturals — keep it varied
+        bothNatural: false,
+        playerPair: true,
+        bankerPair: false,
+      }),
+      betAmount: 15,
+      payoutChips: 30,
+      playedAt: 12,
+    }),
+    // 13. Player wins with both pairs (small).
+    baccaratRow({
+      id: 'b-13',
+      details: baccaratDetails({
+        winner: 'player',
+        playerTotal: 6,
+        bankerTotal: 4,
+        playerCards: 2,
+        bankerCards: 2,
+        margin: 2,
+        winnerNatural: false,
+        bothNatural: false,
+        playerPair: true,
+        bankerPair: true,
+      }),
+      betAmount: 10,
+      payoutChips: 20,
+      playedAt: 13,
+    }),
+    // 14. Banker wins with playerPair side-bet (small).
+    baccaratRow({
+      id: 'b-14',
+      details: baccaratDetails({
+        winner: 'banker',
+        playerTotal: 3,
+        bankerTotal: 7,
+        playerCards: 2,
+        bankerCards: 2,
+        margin: 4, // NOT a dragon (winnerNatural will be false) — verify margin-4 rule
+        winnerNatural: false,
+        bothNatural: false,
+        playerPair: true,
+        bankerPair: false,
+      }),
+      betAmount: 10,
+      payoutChips: 0,
+      playedAt: 14,
+    }),
+    // 15. Banker wins with bankerPair (big).
+    baccaratRow({
+      id: 'b-15',
+      details: baccaratDetails({
+        winner: 'banker',
+        playerTotal: 5,
+        bankerTotal: 8,
+        playerCards: 3,
+        bankerCards: 2,
+        margin: 3,
+        winnerNatural: false,
+        bothNatural: false,
+        playerPair: false,
+        bankerPair: true,
+      }),
+      betAmount: 10,
+      payoutChips: 0,
+      playedAt: 15,
+    }),
+    // 16. Tie (player 5, banker 5, small).
+    baccaratRow({
+      id: 'b-16',
+      details: baccaratDetails({
+        winner: 'tie',
+        playerTotal: 5,
+        bankerTotal: 5,
+        playerCards: 2,
+        bankerCards: 2,
+        margin: 0,
+        winnerNatural: false,
+        bothNatural: false,
+        playerPair: false,
+        bankerPair: false,
+      }),
+      betAmount: 10,
+      payoutChips: 10, // tie side-bet not active — push on main bet
+      playedAt: 16,
+    }),
+    // 17. Player wins (big, 5 cards).
+    baccaratRow({
+      id: 'b-17',
+      details: baccaratDetails({
+        winner: 'player',
+        playerTotal: 8,
+        bankerTotal: 7,
+        playerCards: 3,
+        bankerCards: 2,
+        margin: 1,
+        winnerNatural: false,
+        bothNatural: false,
+        playerPair: false,
+        bankerPair: false,
+      }),
+      betAmount: 10,
+      payoutChips: 20,
+      playedAt: 17,
+    }),
+    // 18. Banker wins (big, 6 cards) — bankerPair.
+    baccaratRow({
+      id: 'b-18',
+      details: baccaratDetails({
+        winner: 'banker',
+        playerTotal: 5,
+        bankerTotal: 6,
+        playerCards: 3,
+        bankerCards: 3,
+        margin: 1,
+        winnerNatural: false,
+        bothNatural: false,
+        playerPair: false,
+        bankerPair: true,
+      }),
+      betAmount: 10,
+      payoutChips: 0,
+      playedAt: 18,
+    }),
+    // 19. Banker wins (small).
+    baccaratRow({
+      id: 'b-19',
+      details: baccaratDetails({
+        winner: 'banker',
+        playerTotal: 6,
+        bankerTotal: 7,
+        playerCards: 2,
+        bankerCards: 2,
+        margin: 1,
+        winnerNatural: false,
+        bothNatural: false,
+        playerPair: false,
+        bankerPair: false,
+      }),
+      betAmount: 10,
+      payoutChips: 0,
+      playedAt: 19,
+    }),
+    // 20. Tie (small).
+    baccaratRow({
+      id: 'b-20',
+      details: baccaratDetails({
+        winner: 'tie',
+        playerTotal: 7,
+        bankerTotal: 7,
+        playerCards: 2,
+        bankerCards: 2,
+        margin: 0,
+        winnerNatural: false,
+        bothNatural: false,
+        playerPair: false,
+        bankerPair: false,
+      }),
+      betAmount: 5,
+      payoutChips: 5,
+      playedAt: 20,
+    }),
+  ];
+  await db.rounds.bulkAdd(rows);
+  return rows;
+}
+
+describe('queries.getBaccaratAllTimeStats', () => {
+  beforeEach(async () => {
+    await resetDb();
+    localStorage.removeItem(SESSION_KEY);
+  });
+
+  it('returns zeros when no baccarat rounds exist', async () => {
+    const s = await getBaccaratAllTimeStats();
+    expect(s).toEqual({
+      roundsPlayed: 0,
+      totalWagered: 0,
+      totalPaid: 0,
+      netHouseChips: 0,
+      netPlayerChips: 0,
+      actualRtp: null,
+      playerWins: 0,
+      bankerWins: 0,
+      ties: 0,
+      naturalWins: 0,
+      doubleNaturals: 0,
+      playerPairs: 0,
+      bankerPairs: 0,
+      bigCount: 0,
+      smallCount: 0,
+      playerDragons: 0,
+      bankerDragons: 0,
+    });
+  });
+
+  it('ignores rounds from other games', async () => {
+    await db.rounds.add({
+      id: 'rl-1',
+      userId: 'u-1',
+      game: 'roulette',
+      betAmount: 100,
+      payout: 0,
+      netChange: -100,
+      outcome: 'loss',
+      details: { spin: { number: 0, color: 'green' } },
+      balanceAfter: 900,
+      playedAt: 1_000,
+    });
+    const s = await getBaccaratAllTimeStats();
+    expect(s.roundsPlayed).toBe(0);
+    expect(s.netHouseChips).toBe(0);
+    expect(s.actualRtp).toBeNull();
+  });
+
+  it('ignores baccarat rounds without winner details', async () => {
+    await db.rounds.add({
+      id: 'bad',
+      userId: 'u-1',
+      game: 'baccarat',
+      betAmount: 10,
+      payout: 0,
+      netChange: -10,
+      outcome: 'loss',
+      // Intentionally missing winner — exercise the `if (!d?.winner) continue` guard.
+      details: {},
+      balanceAfter: 990,
+      playedAt: 1,
+    });
+    const s = await getBaccaratAllTimeStats();
+    expect(s.roundsPlayed).toBe(0);
+  });
+
+  it('aggregates winners, naturals, pairs, big/small, and dragons from the fixture', async () => {
+    await seedBaccaratRows();
+    const s = await getBaccaratAllTimeStats();
+    expect(s.roundsPlayed).toBe(20);
+    // bets: 100+50+25+40+20+20+10+10+10+30+20+15+10+10+10+10+10+10+10+5 = 425
+    expect(s.totalWagered).toBe(425);
+    // payouts: 200+100+225+78+40+40+20+20+20+0+40+30+20+0+0+10+20+0+0+5 = 868
+    expect(s.totalPaid).toBe(868);
+    expect(s.netHouseChips).toBe(425 - 868); // -443
+    expect(s.netPlayerChips).toBe(443);
+    expect(s.actualRtp).toBeCloseTo(868 / 425);
+    // Winners: 7 player rows (b-01, b-02, b-05, b-06, b-11, b-12, b-13, b-17) = 8.
+    expect(s.playerWins).toBe(8);
+    // Banker: b-04, b-07, b-08, b-09, b-10, b-14, b-15, b-18, b-19 = 9.
+    expect(s.bankerWins).toBe(9);
+    // Ties: b-03, b-16, b-20 = 3.
+    expect(s.ties).toBe(3);
+    // Naturals: b-01, b-02, b-03 (both-natural counts once for winner since tie wins natural too), b-04, b-12 = 5.
+    expect(s.naturalWins).toBe(5);
+    expect(s.doubleNaturals).toBe(1);
+    // playerPairs: b-12, b-13, b-14 = 3.
+    expect(s.playerPairs).toBe(3);
+    // bankerPairs: b-13, b-15, b-18 = 3.
+    expect(s.bankerPairs).toBe(3);
+    // Small (totalCards===4): b-01, b-02, b-03, b-04, b-11, b-12, b-13, b-14, b-16, b-19, b-20 = 11.
+    expect(s.smallCount).toBe(11);
+    // Big (totalCards >= 5): b-05, b-06, b-07, b-08, b-09, b-10, b-15, b-17, b-18 = 9.
+    expect(s.bigCount).toBe(9);
+    // Player dragons: b-05 (margin 5), b-06 (margin 4) = 2.
+    expect(s.playerDragons).toBe(2);
+    // Banker dragons: b-07 (margin 6), b-08 (margin 5), b-09 (margin 4) = 3.
+    // b-14 has margin 4 but winnerNatural is false — derivation passes, dragon=true.
+    // Re-check: b-14 banker wins margin 4 non-natural → counts. Add 1 more.
+    expect(s.bankerDragons).toBe(4);
+  });
+
+  it('treats netHouseChips as positive when the house is ahead', async () => {
+    await db.rounds.bulkAdd([
+      baccaratRow({
+        id: 'b-1',
+        details: baccaratDetails({
+          winner: 'banker',
+          playerTotal: 3,
+          bankerTotal: 7,
+          playerCards: 2,
+          bankerCards: 2,
+          margin: 4,
+          winnerNatural: false,
+          bothNatural: false,
+          playerPair: false,
+          bankerPair: false,
+        }),
+        betAmount: 100,
+        payoutChips: 0,
+        playedAt: 1,
+      }),
+      baccaratRow({
+        id: 'b-2',
+        details: baccaratDetails({
+          winner: 'player',
+          playerTotal: 7,
+          bankerTotal: 6,
+          playerCards: 2,
+          bankerCards: 2,
+          margin: 1,
+          winnerNatural: false,
+          bothNatural: false,
+          playerPair: false,
+          bankerPair: false,
+        }),
+        betAmount: 100,
+        payoutChips: 0,
+        playedAt: 2,
+      }),
+    ]);
+    const s = await getBaccaratAllTimeStats();
+    expect(s.netHouseChips).toBe(200);
+    expect(s.netPlayerChips).toBe(-200);
+  });
+});
+
+describe('queries.getBaccaratWinnerDistribution', () => {
+  beforeEach(async () => {
+    await resetDb();
+    localStorage.removeItem(SESSION_KEY);
+  });
+
+  it('returns 3 zero-count rows in canonical Player → Banker → Tie order when empty', async () => {
+    const dist = await getBaccaratWinnerDistribution();
+    expect(dist).toEqual([
+      { winner: 'player', count: 0 },
+      { winner: 'banker', count: 0 },
+      { winner: 'tie', count: 0 },
+    ]);
+  });
+
+  it('counts winners across the fixture', async () => {
+    await seedBaccaratRows();
+    const dist = await getBaccaratWinnerDistribution();
+    const byWinner = Object.fromEntries(dist.map((d) => [d.winner, d.count]));
+    expect(byWinner['player']).toBe(8);
+    expect(byWinner['banker']).toBe(9);
+    expect(byWinner['tie']).toBe(3);
+  });
+
+  it('ignores rounds without winner details', async () => {
+    await db.rounds.add({
+      id: 'bad',
+      userId: 'u-1',
+      game: 'baccarat',
+      betAmount: 10,
+      payout: 0,
+      netChange: -10,
+      outcome: 'loss',
+      details: {},
+      balanceAfter: 990,
+      playedAt: 1,
+    });
+    const dist = await getBaccaratWinnerDistribution();
+    expect(dist.reduce((s, p) => s + p.count, 0)).toBe(0);
+  });
+});
+
+describe('queries.getBaccaratStreakStats', () => {
+  beforeEach(async () => {
+    await resetDb();
+    localStorage.removeItem(SESSION_KEY);
+  });
+
+  it('returns zeros when no rounds exist', async () => {
+    const s = await getBaccaratStreakStats();
+    expect(s).toEqual({
+      longestPlayerStreak: 0,
+      longestBankerStreak: 0,
+      longestTieStreak: 0,
+    });
+  });
+
+  it('detects the longest run per winner across an out-of-order seed', async () => {
+    // Walk: P P B B B T P P P B B T T B (chronological).
+    const winners: BaccaratWinner[] = [
+      'player',
+      'player',
+      'banker',
+      'banker',
+      'banker',
+      'tie',
+      'player',
+      'player',
+      'player',
+      'banker',
+      'banker',
+      'tie',
+      'tie',
+      'banker',
+    ];
+    // Seed in reverse playedAt order to verify the function re-sorts.
+    const rows = winners
+      .map((winner, i) =>
+        baccaratRow({
+          id: `b-${i}`,
+          details: baccaratDetails({
+            winner,
+            playerTotal: 5,
+            bankerTotal: 5,
+            playerCards: 2,
+            bankerCards: 2,
+            margin: winner === 'tie' ? 0 : 1,
+            winnerNatural: false,
+            bothNatural: false,
+            playerPair: false,
+            bankerPair: false,
+          }),
+          betAmount: 10,
+          payoutChips: 0,
+          playedAt: i + 1,
+        }),
+      )
+      .reverse(); // out of order on disk
+    await db.rounds.bulkAdd(rows);
+    const s = await getBaccaratStreakStats();
+    expect(s.longestPlayerStreak).toBe(3); // P P P at indices 6/7/8
+    expect(s.longestBankerStreak).toBe(3); // B B B at indices 2/3/4
+    expect(s.longestTieStreak).toBe(2); // T T at indices 11/12
+  });
+
+  it('ignores rounds without winner details when computing streaks', async () => {
+    await db.rounds.add({
+      id: 'bad',
+      userId: 'u-1',
+      game: 'baccarat',
+      betAmount: 10,
+      payout: 0,
+      netChange: -10,
+      outcome: 'loss',
+      details: {},
+      balanceAfter: 990,
+      playedAt: 1,
+    });
+    const s = await getBaccaratStreakStats();
+    expect(s).toEqual({
+      longestPlayerStreak: 0,
+      longestBankerStreak: 0,
+      longestTieStreak: 0,
+    });
+  });
+});
