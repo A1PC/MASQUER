@@ -1420,3 +1420,451 @@ describe('queries.getRouletteNumberDistribution', () => {
     expect(dist.reduce((s, p) => s + p.count, 0)).toBe(0);
   });
 });
+
+// ─── Phase 15 #7 — Slots all-time admin stats ────────────────────────
+
+import {
+  getSlotsAllTimeStats,
+  getSlotsCombinationDistribution,
+  getSlotsSymbolDistribution,
+} from './stats';
+import type {
+  PayoutHit,
+  SlotsRoundDetails,
+  SpinResult,
+  Symbol as SlotsSymbol,
+  WinTier,
+} from '@/games/slots/types';
+
+function slotsDetails(
+  reels: readonly [SlotsSymbol, SlotsSymbol, SlotsSymbol],
+  payout: PayoutHit | null,
+  bet: number,
+  winTier: WinTier,
+): SlotsRoundDetails {
+  const spin: SpinResult = { reels };
+  return {
+    spin,
+    payout,
+    bet,
+    winTier,
+    config: {
+      weights: { cherry: 4, lemon: 5, bell: 3, bar: 2, seven: 1 },
+      minBet: 5,
+      maxBet: 1_000,
+    },
+  };
+}
+
+function slotsRow(opts: {
+  id: string;
+  reels: readonly [SlotsSymbol, SlotsSymbol, SlotsSymbol];
+  payout: PayoutHit | null;
+  betAmount: number;
+  payoutChips: number;
+  winTier: WinTier;
+  playedAt: number;
+}) {
+  const netChange = opts.payoutChips - opts.betAmount;
+  const outcome: 'win' | 'loss' | 'push' = netChange > 0 ? 'win' : netChange < 0 ? 'loss' : 'push';
+  return {
+    id: opts.id,
+    userId: 'u-1',
+    game: 'slots' as const,
+    betAmount: opts.betAmount,
+    payout: opts.payoutChips,
+    netChange,
+    outcome,
+    details: slotsDetails(opts.reels, opts.payout, opts.betAmount, opts.winTier),
+    balanceAfter: 1000,
+    playedAt: opts.playedAt,
+  };
+}
+
+/** Seed 18 slot rows covering every win tier + every paytable combo + every
+ *  symbol on every reel. Returns a tally used by the assertions. */
+async function seedSlotsRows() {
+  await resetDb();
+  const rows = [
+    // Losing spins (winTier 'none') — symbol coverage on each reel.
+    slotsRow({
+      id: 's-loss-1',
+      reels: ['cherry', 'lemon', 'bell'],
+      payout: null,
+      betAmount: 10,
+      payoutChips: 0,
+      winTier: 'none',
+      playedAt: 1,
+    }),
+    slotsRow({
+      id: 's-loss-2',
+      reels: ['lemon', 'bar', 'seven'],
+      payout: null,
+      betAmount: 10,
+      payoutChips: 0,
+      winTier: 'none',
+      playedAt: 2,
+    }),
+    slotsRow({
+      id: 's-loss-3',
+      reels: ['bar', 'seven', 'cherry'],
+      payout: null,
+      betAmount: 10,
+      payoutChips: 0,
+      winTier: 'none',
+      playedAt: 3,
+    }),
+    slotsRow({
+      id: 's-loss-4',
+      reels: ['bell', 'cherry', 'lemon'],
+      payout: null,
+      betAmount: 10,
+      payoutChips: 0,
+      winTier: 'none',
+      playedAt: 4,
+    }),
+    slotsRow({
+      id: 's-loss-5',
+      reels: ['seven', 'bell', 'bar'],
+      payout: null,
+      betAmount: 10,
+      payoutChips: 0,
+      winTier: 'none',
+      playedAt: 5,
+    }),
+    // Small win: 2× cherry (multiple 2).
+    slotsRow({
+      id: 's-2c-1',
+      reels: ['cherry', 'lemon', 'cherry'],
+      payout: { key: 'two-cherry', multiple: 2, winningReelIndices: [0, 2] },
+      betAmount: 10,
+      payoutChips: 20,
+      winTier: 'small',
+      playedAt: 6,
+    }),
+    slotsRow({
+      id: 's-2c-2',
+      reels: ['cherry', 'bar', 'cherry'],
+      payout: { key: 'two-cherry', multiple: 2, winningReelIndices: [0, 2] },
+      betAmount: 10,
+      payoutChips: 20,
+      winTier: 'small',
+      playedAt: 7,
+    }),
+    // Medium win: 3× cherry (multiple 5).
+    slotsRow({
+      id: 's-3c',
+      reels: ['cherry', 'cherry', 'cherry'],
+      payout: { key: 'cherry-cherry-cherry', multiple: 5, winningReelIndices: [0, 1, 2] },
+      betAmount: 10,
+      payoutChips: 50,
+      winTier: 'medium',
+      playedAt: 8,
+    }),
+    // Medium win: 3× lemon (multiple 8).
+    slotsRow({
+      id: 's-3l',
+      reels: ['lemon', 'lemon', 'lemon'],
+      payout: { key: 'lemon-lemon-lemon', multiple: 8, winningReelIndices: [0, 1, 2] },
+      betAmount: 10,
+      payoutChips: 80,
+      winTier: 'medium',
+      playedAt: 9,
+    }),
+    // Medium win: 3× bell (multiple 12).
+    slotsRow({
+      id: 's-3bl',
+      reels: ['bell', 'bell', 'bell'],
+      payout: { key: 'bell-bell-bell', multiple: 12, winningReelIndices: [0, 1, 2] },
+      betAmount: 10,
+      payoutChips: 120,
+      winTier: 'medium',
+      playedAt: 10,
+    }),
+    // Medium win: 3× BAR (multiple 20).
+    slotsRow({
+      id: 's-3b',
+      reels: ['bar', 'bar', 'bar'],
+      payout: { key: 'bar-bar-bar', multiple: 20, winningReelIndices: [0, 1, 2] },
+      betAmount: 10,
+      payoutChips: 200,
+      winTier: 'medium',
+      playedAt: 11,
+    }),
+    // Jackpot: 3× 7 (multiple 50).
+    slotsRow({
+      id: 's-3s',
+      reels: ['seven', 'seven', 'seven'],
+      payout: { key: 'seven-seven-seven', multiple: 50, winningReelIndices: [0, 1, 2] },
+      betAmount: 10,
+      payoutChips: 500,
+      winTier: 'jackpot',
+      playedAt: 12,
+    }),
+  ];
+  await db.rounds.bulkAdd(rows);
+  return rows;
+}
+
+describe('queries.getSlotsAllTimeStats', () => {
+  beforeEach(async () => {
+    await resetDb();
+    localStorage.removeItem(SESSION_KEY);
+  });
+
+  it('returns zeros when no slots rounds exist', async () => {
+    const s = await getSlotsAllTimeStats();
+    expect(s).toEqual({
+      spinsRun: 0,
+      totalWagered: 0,
+      totalPaid: 0,
+      netHouseChips: 0,
+      netPlayerChips: 0,
+      actualRtp: null,
+      targetRtp: 0.86,
+      tierCounts: { none: 0, small: 0, medium: 0, jackpot: 0 },
+      jackpotsHit: 0,
+    });
+  });
+
+  it('ignores rounds from other games', async () => {
+    await db.rounds.add({
+      id: 'bj-1',
+      userId: 'u-1',
+      game: 'blackjack',
+      betAmount: 100,
+      payout: 0,
+      netChange: -100,
+      outcome: 'loss',
+      details: {},
+      balanceAfter: 900,
+      playedAt: 1_000,
+    });
+    const s = await getSlotsAllTimeStats();
+    expect(s.spinsRun).toBe(0);
+    expect(s.netHouseChips).toBe(0);
+    expect(s.actualRtp).toBeNull();
+  });
+
+  it('ignores slots rounds without spin details', async () => {
+    await db.rounds.add({
+      id: 'bad-row',
+      userId: 'u-1',
+      game: 'slots',
+      betAmount: 10,
+      payout: 0,
+      netChange: -10,
+      outcome: 'loss',
+      // Intentionally missing spin field — exercise the `if (!d?.spin) continue` guard.
+      details: {},
+      balanceAfter: 990,
+      playedAt: 1,
+    });
+    const s = await getSlotsAllTimeStats();
+    expect(s.spinsRun).toBe(0);
+  });
+
+  it('aggregates spins, wagering, payouts, and tier counts from the fixture', async () => {
+    await seedSlotsRows();
+    const s = await getSlotsAllTimeStats();
+    // 12 valid spins seeded.
+    expect(s.spinsRun).toBe(12);
+    // Each row bets 10 → 12 * 10 = 120.
+    expect(s.totalWagered).toBe(120);
+    // Payouts: 5 losses (0) + 2 two-cherry (20+20=40) + 50 + 80 + 120 + 200 + 500 = 990.
+    expect(s.totalPaid).toBe(990);
+    expect(s.netHouseChips).toBe(120 - 990); // -870
+    expect(s.netPlayerChips).toBe(870);
+    expect(s.actualRtp).toBeCloseTo(990 / 120);
+    expect(s.targetRtp).toBe(0.86);
+    expect(s.tierCounts).toEqual({ none: 5, small: 2, medium: 4, jackpot: 1 });
+    expect(s.jackpotsHit).toBe(1);
+  });
+
+  it('treats netHouseChips as positive when the house is ahead', async () => {
+    await db.rounds.bulkAdd([
+      slotsRow({
+        id: 's-1',
+        reels: ['cherry', 'lemon', 'bell'],
+        payout: null,
+        betAmount: 100,
+        payoutChips: 0,
+        winTier: 'none',
+        playedAt: 1,
+      }),
+      slotsRow({
+        id: 's-2',
+        reels: ['cherry', 'lemon', 'bar'],
+        payout: null,
+        betAmount: 100,
+        payoutChips: 0,
+        winTier: 'none',
+        playedAt: 2,
+      }),
+    ]);
+    const s = await getSlotsAllTimeStats();
+    expect(s.netHouseChips).toBe(200);
+    expect(s.netPlayerChips).toBe(-200);
+  });
+});
+
+describe('queries.getSlotsCombinationDistribution', () => {
+  beforeEach(async () => {
+    await resetDb();
+    localStorage.removeItem(SESSION_KEY);
+  });
+
+  it('returns every paytable combo with count 0 when there is no data', async () => {
+    const combos = await getSlotsCombinationDistribution();
+    expect(combos).toHaveLength(6);
+    // Sorted by payout multiple descending.
+    expect(combos[0]!.key).toBe('seven-seven-seven');
+    expect(combos[0]!.payoutMultiple).toBe(50);
+    expect(combos[0]!.tier).toBe('jackpot');
+    expect(combos[0]!.count).toBe(0);
+    expect(combos[0]!.totalPaid).toBe(0);
+    expect(combos[combos.length - 1]!.key).toBe('two-cherry');
+    expect(combos[combos.length - 1]!.payoutMultiple).toBe(2);
+    expect(combos[combos.length - 1]!.tier).toBe('small');
+  });
+
+  it('counts hits per combination across the fixture', async () => {
+    await seedSlotsRows();
+    const combos = await getSlotsCombinationDistribution();
+    const byKey = Object.fromEntries(combos.map((c) => [c.key, c]));
+    expect(byKey['seven-seven-seven']!.count).toBe(1);
+    expect(byKey['seven-seven-seven']!.totalPaid).toBe(500);
+    expect(byKey['bar-bar-bar']!.count).toBe(1);
+    expect(byKey['bar-bar-bar']!.totalPaid).toBe(200);
+    expect(byKey['bell-bell-bell']!.count).toBe(1);
+    expect(byKey['bell-bell-bell']!.totalPaid).toBe(120);
+    expect(byKey['lemon-lemon-lemon']!.count).toBe(1);
+    expect(byKey['lemon-lemon-lemon']!.totalPaid).toBe(80);
+    expect(byKey['cherry-cherry-cherry']!.count).toBe(1);
+    expect(byKey['cherry-cherry-cherry']!.totalPaid).toBe(50);
+    expect(byKey['two-cherry']!.count).toBe(2);
+    expect(byKey['two-cherry']!.totalPaid).toBe(40);
+  });
+
+  it('attaches the correct tier to each combo', async () => {
+    const combos = await getSlotsCombinationDistribution();
+    const byKey = Object.fromEntries(combos.map((c) => [c.key, c]));
+    expect(byKey['seven-seven-seven']!.tier).toBe('jackpot');
+    expect(byKey['bar-bar-bar']!.tier).toBe('medium');
+    expect(byKey['bell-bell-bell']!.tier).toBe('medium');
+    expect(byKey['lemon-lemon-lemon']!.tier).toBe('medium');
+    expect(byKey['cherry-cherry-cherry']!.tier).toBe('medium');
+    expect(byKey['two-cherry']!.tier).toBe('small');
+  });
+
+  it('ignores losing spins (no payout key)', async () => {
+    await db.rounds.bulkAdd([
+      slotsRow({
+        id: 's-l1',
+        reels: ['cherry', 'lemon', 'bell'],
+        payout: null,
+        betAmount: 10,
+        payoutChips: 0,
+        winTier: 'none',
+        playedAt: 1,
+      }),
+    ]);
+    const combos = await getSlotsCombinationDistribution();
+    expect(combos.every((c) => c.count === 0)).toBe(true);
+  });
+});
+
+describe('queries.getSlotsSymbolDistribution', () => {
+  beforeEach(async () => {
+    await resetDb();
+    localStorage.removeItem(SESSION_KEY);
+  });
+
+  it('returns all 5 symbols with zero counts when no data', async () => {
+    const dist = await getSlotsSymbolDistribution();
+    expect(dist).toHaveLength(5);
+    expect(dist.map((d) => d.symbol)).toEqual(['cherry', 'lemon', 'bell', 'bar', 'seven']);
+    expect(
+      dist.every((d) => d.reel0 === 0 && d.reel1 === 0 && d.reel2 === 0 && d.total === 0),
+    ).toBe(true);
+  });
+
+  it('counts per-reel symbol landings across the fixture', async () => {
+    await seedSlotsRows();
+    const dist = await getSlotsSymbolDistribution();
+    const byKey = Object.fromEntries(dist.map((d) => [d.symbol, d]));
+
+    // Tally cherry across the 12 seeded rows:
+    //   reel0: s-loss-1, s-loss-4? no (s-loss-4 = bell,cherry,lemon → reel1), s-2c-1 (cherry), s-2c-2 (cherry), s-3c (cherry)
+    //   Counted reel-by-reel:
+    //     reel0 cherries: s-loss-1, s-loss-3 no(bar), s-2c-1, s-2c-2, s-3c → 4? Let me recount via cases:
+    //   s-loss-1: ['cherry','lemon','bell']    → r0=cherry, r1=lemon, r2=bell
+    //   s-loss-2: ['lemon','bar','seven']       → r0=lemon,  r1=bar,   r2=seven
+    //   s-loss-3: ['bar','seven','cherry']      → r0=bar,    r1=seven, r2=cherry
+    //   s-loss-4: ['bell','cherry','lemon']     → r0=bell,   r1=cherry,r2=lemon
+    //   s-loss-5: ['seven','bell','bar']        → r0=seven,  r1=bell,  r2=bar
+    //   s-2c-1:   ['cherry','lemon','cherry']   → r0=cherry, r1=lemon, r2=cherry
+    //   s-2c-2:   ['cherry','bar','cherry']     → r0=cherry, r1=bar,   r2=cherry
+    //   s-3c:     ['cherry','cherry','cherry']  → r0=cherry, r1=cherry,r2=cherry
+    //   s-3l:     ['lemon','lemon','lemon']     → r0=lemon,  r1=lemon, r2=lemon
+    //   s-3bl:    ['bell','bell','bell']        → r0=bell,   r1=bell,  r2=bell
+    //   s-3b:     ['bar','bar','bar']           → r0=bar,    r1=bar,   r2=bar
+    //   s-3s:     ['seven','seven','seven']     → r0=seven,  r1=seven, r2=seven
+    //
+    // Cherry: r0 = {s-loss-1, s-2c-1, s-2c-2, s-3c} = 4, r1 = {s-loss-4, s-3c} = 2, r2 = {s-loss-3, s-2c-1, s-2c-2, s-3c} = 4
+    expect(byKey['cherry']!.reel0).toBe(4);
+    expect(byKey['cherry']!.reel1).toBe(2);
+    expect(byKey['cherry']!.reel2).toBe(4);
+    expect(byKey['cherry']!.total).toBe(10);
+
+    // Lemon: r0 = {s-loss-2, s-3l} = 2, r1 = {s-loss-1, s-2c-1, s-3l} = 3, r2 = {s-loss-4, s-3l} = 2
+    expect(byKey['lemon']!.reel0).toBe(2);
+    expect(byKey['lemon']!.reel1).toBe(3);
+    expect(byKey['lemon']!.reel2).toBe(2);
+    expect(byKey['lemon']!.total).toBe(7);
+
+    // Bell: r0 = {s-loss-4, s-3bl} = 2, r1 = {s-loss-5, s-3bl} = 2, r2 = {s-loss-1, s-3bl} = 2
+    expect(byKey['bell']!.reel0).toBe(2);
+    expect(byKey['bell']!.reel1).toBe(2);
+    expect(byKey['bell']!.reel2).toBe(2);
+    expect(byKey['bell']!.total).toBe(6);
+
+    // Bar: r0 = {s-loss-3, s-3b} = 2, r1 = {s-loss-2, s-2c-2, s-3b} = 3, r2 = {s-loss-5, s-3b} = 2
+    expect(byKey['bar']!.reel0).toBe(2);
+    expect(byKey['bar']!.reel1).toBe(3);
+    expect(byKey['bar']!.reel2).toBe(2);
+    expect(byKey['bar']!.total).toBe(7);
+
+    // Seven: r0 = {s-loss-5, s-3s} = 2, r1 = {s-loss-3, s-3s} = 2, r2 = {s-loss-2, s-3s} = 2
+    expect(byKey['seven']!.reel0).toBe(2);
+    expect(byKey['seven']!.reel1).toBe(2);
+    expect(byKey['seven']!.reel2).toBe(2);
+    expect(byKey['seven']!.total).toBe(6);
+
+    // Sanity: per-reel totals across all 5 symbols == spinsRun.
+    const r0 = dist.reduce((s, d) => s + d.reel0, 0);
+    const r1 = dist.reduce((s, d) => s + d.reel1, 0);
+    const r2 = dist.reduce((s, d) => s + d.reel2, 0);
+    expect(r0).toBe(12);
+    expect(r1).toBe(12);
+    expect(r2).toBe(12);
+  });
+
+  it('ignores rounds without spin reels', async () => {
+    await db.rounds.add({
+      id: 'bad-row',
+      userId: 'u-1',
+      game: 'slots',
+      betAmount: 10,
+      payout: 0,
+      netChange: -10,
+      outcome: 'loss',
+      // Intentionally missing spin/reels — exercise the `if (!d?.spin?.reels) continue` guard.
+      details: {},
+      balanceAfter: 990,
+      playedAt: 1,
+    });
+    const dist = await getSlotsSymbolDistribution();
+    expect(dist.every((d) => d.total === 0)).toBe(true);
+  });
+});

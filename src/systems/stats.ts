@@ -1,6 +1,8 @@
 import { db } from '@/db';
 import type { Round } from '@/db';
 import type { RouletteRoundDetails } from '@/games/roulette/types';
+import type { SlotsRoundDetails, Symbol as SlotsSymbol } from '@/games/slots/types';
+import { SLOTS_PAYTABLE } from '@/games/slots/config';
 import { WALLET_CONFIG } from '@/systems/wallet';
 
 export type UserStatsRow = {
@@ -680,4 +682,158 @@ export async function getRouletteNumberDistribution(): Promise<RouletteDistribut
     count: counts[n]!,
     color: n === 0 ? 'green' : ROULETTE_RED.has(n) ? 'red' : 'black',
   }));
+}
+
+// ─── Phase 15 #7 — Slots all-time admin stats ─────────────────────────
+
+export interface SlotsAllTimeStats {
+  /** Count of slots rounds with valid spin details. */
+  spinsRun: number;
+  /** Sum of betAmount across all valid spins. */
+  totalWagered: number;
+  /** Sum of payout across all valid spins. */
+  totalPaid: number;
+  /** totalWagered - totalPaid (positive = house won). */
+  netHouseChips: number;
+  /** Mirror of netHouseChips. */
+  netPlayerChips: number;
+  /** totalPaid / totalWagered (null if no wagering). */
+  actualRtp: number | null;
+  /** Target RTP from ADR-0032. */
+  targetRtp: number;
+  /** Win-tier breakdown counts. */
+  tierCounts: {
+    none: number;
+    small: number;
+    medium: number;
+    jackpot: number;
+  };
+  /** Alias for tierCounts.jackpot — used by the headline stat card. */
+  jackpotsHit: number;
+}
+
+export async function getSlotsAllTimeStats(): Promise<SlotsAllTimeStats> {
+  const rows = await db.rounds.where('game').equals('slots').toArray();
+  let spinsRun = 0;
+  let totalWagered = 0;
+  let totalPaid = 0;
+  const tierCounts = { none: 0, small: 0, medium: 0, jackpot: 0 };
+  for (const r of rows) {
+    const d = r.details as SlotsRoundDetails | undefined;
+    if (!d?.spin) continue;
+    spinsRun += 1;
+    totalWagered += r.betAmount;
+    totalPaid += r.payout;
+    const tier = d.winTier ?? 'none';
+    if (tier in tierCounts) tierCounts[tier] += 1;
+  }
+  const netHouseChips = totalWagered - totalPaid;
+  return {
+    spinsRun,
+    totalWagered,
+    totalPaid,
+    netHouseChips,
+    // Add zero to normalise `-0` (e.g. `-(0)`) to `+0` for strict equality assertions.
+    netPlayerChips: -netHouseChips + 0,
+    actualRtp: totalWagered > 0 ? totalPaid / totalWagered : null,
+    targetRtp: 0.86,
+    tierCounts,
+    jackpotsHit: tierCounts.jackpot,
+  };
+}
+
+export interface SlotsCombinationCount {
+  /** Payout key from SLOTS_PAYTABLE (e.g. 'seven-seven-seven'). */
+  key: string;
+  /** Human-readable label (e.g. '3× 7'). */
+  label: string;
+  /** Payout multiple from SLOTS_PAYTABLE. */
+  payoutMultiple: number;
+  /** Win-tier this combo belongs to. */
+  tier: 'small' | 'medium' | 'jackpot';
+  /** Number of times this combo hit. */
+  count: number;
+  /** Sum of payouts where this combo hit. */
+  totalPaid: number;
+}
+
+/** Map a payout multiple to its win tier (mirrors slots/logic.ts#winTierOf). */
+function slotsComboTier(multiple: number): 'small' | 'medium' | 'jackpot' {
+  if (multiple <= 2) return 'small';
+  if (multiple <= 20) return 'medium';
+  return 'jackpot';
+}
+
+/** Human-readable labels for each paytable combo. */
+const SLOTS_COMBO_LABELS: Readonly<Record<string, string>> = {
+  'seven-seven-seven': '3× 7',
+  'bar-bar-bar': '3× BAR',
+  'bell-bell-bell': '3× Bell',
+  'lemon-lemon-lemon': '3× Lemon',
+  'cherry-cherry-cherry': '3× Cherry',
+  'two-cherry': '2× Cherry',
+};
+
+export async function getSlotsCombinationDistribution(): Promise<SlotsCombinationCount[]> {
+  const rows = await db.rounds.where('game').equals('slots').toArray();
+  // Initialise every paytable combo with count 0 so the chart always shows every combo.
+  const map = new Map<string, SlotsCombinationCount>();
+  for (const [key, payoutMultiple] of Object.entries(SLOTS_PAYTABLE)) {
+    map.set(key, {
+      key,
+      label: SLOTS_COMBO_LABELS[key] ?? key,
+      payoutMultiple,
+      tier: slotsComboTier(payoutMultiple),
+      count: 0,
+      totalPaid: 0,
+    });
+  }
+  for (const r of rows) {
+    const d = r.details as SlotsRoundDetails | undefined;
+    if (!d?.payout?.key) continue;
+    const entry = map.get(d.payout.key);
+    if (!entry) continue;
+    entry.count += 1;
+    entry.totalPaid += r.payout;
+  }
+  // Return in paytable order (highest payout first).
+  return Array.from(map.values()).sort((a, b) => b.payoutMultiple - a.payoutMultiple);
+}
+
+export interface SlotsSymbolDistribution {
+  symbol: SlotsSymbol;
+  /** Count of times this symbol landed on reel 0. */
+  reel0: number;
+  /** Count of times this symbol landed on reel 1. */
+  reel1: number;
+  /** Count of times this symbol landed on reel 2. */
+  reel2: number;
+  /** reel0 + reel1 + reel2. */
+  total: number;
+}
+
+const SLOTS_SYMBOLS_ORDER: readonly SlotsSymbol[] = ['cherry', 'lemon', 'bell', 'bar', 'seven'];
+
+export async function getSlotsSymbolDistribution(): Promise<SlotsSymbolDistribution[]> {
+  const rows = await db.rounds.where('game').equals('slots').toArray();
+  const dist: Record<SlotsSymbol, SlotsSymbolDistribution> = {
+    cherry: { symbol: 'cherry', reel0: 0, reel1: 0, reel2: 0, total: 0 },
+    lemon: { symbol: 'lemon', reel0: 0, reel1: 0, reel2: 0, total: 0 },
+    bell: { symbol: 'bell', reel0: 0, reel1: 0, reel2: 0, total: 0 },
+    bar: { symbol: 'bar', reel0: 0, reel1: 0, reel2: 0, total: 0 },
+    seven: { symbol: 'seven', reel0: 0, reel1: 0, reel2: 0, total: 0 },
+  };
+  for (const r of rows) {
+    const d = r.details as SlotsRoundDetails | undefined;
+    if (!d?.spin?.reels) continue;
+    d.spin.reels.forEach((symbol, i) => {
+      if (!(symbol in dist)) return;
+      const e = dist[symbol];
+      if (i === 0) e.reel0 += 1;
+      else if (i === 1) e.reel1 += 1;
+      else if (i === 2) e.reel2 += 1;
+      e.total += 1;
+    });
+  }
+  return SLOTS_SYMBOLS_ORDER.map((s) => dist[s]);
 }
