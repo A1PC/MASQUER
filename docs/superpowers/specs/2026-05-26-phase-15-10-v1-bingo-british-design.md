@@ -1,7 +1,7 @@
 # Phase 15 sub-project #10.v1 — Bingo (British) upgrade
 
-**Status:** Draft for user review.
-**Date:** 2026-05-26.
+**Status:** Draft for user review (amended 2026-05-26 — admin stats expansion added per user feedback; same single PR).
+**Date:** 2026-05-26 (initial + addendum same day).
 **Sub-project:** #10.v1 in the Phase 15 umbrella (`2026-05-22-phase-15-umbrella-roadmap-design.md`). Per release order, follows #9 Lottery ✅, precedes #10.v2 Bingo (American), then #11 Plinko.
 **Variant split:** Per the umbrella's variant-as-config rule, multi-variant games split into `x.vN` sub-projects. **10.v1 ships the SHARED chrome polish** (works for both British and American) **plus British-only variant bits**. **10.v2 ships American-only variant bits** and inherits the shared chrome from 10.v1 for free.
 **Original release:** Phase 11 / 11.5 (`v0.11-bingo` solo → `v0.11.5-bingo-competitive` competitive vs CPUs, shipped 2026-05-19/20). 90-ball British 3×9 + 75-ball American 5×5 (with free centre), 3 difficulties (Easy 2 CPUs / Medium 5 / Hard 9 — Hard forces manual daub), tier-1 line + tier-2 (two-line / four-corners) bonuses + tier-3 full-house / blackout payout, per-CPU latency rolled at game start, race-to-claim semantics via global `claimedTiers: Set<Tier>`. ADR-0033 tiered-celebration reused. No bingo-specific ADRs of its own.
@@ -152,7 +152,109 @@ Bingo doesn't have a rules popover today. Add the RULES button + `RulesModal` (s
 
 (American-only refinements — 5-column B-I-N-G-O column headers, free-centre treatment, US palette refinements — stay for 10.v2.)
 
-### 4.8 Out of scope (deferred docket items + 10.v2 territory)
+### 4.8 Admin stats expansion (per user feedback, 2026-05-26)
+
+Extend `/admin/bingo` with stat panels alongside the existing per-difficulty tuning selector (which stays untouched — the selector is the page's primary control surface and must keep working).
+
+**Layout** — keep the existing difficulty tuning section at the top (or wherever it currently sits), add a new "STATISTICS" section below it that mirrors the layout pattern shipped in `AdminRoulettePage` / `AdminSlotsPage` / `AdminBaccaratPage`:
+
+#### 4.8.1 Top: 4 StatCards
+
+| Card                   | Value                                                      | Notes                                                                                                          |
+| ---------------------- | ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| Games played           | All-time count of `rounds where game === 'bingo'`          | Volume baseline.                                                                                               |
+| House net (chips)      | `sum(betAmount) - sum(payout)`                             | Red tone if positive (house up) / green if negative (house down) — matches lottery / roulette card convention. |
+| Player BINGO capture % | `(player tier-3 wins) / (total games settled)`             | % of games where the player beat all CPUs to the tier-3 BINGO.                                                 |
+| FAST BINGO hit rate    | `(games settled with finalCallCount ≤ 40) / (total games)` | Pace metric.                                                                                                   |
+
+#### 4.8.2 Hero chart: Variant × Difficulty distribution
+
+Stacked-bar chart with one bar per variant (British / American), segmented by difficulty (Easy / Medium / Hard). Uses the `ChartTooltipShell` from #251 with a small custom content showing the variant + difficulty + count. Wraps in the existing lazy admin chart chunk (ADR-0039).
+
+#### 4.8.3 Bonus economics panel
+
+A small 4-row mini-bar panel (the same `MiniBar` component used by Roulette/Baccarat admin panels) showing:
+
+- Line wins (count + total chips paid)
+- Double Line / Four Corners wins (count + total chips paid)
+- BINGO (tier-3) wins by player (count + total chips paid)
+- FAST BINGO bonus hits (count + total chips paid — the 500-chip kicker)
+
+#### 4.8.4 Average balls-to-BINGO per difficulty
+
+Three numeric stat cells in a row (Easy / Medium / Hard) showing the mean `finalCallCount` for games that ended in tier-3 BINGO. Lower number = faster games. Helps the operator see if a difficulty's CPU latency is well-tuned.
+
+#### 4.8.5 Card-count usage
+
+Single mini-bar panel showing percentage of games played with 1 / 2 / 3 / 4 cards. Helps the operator see player load preferences.
+
+#### 4.8.6 Recent games table (last 20)
+
+Mirrors the recent-rounds tables in Roulette / Baccarat / Slots / Lottery admin pages post-#250 / #251:
+
+| Played at | Variant | Difficulty | Outcome | Cards | Bet | Payout | House P/L |
+| --------- | ------- | ---------- | ------- | ----- | --- | ------ | --------- |
+
+Outcome shows a coloured badge: green "BINGO" for tier-3 player win, gold for tier-1/tier-2 bonus-only, red "LOST" for CPU-won tier-3. Use the same brand-token + tabular-nums treatment as the other admin recent tables.
+
+**Ordering**: load all `bingo` rounds, sort by `playedAt` desc in-memory, slice 20 — the pattern from #250 that fixed the `.where(...).reverse().limit()` indexing bug.
+
+#### 4.8.7 New aggregations in `src/systems/stats.ts`
+
+Additive functions (do NOT modify existing fns):
+
+```ts
+export interface BingoAllTimeStats {
+  gamesPlayed: number;
+  totalWagered: number;
+  totalPaid: number;
+  netHouseChips: number;
+  netPlayerChips: number;
+  actualRtp: number | null;
+  playerTier3Wins: number; // player won the BINGO
+  cpuTier3Wins: number; // a CPU won the BINGO (player loss)
+  playerBingoCapturePct: number; // playerTier3Wins / gamesPlayed
+  fastBingoCount: number; // finalCallCount <= 40 settled
+  fastBingoHitRate: number; // fastBingoCount / gamesPlayed
+  lineWins: number;
+  doubleLineWins: number;
+  // (Four Corners is a tier-2 American-only variant; track separately if details carry it.)
+  fourCornersWins: number;
+  totalLinePaid: number;
+  totalDoubleLinePaid: number;
+  totalFourCornersPaid: number;
+  totalFastBingoPaid: number; // 500-chip kicker payouts
+}
+
+export interface BingoVariantDifficultyCount {
+  variant: 'british' | 'american';
+  difficulty: 'easy' | 'medium' | 'hard';
+  count: number;
+}
+
+export interface BingoCardCountUsage {
+  cardCount: 1 | 2 | 3 | 4;
+  count: number;
+}
+
+export interface BingoBallsToBingo {
+  difficulty: 'easy' | 'medium' | 'hard';
+  averageCalls: number | null; // null when no tier-3 player win at that difficulty yet
+}
+
+export async function getBingoAllTimeStats(): Promise<BingoAllTimeStats>;
+export async function getBingoVariantDifficultyDistribution(): Promise<
+  BingoVariantDifficultyCount[]
+>;
+export async function getBingoCardCountUsage(): Promise<BingoCardCountUsage[]>;
+export async function getBingoBallsToBingo(): Promise<BingoBallsToBingo[]>;
+```
+
+All iterate `db.rounds.where('game').equals('bingo').toArray()` once. Implementer verifies the actual `BingoRoundDetails` shape (variant / difficulty / finalCallCount / fastFullHouse / cardCount / cpuTier3Winner / perCardPayouts / bonusesEarned) and adapts the field reads accordingly. If any of the requested fields aren't currently persisted (e.g. `cardCount`), document the gap in the PR description and ship the stats that ARE derivable — DO NOT change `rounds` schema or `BingoRoundDetails` writes to add new fields in this PR.
+
+Tests pin each aggregation against a ~15-row bingo fixture covering both variants × all 3 difficulties × mixed outcomes.
+
+### 4.9 Out of scope (deferred docket items + 10.v2 territory)
 
 Deferred-docket items (per `localgamble-deferred-features`):
 
@@ -172,19 +274,27 @@ Deferred-docket items (per `localgamble-deferred-features`):
 - US palette refinements (5-column semantic colours).
 - Any American-specific rules-section refinements.
 
-### 4.9 Scope guardrails (10.v1)
+### 4.9 Out of scope (renumbered after admin-stats addendum)
+
+Was §4.8 in the original draft. Same content (deferred-docket items + 10.v2 territory). The admin stats expansion in §4.8 is NOW in scope.
+
+### 4.10 Scope guardrails (10.v1)
 
 **Allowed paths:**
 
-- `src/games/bingo/**` (all UI files + tests)
-- `tailwind.config.ts` + `src/theme/tokens.ts` (only if a new bingo-specific token is genuinely needed — default: reuse existing)
-- `BUILD_GUIDE.md` (only if §11 / §11.5 needs a small amendment note pointing to the polish; default: skip)
+- `src/games/bingo/**` (all UI files + tests) — game polish per §4.1–§4.7.
+- `src/systems/stats.ts` + test — additive new aggregations per §4.8.7.
+- `src/pages/admin/AdminBingoPage.tsx` + test — add STATISTICS section while preserving the existing per-difficulty tuning UI per §4.8.
+- `src/components/charts/**` — only if a new chart wrapper is needed (likely `BingoVariantDifficultyBar.tsx` — mirror `PocketDistributionBar` / `BaccaratWinnerBar` pattern).
+- `tailwind.config.ts` + `src/theme/tokens.ts` (only if a new bingo-specific token is genuinely needed — default: reuse existing).
+- `BUILD_GUIDE.md` (only if §11 / §11.5 needs a small amendment note pointing to the polish; default: skip).
 
 **Not allowed:**
 
 - `src/games/bingo/logic.ts` / `machine.ts` / `useBingoBallCaller.ts` and their `*.test.ts` — byte-stable.
 - Other games.
-- Admin pages (the `/admin/bingo` per-difficulty tuning page stays as-is).
+- Schema migrations (admin stats are read-only over existing `rounds.details`).
+- The existing `/admin/bingo` per-difficulty tuning UI — preserve it; add stats alongside, don't replace.
 - New gameplay (no new tiers, no Pattern Bingo, no Speed Bingo).
 
 ---
