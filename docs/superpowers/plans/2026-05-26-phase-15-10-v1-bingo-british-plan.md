@@ -270,11 +270,7 @@ type BingoRoundDetails = {
   - **Hero chart**: `<BingoVariantDifficultyBar />`
   - **Bonus economics panel** (small mini-bar): LINE wins count · DOUBLE LINE / 4-CORNERS wins count · BINGO wins by player (count + total pot) · Total bonuses paid (chips)
   - **Average balls-to-BINGO**: 3 cells in a row showing the mean per difficulty
-  - **Recent games table (last 20)**:
-    | Played at | Variant | Difficulty | Outcome | Cards\* | Bet | Payout | House P/L |
-    | --- | --- | --- | --- | --- | --- | --- | --- |
-    Outcome badge: green "BINGO" for tier-3 player win, gold for tier-1/2 bonus-only, red "LOST" for CPU tier-3. `Cards` column shows `cpuCount + 1` (player + N CPUs) since per-game `cardCount` isn't in details; document this substitution.
-    Ordering: load all + sort by `playedAt` desc + slice 20 (#250 pattern; do NOT use `.where(...).reverse().limit(...)`).
+  - **Recent games table (last 20)** — columns `Played at | Variant | Difficulty | Outcome | Players | Bet | Payout | House P/L`. Outcome badge: green "BINGO" for tier-3 player win, gold for tier-1/2 bonus-only, red "LOST" for CPU tier-3. `Players` column shows `cpuCount + 1` (player + N CPUs) since per-game `cardCount` isn't in details; document this substitution. Ordering: load all + sort by `playedAt` desc + slice 20 (#250 pattern; do NOT use `.where(...).reverse().limit(...)`).
 
 - [ ] **Step 3: Use `useLiveQuery`** with inferred-Promise pattern (Phase 9 trap — no explicit generic).
 
