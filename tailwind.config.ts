@@ -38,7 +38,13 @@ export default {
         jewel: {
           ruby: t['jewel-ruby'],
           emerald: t['jewel-emerald'],
+          sapphire: t['jewel-sapphire'],
           magenta: t['jewel-magenta'],
+        },
+        scoreboard: {
+          banker: t['scoreboard-banker'],
+          player: t['scoreboard-player'],
+          tie: t['scoreboard-tie'],
         },
         state: { win: t.win, loss: t.loss, push: t.push },
       },

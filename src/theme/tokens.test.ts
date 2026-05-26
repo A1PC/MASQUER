@@ -18,4 +18,9 @@ describe('Velvet Deco tokens', () => {
   it('radius scale defined', () => {
     expect(radius.md).toBe('12px');
   });
+  it('scoreboard tokens are defined (banker red / player blue / tie green)', () => {
+    expect(colors['scoreboard-banker']).toBe('#a3122a');
+    expect(colors['scoreboard-player']).toBe('#1e3a8a');
+    expect(colors['scoreboard-tie']).toBe('#3dd17a');
+  });
 });

@@ -17,6 +17,11 @@ interface Props {
   onCardRevealed?: (index: number) => void;
 }
 
+/**
+ * Player / Banker hand panel. Three card slots stay reserved so the
+ * layout never shifts when a third card arrives. Tokenised brass + felt
+ * with a gold glow on the winning side.
+ */
 export default function HandView({
   label,
   cards,
@@ -32,15 +37,15 @@ export default function HandView({
   return (
     <div
       className={[
-        'flex flex-col items-center gap-2 rounded-md border px-3 py-3',
-        highlight ? 'border-gold shadow-gold-glow bg-gold/5' : 'border-white/15 bg-white/[0.03]',
+        'flex flex-col items-center gap-2 rounded-md border px-3 py-3 transition-shadow duration-200',
+        highlight ? 'border-gold bg-gold/5 shadow-gold-glow' : 'border-brass/40 bg-felt-table-deep',
       ].join(' ')}
       data-baccarat-hand={label.toLowerCase()}
     >
-      <div className="flex items-center gap-3 font-display text-xs tracking-[0.2em] text-gold">
+      <div className="flex items-center gap-3 font-display text-xs uppercase tracking-[0.2em] text-gold">
         <span>{label}</span>
-        <span className="text-white/80">·</span>
-        <span className="tabular-nums text-white">{total}</span>
+        <span className="text-ivory/80">·</span>
+        <span className="tabular-nums text-ivory">{total}</span>
       </div>
       <div className="flex gap-2">
         {slots.map((i) => {

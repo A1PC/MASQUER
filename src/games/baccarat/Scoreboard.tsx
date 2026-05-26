@@ -8,17 +8,29 @@ interface Props {
   history: readonly ScoreboardEntry[];
 }
 
+/**
+ * Scoreboard panel — bead plate above, big road below. Tokenised
+ * brass-on-felt to sit beside the table without competing with the
+ * card-reveal stage.
+ */
 export default function Scoreboard({ history }: Props): JSX.Element {
   const bead = getBeadPlate(history);
   const bigRoad = getBigRoad(history);
   return (
-    <div className="flex flex-col gap-3 rounded border border-white/15 bg-felt-deep p-3">
+    <div
+      className="flex flex-col gap-3 rounded-md border border-brass/40 bg-felt-table-deep p-3 shadow-velvet-panel"
+      data-baccarat-scoreboard
+    >
       <div>
-        <div className="mb-1 font-display text-[10px] tracking-[0.2em] text-gold">BEAD PLATE</div>
+        <div className="mb-1 font-display text-[10px] uppercase tracking-[0.2em] text-gold">
+          BEAD PLATE
+        </div>
         <BeadPlate cells={bead} />
       </div>
       <div>
-        <div className="mb-1 font-display text-[10px] tracking-[0.2em] text-gold">BIG ROAD</div>
+        <div className="mb-1 font-display text-[10px] uppercase tracking-[0.2em] text-gold">
+          BIG ROAD
+        </div>
         <BigRoad columns={bigRoad} />
       </div>
     </div>

@@ -9,12 +9,21 @@ interface Props {
   freshShoeBanner: boolean;
 }
 
+/**
+ * Shoe-depth indicator. Three states swap by the same brass-on-felt pill:
+ *   FRESH SHOE        — green emerald accent (just-shuffled).
+ *   CUT — RESHUFFLING — velvet/scoreboard-banker red (cut card crossed).
+ *   Shoe: N cards     — neutral ivory (default).
+ */
 export default function ShoeIndicator({ shoe, freshShoeBanner }: Props): JSX.Element {
   const remaining = shoe.cards.length;
   const toCut = cardsToCut(shoe);
 
   return (
-    <div className="flex items-center gap-2 text-xs tabular-nums text-white/70">
+    <div
+      className="flex items-center gap-2 text-xs tabular-nums text-ivory/70"
+      data-baccarat-shoe-indicator
+    >
       <AnimatePresence mode="wait">
         {freshShoeBanner ? (
           <motion.span
@@ -22,7 +31,7 @@ export default function ShoeIndicator({ shoe, freshShoeBanner }: Props): JSX.Ele
             initial={{ opacity: 0, x: -8 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0 }}
-            className="rounded bg-chip-win/20 px-2 py-0.5 font-display text-[10px] tracking-[0.2em] text-chip-win"
+            className="rounded bg-scoreboard-tie/20 px-2 py-0.5 font-display text-[10px] uppercase tracking-[0.2em] text-scoreboard-tie"
           >
             FRESH SHOE
           </motion.span>
@@ -32,7 +41,7 @@ export default function ShoeIndicator({ shoe, freshShoeBanner }: Props): JSX.Ele
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="rounded bg-casino-red/20 px-2 py-0.5 font-display text-[10px] tracking-[0.2em] text-casino-red"
+            className="rounded bg-scoreboard-banker/20 px-2 py-0.5 font-display text-[10px] uppercase tracking-[0.2em] text-scoreboard-banker"
           >
             CUT — RESHUFFLING NEXT ROUND
           </motion.span>

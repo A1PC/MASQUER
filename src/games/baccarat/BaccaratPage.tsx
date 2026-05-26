@@ -1,8 +1,11 @@
 import type { JSX } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useMachine } from '@xstate/react';
-import { useReducedMotion } from 'framer-motion';
 import GameShell from '@/games/_shared/GameShell';
+import LobbyButton from '@/games/_shared/LobbyButton';
+import OddsInfoBox from '@/games/_shared/OddsInfoBox';
+import { useEffectiveReducedMotion } from '@/motion/useEffectiveReducedMotion';
+import { useSound } from '@/systems/sound/useSound';
 import type { RecentResultItem } from '@/games/_shared/RecentResults';
 import { useCurrentUser } from '@/store/sessionStore';
 import { useBalance, useWalletStore } from '@/store/walletStore';
@@ -18,6 +21,31 @@ import Scoreboard from './Scoreboard';
 import WinCelebration from './WinCelebration';
 import ChipSelector from './ChipSelector';
 import BaccaratRules from './rules';
+
+/**
+ * MASQUER · Baccarat — Phase 15 #8 re-skin of the Punto Banco table on the
+ * Velvet Deco design system.
+ *
+ * Pure logic (`logic.ts` / `shoe.ts` / `types.ts` / `config.ts` / `machine.ts`)
+ * is byte-stable: the canonical Punto Banco third-card tableau (ADR-0036),
+ * floor-rounded banker commission (ADR-0036), persistent 8-deck shoe with cut
+ * card (ADR-0037), and all 9 bet zones are untouched.
+ *
+ * Page-level changes vs. the original v0.7 page:
+ *   - `MASQUER · Baccarat` title + shared `LobbyButton` / `OddsInfoBox` per
+ *     the Phase 15 shell conventions (#226 / #230 / #232 / #235).
+ *   - `meta` prop removed — `OddsInfoBox` replaces the right-side caption.
+ *   - `ChipSelector` now consumes the shared `ChipDenominationButton` so the
+ *     chip palette is byte-identical to Slots / Roulette / Blackjack /
+ *     Coin-flip.
+ *   - Tokenised felt + brass-frame visuals across the bet area, hand panels,
+ *     scoreboard, shoe indicator, and celebration overlay. Scoreboard cells
+ *     ride the new `scoreboard-banker / -player / -tie` brand tokens.
+ *   - `useSound` integration: `chip.place` on every bet-zone click,
+ *     `card.deal` per card reveal, `win.{small,medium,jackpot}` / `loss`
+ *     stinger on settle, `wheel.spin` when the cut card triggers a
+ *     reshuffle. All gated on `useEffectiveReducedMotion`.
+ */
 
 const ANIMATIONS = `
   @keyframes baccaratJackpot { 0% { opacity: 0; } 20% { opacity: 1; } 100% { opacity: 0; } }
@@ -60,10 +88,56 @@ function aggregate(bets: Bets, payouts: Payouts): AggregatedSettlement {
   return { betAmount, payout, netChange, outcome };
 }
 
+/**
+ * Map a settled round to a sound-stinger tier per spec §4.4:
+ *   - jackpot — any natural win, OR a Dragon 30:1 hit (margin 9, non-natural).
+ *   - medium  — non-jackpot ties, pairs, big dragons, big single-zone wins.
+ *   - small   — modest wins (typical player / banker single-zone, big / small).
+ *   - loss    — net negative on the round.
+ *   - none    — net zero (push) or no winning zones.
+ */
+type SoundTier = 'jackpot' | 'medium' | 'small' | 'loss' | 'none';
+
+function soundTierFor(result: RoundResult, payouts: Payouts, net: number): SoundTier {
+  if (net < 0) return 'loss';
+  // Naturals always jackpot per spec.
+  if (result.winnerNatural) return 'jackpot';
+  // Dragon 30:1 hit → jackpot.
+  if (
+    result.margin === 9 &&
+    !result.winnerNatural &&
+    (payouts.playerDragon > 0 || payouts.bankerDragon > 0)
+  ) {
+    return 'jackpot';
+  }
+  let bestRank = 0;
+  for (const [zone, change] of Object.entries(payouts) as [keyof Payouts, number][]) {
+    if (change <= 0) continue;
+    const r = zoneSoundRank(zone, result);
+    if (r > bestRank) bestRank = r;
+  }
+  if (bestRank >= 2) return 'medium';
+  if (bestRank === 1) return 'small';
+  return 'none';
+}
+
+function zoneSoundRank(zone: keyof Payouts, result: RoundResult): number {
+  if (zone === 'playerDragon' || zone === 'bankerDragon') {
+    if (result.margin >= 7) return 2;
+    return 1;
+  }
+  if (zone === 'tie') return 2;
+  if (zone === 'playerPair' || zone === 'bankerPair') return 2;
+  if (zone === 'player' || zone === 'banker') return 1;
+  if (zone === 'big' || zone === 'small') return 1;
+  return 0;
+}
+
 export default function BaccaratPage(): JSX.Element | null {
   const user = useCurrentUser();
   const balance = useBalance() ?? 0;
-  const reducedMotion = useReducedMotion() ?? false;
+  const reducedMotion = useEffectiveReducedMotion();
+  const { play } = useSound();
 
   const [state, send] = useMachine(baccaratMachine, { input: { reducedMotion } });
   const [selectedChip, setSelectedChip] = useState<ChipDenomination>(DEFAULT_CHIP);
@@ -97,12 +171,15 @@ export default function BaccaratPage(): JSX.Element | null {
       return;
     }
     // Reveal one card at a time at ~400ms intervals, interleaving P/B.
+    // A `card.deal` stinger fires alongside each card-flip tick so the
+    // audio cadence tracks the visual cadence (spec §4.4).
     const ids: number[] = [];
     let step = 0;
     const tick = () => {
       setPlayerRevealed((n) => Math.min(playerCardCount, n + (step % 2 === 0 ? 1 : 0)));
       setBankerRevealed((n) => Math.min(bankerCardCount, n + (step % 2 === 1 ? 1 : 0)));
       step += 1;
+      play('card.deal');
     };
     const totalSteps = playerCardCount + bankerCardCount;
     for (let i = 0; i < totalSteps; i++) {
@@ -111,7 +188,7 @@ export default function BaccaratPage(): JSX.Element | null {
     return () => {
       ids.forEach(window.clearTimeout);
     };
-  }, [playerCardCount, bankerCardCount, reducedMotion]);
+  }, [playerCardCount, bankerCardCount, reducedMotion, play]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   // Wallet bridge — settle once per round when roundResult appears.
@@ -130,7 +207,40 @@ export default function BaccaratPage(): JSX.Element | null {
     const payouts = computePayouts(betsAtDeal, result);
     const agg = aggregate(betsAtDeal, payouts);
     void persistRound(user.id, betsAtDeal, result, payouts, agg, placeBet, settleRound);
-  }, [state.context.roundResult, roundCount, betsAtDeal, user, placeBet, settleRound]);
+    // Spec §4.4 sound stingers fire alongside the wallet write — `play()`
+    // no-ops under user prefs or OS reduced-motion so guarding is optional,
+    // but we honour `reducedMotion` here too for consistency with Slots /
+    // Roulette.
+    if (!reducedMotion) {
+      const tier = soundTierFor(result, payouts, agg.netChange);
+      if (tier === 'jackpot') play('win.jackpot');
+      else if (tier === 'medium') play('win.medium');
+      else if (tier === 'small') play('win.small');
+      else if (tier === 'loss') play('loss');
+    }
+  }, [
+    state.context.roundResult,
+    roundCount,
+    betsAtDeal,
+    user,
+    placeBet,
+    settleRound,
+    play,
+    reducedMotion,
+  ]);
+
+  // Spec §4.4 optional `wheel.spin` whoosh when the cut card has been
+  // crossed and a reshuffle is queued. Fires once per crossing event.
+  const cutCardRef = useRef<boolean>(false);
+  useEffect(() => {
+    const passed = state.context.shoe.cutCardPassed;
+    if (passed && !cutCardRef.current) {
+      cutCardRef.current = true;
+      if (!reducedMotion) play('wheel.spin');
+    } else if (!passed && cutCardRef.current) {
+      cutCardRef.current = false;
+    }
+  }, [state.context.shoe.cutCardPassed, reducedMotion, play]);
 
   // History for the scoreboard — from the rounds table.
   const rounds = useRecentRounds(user?.id, 'baccarat', 60);
@@ -155,6 +265,8 @@ export default function BaccaratPage(): JSX.Element | null {
   );
 
   // Recent results for GameShell's right-rail (newest-first, matches other games).
+  // Badge colours reference the new scoreboard tokens via CSS vars so the
+  // pill backgrounds stay byte-identical to the bead-plate / big-road palette.
   const recentItems: RecentResultItem[] = useMemo(
     () =>
       rounds.map((r) => {
@@ -162,12 +274,16 @@ export default function BaccaratPage(): JSX.Element | null {
         const winner = d.winner ?? 'tie';
         const badgeText = winner === 'player' ? 'P' : winner === 'banker' ? 'B' : 'T';
         const badgeColor =
-          winner === 'player' ? '#a3122a' : winner === 'banker' ? '#5b6ed1' : '#3dd17a';
+          winner === 'player'
+            ? 'var(--brand-scoreboard-player)'
+            : winner === 'banker'
+              ? 'var(--brand-scoreboard-banker)'
+              : 'var(--brand-scoreboard-tie)';
         return {
           key: r.id,
           badgeText,
           badgeColor,
-          badgeTextColor: '#fff',
+          badgeTextColor: 'var(--brand-ivory)',
           betLabel: String(r.betAmount),
           netChips: r.netChange,
           accent: r.outcome,
@@ -188,8 +304,12 @@ export default function BaccaratPage(): JSX.Element | null {
       const delta = next - current;
       if (delta <= 0) return;
       send({ type: 'PLACE_CHIP', zone, amount: delta });
+      // Chip-place stinger per spec §4.4 — fires only when a chip actually
+      // lands (i.e. the zone wasn't already at max). `play()` no-ops under
+      // user prefs; we still guard on reducedMotion for the per-page contract.
+      if (!reducedMotion) play('chip.place');
     },
-    [inBetting, send, state.context.bets, selectedChip],
+    [inBetting, send, state.context.bets, selectedChip, play, reducedMotion],
   );
 
   const handleClearZone = useCallback(
@@ -222,11 +342,29 @@ export default function BaccaratPage(): JSX.Element | null {
 
   return (
     <>
-      <style dangerouslySetInnerHTML={{ __html: ANIMATIONS }} />
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
+      :root {
+        --brand-scoreboard-banker: #a3122a;
+        --brand-scoreboard-player: #1e3a8a;
+        --brand-scoreboard-tie: #3dd17a;
+        --brand-ivory: #f2e7cc;
+      }
+      ${ANIMATIONS}
+    `,
+        }}
+      />
       <GameShell
-        title="🎴 BACCARAT"
-        meta="8-deck shoe · 9 zones"
+        title="MASQUER · Baccarat"
         game="baccarat"
+        lobbyButton={<LobbyButton />}
+        oddsInfo={
+          <OddsInfoBox>
+            Player 1:1 · Banker 1:1 (−5%) · Tie 8:1 · Pairs 11:1 · Big 0.54:1 · Small 1.5:1 ·
+            Dragons up to 30:1
+          </OddsInfoBox>
+        }
         recentItems={recentItems}
         rules={<BaccaratRules />}
         bettingPanel={
@@ -236,9 +374,9 @@ export default function BaccaratPage(): JSX.Element | null {
                 shoe={state.context.shoe}
                 freshShoeBanner={state.context.freshShoeBanner}
               />
-              <div className="text-xs text-white/60">
+              <div className="text-xs text-ivory/70">
                 Bet: <span className="font-display text-gold">{totalBet}</span> · Balance:{' '}
-                <span className="font-mono text-white/80">{balance.toLocaleString()}</span>
+                <span className="font-mono text-ivory/90">{balance.toLocaleString()}</span>
               </div>
             </div>
             <div className="flex items-center justify-between gap-3">
@@ -247,7 +385,13 @@ export default function BaccaratPage(): JSX.Element | null {
                 type="button"
                 onClick={handleDeal}
                 disabled={!inBetting || totalBet === 0 || totalBet > balance}
-                className="rounded bg-gold px-6 py-2 font-display text-sm tracking-wider text-felt-deep hover:bg-gold-bright disabled:opacity-40"
+                aria-label="Deal the round"
+                className={[
+                  'min-h-[44px] min-w-[120px] rounded-md border border-brass bg-velvet px-6 py-2.5',
+                  'font-display text-sm uppercase tracking-[0.22em] text-ivory shadow-gold-glow',
+                  'transition-colors duration-150 hover:bg-velvet-deep disabled:opacity-40',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2 focus-visible:ring-offset-felt-table-deep',
+                ].join(' ')}
               >
                 DEAL
               </button>

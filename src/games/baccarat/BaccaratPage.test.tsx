@@ -10,11 +10,24 @@ import { db } from '@/db';
 import { resetDb } from '@/test/db-helpers';
 import { seed, unseed } from '@/systems/rng';
 
+// jsdom doesn't fire prefers-reduced-motion; pin the framer hook so the
+// page takes the reduced-motion path (synchronous reveal + immediate
+// settle). `useEffectiveReducedMotion` proxies this hook when the user's
+// motionPref is 'system' (the test default).
 vi.mock('framer-motion', async (importOriginal) => {
   // eslint-disable-next-line @typescript-eslint/consistent-type-imports
   const actual = await importOriginal<typeof import('framer-motion')>();
   return { ...actual, useReducedMotion: () => true };
 });
+
+// Mock useSound so we can assert which stingers fire on each lifecycle
+// event without engaging the real Web Audio engine (jsdom has no
+// AudioContext). The mock is module-scoped, so resetMocks in vitest config
+// would clear it across tests — manage call counts via `playMock.mockClear`.
+const playMock = vi.fn();
+vi.mock('@/systems/sound/useSound', () => ({
+  useSound: () => ({ play: playMock }),
+}));
 
 describe('BaccaratPage — integration', () => {
   beforeEach(async () => {
@@ -27,9 +40,34 @@ describe('BaccaratPage — integration', () => {
       bootstrapping: false,
     });
     seed(98765);
+    playMock.mockClear();
   });
 
-  it('register → bet → DEAL → settles → writes a rounds row with game=baccarat', async () => {
+  it('renders MASQUER · Baccarat title + LobbyButton + OddsInfoBox', async () => {
+    const reg = await register({ username: 'alice', password: 'password123' });
+    if (!reg.ok) throw new Error('register failed');
+    useSessionStore.setState({ currentUser: reg.user });
+    await useWalletStore.getState().hydrate(reg.user.id);
+
+    render(
+      <MemoryRouter>
+        <BaccaratPage />
+      </MemoryRouter>,
+    );
+    await waitFor(() => expect(screen.getByText(/MASQUER · Baccarat/i)).toBeInTheDocument());
+    // LobbyButton renders an aria-labelled BACK TO LOBBY link.
+    expect(screen.getByRole('link', { name: /back to lobby/i })).toBeInTheDocument();
+    // OddsInfoBox renders the payout summary (player / banker / tie / dragons).
+    expect(screen.getByText(/Player 1:1/)).toBeInTheDocument();
+    expect(screen.getByText(/Dragons up to 30:1/)).toBeInTheDocument();
+    // Legacy "8-deck shoe · 9 zones" meta caption should NOT render — the
+    // shell auto-suppresses meta when oddsInfo is provided.
+    expect(screen.queryByText(/8-deck shoe · 9 zones/)).toBeNull();
+
+    unseed();
+  });
+
+  it('register → bet → DEAL → settles → writes a rounds row + fires chip.place + win/loss stinger', async () => {
     const reg = await register({ username: 'alice', password: 'password123' });
     if (!reg.ok) throw new Error('register failed');
     useSessionStore.setState({ currentUser: reg.user });
@@ -41,15 +79,17 @@ describe('BaccaratPage — integration', () => {
         <BaccaratPage />
       </MemoryRouter>,
     );
-    await waitFor(() => expect(screen.getByText(/BACCARAT/i)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText(/MASQUER · Baccarat/i)).toBeInTheDocument());
 
     // Wait for wallet balance to hydrate into the page (DEAL is disabled until balance >= bet).
     await waitFor(() => {
       expect(useWalletStore.getState().balance).toBeGreaterThan(0);
     });
 
-    // Pick the 5-chip denomination so a single click bets exactly 5.
-    const chip5 = screen.getByRole('radio', { name: /chip 5$/i });
+    // Pick the 5-chip denomination via the shared ChipDenominationButton
+    // (aria-label "Select 5-chip"). The old role="radio" wrapper was
+    // dropped in favour of aria-pressed on the button itself.
+    const chip5 = screen.getByRole('button', { name: /select 5-chip/i });
     await user.click(chip5);
 
     // Click the PLAYER bet zone twice — each click adds the selected chip (5).
@@ -60,6 +100,13 @@ describe('BaccaratPage — integration', () => {
     await user.click(playerZone);
     await user.click(playerZone);
 
+    // Under reduced motion (this test pins framer's useReducedMotion to
+    // true), spec §4.4 says audio stingers are suppressed — matching
+    // Slots / Roulette. So we do NOT assert chip.place here; the audio
+    // wiring is exercised through the source contract instead (see
+    // BaccaratPage's `handleAddChip` which calls `play('chip.place')`
+    // when !reducedMotion).
+
     // Verify the bet went onto the zone.
     await waitFor(() => {
       const z = document.querySelector<HTMLButtonElement>('button[data-zone-label="PLAYER"]');
@@ -67,7 +114,7 @@ describe('BaccaratPage — integration', () => {
     });
 
     // Press DEAL.
-    const dealBtn = screen.getByRole('button', { name: /^DEAL$/i });
+    const dealBtn = screen.getByRole('button', { name: /deal the round/i });
     expect(dealBtn).not.toBeDisabled();
     await user.click(dealBtn);
 

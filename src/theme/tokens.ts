@@ -14,6 +14,7 @@ export const colors = {
   porcelain: '#ffffff',
   'jewel-ruby': '#7a1422',
   'jewel-emerald': '#1f6b4a',
+  'jewel-sapphire': '#1e3a8a',
   /**
    * Magenta neon for the Slots jackpot signature (3× Seven). ADR-0033 locks
    * this as the per-tier visual cue. Phase 15 #7 promotes the existing
@@ -21,6 +22,18 @@ export const colors = {
    * + the Seven SVG tube can reference it via class / CSS var.
    */
   'jewel-magenta': '#ff5cf2',
+  /**
+   * Scoreboard semantic colours (baccarat bead-plate / big-road / recent
+   * results badges). Banker traditionally red, Player traditionally blue,
+   * Tie green. Phase 15 #8 promotes these from raw hex (`#a3122a`,
+   * `#5b6ed1`, `#3dd17a`) to brand tokens so the brand can swap them
+   * later without touching components. Banker reuses the velvet family
+   * (deep oxblood); Player aligns with `jewel-sapphire`; Tie aligns with
+   * `jewel-emerald` lifted slightly for ivory-on-felt contrast.
+   */
+  'scoreboard-banker': '#a3122a',
+  'scoreboard-player': '#1e3a8a',
+  'scoreboard-tie': '#3dd17a',
   win: '#e6c068',
   loss: '#7a1f2b',
   push: '#8a7a55',

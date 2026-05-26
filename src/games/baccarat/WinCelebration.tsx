@@ -48,6 +48,12 @@ function rank(t: Tier): number {
   return RANK[t];
 }
 
+/**
+ * Per-tier celebration overlay. The visual palette references brand
+ * tokens via inline CSS variables so the gradient fills can use the
+ * MASQUER colours (jewel-magenta for jackpot, gold for medium) without
+ * Tailwind's `theme()` macro inside an animation keyframe rule.
+ */
 export default function WinCelebration({
   result,
   payouts,
@@ -64,6 +70,18 @@ export default function WinCelebration({
     <div
       className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center"
       data-baccarat-celebration={tier}
+      style={
+        {
+          // Inline CSS vars so the keyframe gradient fills can reference
+          // brand tokens (token mirrors live in tokens.ts).
+          '--brand-jewel-magenta': '#ff5cf2',
+          '--brand-gold': '#e6c068',
+          '--brand-gold-bright': '#f0c64a',
+          '--brand-velvet': '#5a1320',
+          '--brand-felt-table-deep': '#0e2e21',
+          '--brand-ivory': '#f2e7cc',
+        } as React.CSSProperties
+      }
     >
       {tier === 'jackpot' && !reducedMotion && (
         <>
@@ -71,7 +89,8 @@ export default function WinCelebration({
             aria-hidden
             className="absolute inset-0"
             style={{
-              background: 'radial-gradient(circle, rgba(255,92,242,0.18) 0%, transparent 70%)',
+              background:
+                'radial-gradient(circle, color-mix(in srgb, var(--brand-jewel-magenta) 18%, transparent) 0%, transparent 70%)',
               animation: 'baccaratJackpot 1500ms ease-out',
             }}
           />
@@ -86,8 +105,9 @@ export default function WinCelebration({
                 width: 10,
                 height: 10,
                 borderRadius: '50%',
-                background: 'radial-gradient(circle at 30% 30%, #ffd23f, #d4af37)',
-                boxShadow: '0 0 4px rgba(212,175,55,0.8)',
+                background:
+                  'radial-gradient(circle at 30% 30%, var(--brand-gold-bright), var(--brand-gold))',
+                boxShadow: '0 0 4px color-mix(in srgb, var(--brand-gold) 80%, transparent)',
                 animation: `baccaratCoinFall 1500ms ease-out ${i * 80}ms forwards`,
                 opacity: 0,
               }}
@@ -103,17 +123,20 @@ export default function WinCelebration({
             width: 360,
             height: 100,
             background:
-              'radial-gradient(ellipse at center, rgba(255,224,102,0.5) 0%, transparent 70%)',
+              'radial-gradient(ellipse at center, color-mix(in srgb, var(--brand-gold-bright) 50%, transparent) 0%, transparent 70%)',
             animation: 'baccaratMediumBurst 800ms ease-out',
           }}
         />
       )}
       <div
-        className="rounded-md border px-5 py-2 font-display text-sm tracking-wider"
+        className={[
+          'rounded-md border px-5 py-2 font-display text-sm uppercase tracking-[0.22em]',
+          tier === 'jackpot' ? 'shadow-[0_0_24px_rgba(255,92,242,0.45)]' : 'shadow-gold-glow',
+        ].join(' ')}
         style={{
-          borderColor: tier === 'jackpot' ? '#ff5cf2' : '#d4af37',
-          background: '#06120c',
-          color: tier === 'jackpot' ? '#ff5cf2' : '#ffe066',
+          borderColor: tier === 'jackpot' ? 'var(--brand-jewel-magenta)' : 'var(--brand-gold)',
+          background: 'var(--brand-felt-table-deep)',
+          color: tier === 'jackpot' ? 'var(--brand-jewel-magenta)' : 'var(--brand-gold-bright)',
           marginTop: -180,
         }}
       >

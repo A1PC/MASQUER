@@ -39,7 +39,10 @@ export default function BetArea({
   });
 
   return (
-    <div className="flex flex-col gap-2">
+    <div
+      className="flex flex-col gap-2 rounded-lg border border-brass/60 bg-felt-table/60 p-2 shadow-velvet-panel"
+      data-baccarat-bet-area
+    >
       {/* Pairs + Big/Small row */}
       <div className="grid h-[72px] grid-cols-3 gap-2">
         <BetZone {...zoneProps('playerPair')} variant="side" />
