@@ -1,7 +1,7 @@
 # Phase 15 sub-project #9 — Lottery upgrade
 
-**Status:** Draft for user review.
-**Date:** 2026-05-26.
+**Status:** Draft for user review (amended 2026-05-26 — game expanded to Pick-6+1 per UK National Lottery shape with new payout table).
+**Date:** 2026-05-26 (initial + addendum same day).
 **Sub-project:** #9 in the Phase 15 umbrella (`2026-05-22-phase-15-umbrella-roadmap-design.md`). Per release order, follows #8 Baccarat ✅, precedes #10 Bingo (British / American).
 **Original release:** Phase 10 (`v0.10-lottery`, 2026-05-19). Pick-5+1 daily lottery with strict 20:00 local draw + idempotent backfill, 4 Dexie tables (lotteryDraws / lotteryTickets / lotteryLines / lotteryFavorites), `systems/lottery.ts` (logic + system; ADR-0040 — not a games-sandbox citizen), LotteryPage (HeroSection + NumberGrid + TicketCart + FavoritesDropdown + HistorySlide + YourTicketsSlide + DrawAnimationModal), Sidebar 🎟️ LOTTERY + unread dot, AdminLotteryPage (4 stat cards + 2 frequency charts + recent draws), 1M jackpot, ~43% RTP, match-2 free re-entry.
 **Scope answer:** _Pure re-skin + draw-reveal sound polish + dramatic ball reveal + scrollable modals + admin consistency + new economy (20M jackpot, 2-credit ticket)._
@@ -131,23 +131,65 @@ Rules content sections:
 - **Backfill** — if the app is closed when a draw fires, missed draws settle in chronological order on next open.
 - **Favorites** — save number sets you reuse.
 
-### 4.8 New economy
+### 4.8 New economy + Pick-6+1 expansion (per UK National Lottery shape)
 
-**Two constants change in `systems/lottery.ts`:**
+**Game shape change**: Pick-5 main + 1 bonus → **Pick-6 main + 1 bonus** (UK National Lottery shape). `MAIN_POOL_SIZE` stays at **50** (smaller than UK's 59 — keeps the game winnable across a hobby app's draw count). `BONUS_POOL_SIZE` stays at **10**. The draw still produces 6 main + 1 bonus per draw; tickets pick 6 main + 1 bonus.
+
+**New tier matcher** (per user — UK Lottery semantics):
+
+| Player matched | Tier key  | Payout (chips)                                       |
+| -------------- | --------- | ---------------------------------------------------- |
+| 6 main         | `6`       | **20,000,000**                                       |
+| 5 main + bonus | `5+bonus` | **1,000,000**                                        |
+| 5 main         | `5`       | **1,750**                                            |
+| 4 main         | `4`       | **150**                                              |
+| 3 main         | `3`       | **30**                                               |
+| 2 main         | `2`       | **0** (free re-entry — re-entry value = `LINE_COST`) |
+| 0 / 1 main     | `null`    | 0                                                    |
+
+**Dropped tiers**: the old `4+bonus` (was 100K) and `3+bonus` (was 2K) are removed — UK Lottery treats the bonus number as relevant ONLY for the 5+bonus tier (and as part of the jackpot pool for matching). 4 and 3 tiers ignore the bonus.
+
+**`tierFor()` priority** when player matches 6 mains AND bonus: returns `'6'` (the higher tier — 20M > 1M). When player matches 5 mains AND bonus: returns `'5+bonus'`. Etc.
+
+**Constants change in `systems/lottery.ts`:**
 
 ```ts
-const LINE_COST = 2;           // was 10
-// in payoutFor()
-case '5+bonus': return 20_000_000;  // was 1_000_000
+const MAIN_POOL_SIZE = 50; // unchanged
+const BONUS_POOL_SIZE = 10; // unchanged
+const MAIN_PICKS = 6; // NEW — was implicit 5 throughout
+const LINE_COST = 2; // was 10
+
+// payoutFor() rewritten per the table above; LotteryMatchTier union becomes
+// '6' | '5+bonus' | '5' | '4' | '3' | '2' (+ null for losses).
 ```
 
-`REENTRY_VALUE` is already `= LINE_COST`, so it tracks automatically (a free re-entry = a free 2-chip ticket).
+`REENTRY_VALUE = LINE_COST` → free re-entry now worth 2 chips.
 
-**Test updates:** `systems/lottery.test.ts` — any test that asserted `LINE_COST === 10` or `payoutFor('5+bonus') === 1_000_000` or RTP-adjacent math needs updating.
+**Logic-side files touched** (`systems/lottery.ts` + `lottery.test.ts`):
 
-**BUILD_GUIDE §10.5** needs updating to reflect the new economy.
+- `LotteryMatchTier` union — replaced.
+- `tierFor()` — rewritten per the new table.
+- `payoutFor()` — rewritten per the new table.
+- `draw()` — picks 6 mains instead of 5.
+- `LotteryLine` type — `mainNumbers` now length-6 instead of length-5.
+- `isValidLine()` — validates 6 main numbers, not 5.
+- Lucky-dip generator — returns 6 mains.
 
-**⚠ RTP shift — flagged for your confirmation in §8.**
+**UI-side updates that follow from the shape change**:
+
+- `NumberGrid` — player picks 6, not 5; "X/6 selected" instead of "X/5".
+- `HeroSection` — 6 main + 1 bonus = 7 ball slots, not 6.
+- `DrawAnimationModal` — reveals 6 main + 1 bonus.
+- `TicketCart` / `YourTicketsSlide` — render 6-number lines.
+- `Paytable` reference (in rules + OddsInfoBox) — new tier values.
+
+**Dexie schema (v3 → v4 destructive migration)**: existing `lotteryTickets` / `lotteryLines` / `lotteryDraws` rows hold 5-main lines that the new code can't validate. For a play-money local app, the cleanest path is to **clear the four lottery tables on upgrade** (the user has no historical wagering interest). Schema bump to `LOTTERY_SCHEMA_V4` triggers a one-time wipe of `lotteryDraws`, `lotteryTickets`, `lotteryLines`, `lotteryFavorites`. `rounds` rows for past lottery wins stay (no impact on those). The unread-dot resets.
+
+**Test updates:** `systems/lottery.test.ts` — full rewrite of the tier + payout test cases. Phase 10's invariants for `draw()` shape, backfill, idempotence, favorites stay.
+
+**BUILD_GUIDE §10.5** — rewritten to reflect Pick-6+1 + the new payout table.
+
+**⚠ RTP shift — flagged for your confirmation in §8 (updated for Pick-6+1).**
 
 ### 4.9 Out of scope (deferred docket items)
 
@@ -206,34 +248,37 @@ Per the umbrella's §6 cycle:
 
 ---
 
-## 8. ⚠ RTP shift — please confirm
+## 8. ⚠ RTP recalc for Pick-6+1 + new UK tier shape — please confirm
 
-The current economy (`LINE_COST=10`, jackpot=1M) yields ~43% RTP (per the Phase-10 spec). The requested change (`LINE_COST=2`, jackpot=20M) shifts the math substantially:
+The current economy (Pick-5+1, `LINE_COST=10`, jackpot=1M) yields ~43% RTP. The new proposal (Pick-6+1, `LINE_COST=2`, UK Lottery tier shape — see §4.8) recomputed against `C(50,6) = 15,890,700`:
 
-| Tier                | Probability\*  | Old payout    | Old EV/ticket | New payout   | New EV/ticket |
-| ------------------- | -------------- | ------------- | ------------- | ------------ | ------------- |
-| 5+bonus             | ~1/21.2M       | 1,000,000     | ~0.047        | 20,000,000   | ~0.944        |
-| 5                   | ~9/21.2M       | 500,000       | ~0.212        | 500,000      | ~0.212        |
-| 4+bonus             | ~225/21.2M     | 100,000       | ~1.061        | 100,000      | ~1.061        |
-| 4                   | ~2,025/21.2M   | 10,000        | ~0.955        | 10,000       | ~0.955        |
-| 3+bonus             | ~12,150/21.2M  | 2,000         | ~1.147        | 2,000        | ~1.147        |
-| 3                   | ~109,350/21.2M | 100           | ~0.516        | 100          | ~0.516        |
-| 2 (re-entry)        | ~328,050/21.2M | 10 chip value | ~0.155        | 2 chip value | ~0.031        |
-| **Total EV/ticket** |                |               | **~4.09**     |              | **~4.87**     |
-| **Ticket cost**     |                |               | **10**        |              | **2**         |
-| **RTP**             |                |               | **~41%**      |              | **~243%**     |
+| Tier                | Probability            | Payout (chips) | EV/ticket (chips) |
+| ------------------- | ---------------------- | -------------- | ----------------- |
+| 6 mains             | 1 / 15,890,700         | 20,000,000     | **~1.258**        |
+| 5 + bonus           | 264 / 158,907,000      | 1,000,000      | **~1.661**        |
+| 5 mains only        | 2,376 / 158,907,000    | 1,750          | ~0.026            |
+| 4 mains             | 14,190 / 15,890,700    | 150            | ~0.134            |
+| 3 mains             | 264,880 / 15,890,700   | 30             | ~0.500            |
+| 2 (free re-entry)   | 2,036,265 / 15,890,700 | 2 chip value   | ~0.256            |
+| **Total EV/ticket** |                        |                | **~3.84**         |
+| **Ticket cost**     |                        |                | **2**             |
+| **RTP**             |                        |                | **~192%**         |
 
-_Rough probabilities from `C(50,5) _ 10 = 21,187,600` for the full pool.
+**The proposed economy means the house loses ~92 chips per 100 wagered.** Still well above 100%, driven primarily by the 5× ticket-cost drop. The 6-tier jackpot is ~33% of EV, the 5+bonus tier is ~43%, the 3-match tier (because it hits often at 30 chips a pop) is another ~13%.
 
-**The proposed economy means the house loses ~143 chips per 100 wagered.** That's a player-favourable lottery on net, driven primarily by the 5x ticket-cost drop (the 20M jackpot is only ~9% of EV/ticket on its own; the cost change dominates).
+**For reference**: UK National Lottery's real RTP is ~50%. To hit that here:
 
-**Three reasonable resolutions — pick one before I write the plan:**
+- Ticket cost = **8 chips** → ~48% RTP (recommended if you want lottery to behave as a chip-sink like the other games).
+- Ticket cost = **4 chips** → ~96% RTP (roughly break-even — neither sinks nor showers chips).
+- Ticket cost = **2 chips** (as requested) → ~192% RTP (deliberately generous — players net up over time).
 
-- **A) Keep as requested.** Ship 20M jackpot + 2-chip ticket as a deliberately-generous play-money lottery. (Acceptable for a play-money app; just be aware.)
-- **B) Keep 20M jackpot, bump ticket cost.** E.g. ticket = 12 chips (matches roughly the old RTP). Most directly preserves the original `~43%` design intent while delivering the dramatic jackpot.
-- **C) Different numbers entirely.** Tell me what RTP target you want, and I'll back-solve the ticket cost.
+**Three resolutions — pick one before I write the plan:**
 
-I'll lock the plan once you pick. Recommend (A) explicitly if you're fine with a generous lottery, otherwise (B).
+- **A) Keep as requested** (`LINE_COST=2`, ~192% RTP). Lottery becomes a "weekly windfall" that nets players up over time. Fine if that's the intent.
+- **B) `LINE_COST=8`** (~48% RTP). Tracks real UK Lottery economics; lottery behaves as a chip-sink like the other games.
+- **C) Different numbers.** Tell me a target RTP or ticket cost and I'll back-solve.
+
+I'll lock the plan once you pick. Recommend **(B)** if you want the lottery to drain chips long-run like other games, **(A)** if you want it to be a generous showcase feature.
 
 ---
 
