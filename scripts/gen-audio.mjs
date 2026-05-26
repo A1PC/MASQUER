@@ -218,6 +218,23 @@ function ballDrop() {
   return normalize(buf, 0.85);
 }
 
+// Plinko peg ping — ~40 ms enveloped sine at ~600 Hz with a 4 ms sharp
+// attack and exponential decay, plus a brief noise transient for the
+// pachinko/pinball "tick" feel. Soft and short so the 20+ pings per ball
+// (Phase 15 #11 ROW_COUNT = 26) coalesce into a percussive rhythm rather
+// than a wall of noise. Played by PlinkoPage on every peg bounce
+// (debounced to max 1 per 30 ms across all in-flight balls).
+function pegPing() {
+  const buf = buffer(0.04);
+  const rng = makeRng(0x9e9);
+  add(buf, (t) => {
+    const tone = sine(t, 600) * env(t, 0.038, 0.004) * 0.7;
+    const click = (rng() * 2 - 1) * env(t, 0.008, 0.0005) * 0.3;
+    return tone + click;
+  });
+  return normalize(buf, 0.7);
+}
+
 function ambienceLounge() {
   const seconds = 3;
   const buf = buffer(seconds);
@@ -283,6 +300,7 @@ const FILES = {
   'coin-flip.wav': coinFlip,
   'wheel-spin.wav': wheelSpin,
   'ball-drop.wav': ballDrop,
+  'peg-ping.wav': pegPing,
   'win-small.wav': winSmall,
   'win-medium.wav': winMedium,
   'win-jackpot.wav': winJackpot,
