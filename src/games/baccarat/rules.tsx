@@ -1,137 +1,191 @@
 import type { JSX } from 'react';
 
+/**
+ * MASQUER · Baccarat rules. Mirrors the Slots / Blackjack / Roulette
+ * section structure: sectioned `<h3>` display-face headings on the
+ * gold token, body copy at `text-ivory/85`, brass-hairline table rules.
+ * Content covers object, card values, naturals, the canonical
+ * Punto Banco third-card tableau (summary form — full tableau lives
+ * in ADR-0036), all 9 zone payouts, banker commission floor-rounding,
+ * shoe + cut card behaviour, bet limits, and the bead-plate / big-road
+ * scoreboard.
+ */
 export default function BaccaratRules(): JSX.Element {
   return (
     <div className="space-y-4">
       <section>
-        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold">HOW TO PLAY</h3>
-        <ol className="ml-5 list-decimal space-y-1">
-          <li>Pick a chip denomination, then click any of the 9 zones to place chips.</li>
-          <li>Press DEAL. Two cards are dealt to PLAYER and BANKER.</li>
-          <li>
-            A fixed tableau decides whether either side draws a third card &mdash; no choices.
-          </li>
-          <li>Whichever side ends with a higher total (ones digit of the sum) wins.</li>
-          <li>
-            Card values: Ace = 1, 2–9 face, 10/J/Q/K = 0. Total = ones digit (7 + 8 = 15 → 5).
-          </li>
-        </ol>
-        <p className="mt-2 text-xs text-white/60">
-          8-deck shoe with a cut card. The shoe reshuffles automatically between rounds once the cut
-          card is dealt.
+        <h3 className="mb-1 font-display text-xs uppercase tracking-[0.18em] text-gold">Object</h3>
+        <p className="text-sm text-ivory/85">
+          Bet on which side wins — PLAYER or BANKER — or that they TIE. Each side is dealt at least
+          two cards. The hand total is the <em>ones digit</em> of the card-value sum (7 + 8 = 15 →
+          5). Whichever total is closer to 9 wins.
         </p>
       </section>
 
       <section>
-        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold">MAIN BETS</h3>
-        <table className="w-full text-left text-sm">
+        <h3 className="mb-1 font-display text-xs uppercase tracking-[0.18em] text-gold">
+          Card values
+        </h3>
+        <p className="text-sm text-ivory/85">
+          Ace = 1 · 2–9 face value · 10 / J / Q / K = 0. Suits and colours are irrelevant. Pairs are{' '}
+          <em>rank</em>-based, not value-based — two 10s pair, a 10 and a J do not.
+        </p>
+      </section>
+
+      <section>
+        <h3 className="mb-1 font-display text-xs uppercase tracking-[0.18em] text-gold">
+          Naturals
+        </h3>
+        <p className="text-sm text-ivory/85">
+          A 2-card total of 8 or 9 is a <strong className="text-gold-bright">natural</strong> and
+          ends the hand immediately — no third cards are drawn. Two naturals at the same total push
+          (or tie, depending on the bet).
+        </p>
+      </section>
+
+      <section>
+        <h3 className="mb-1 font-display text-xs uppercase tracking-[0.18em] text-gold">
+          Third-card rules
+        </h3>
+        <p className="text-sm text-ivory/85">
+          Drawing is automatic — no player choices. The dealer follows the canonical Punto Banco
+          tableau:
+        </p>
+        <ul className="ml-5 mt-1.5 list-disc space-y-1 text-sm text-ivory/85">
+          <li>
+            <strong>Player</strong> draws on totals 0–5, stands on 6–7.
+          </li>
+          <li>
+            <strong>Banker</strong>&rsquo;s action depends on its total <em>and</em> (if Player
+            drew) the value of Player&rsquo;s third card. Lower Banker totals draw more
+            aggressively; higher totals stand more often.
+          </li>
+          <li>Either side&rsquo;s natural skips everything above.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h3 className="mb-1 font-display text-xs uppercase tracking-[0.18em] text-gold">
+          Main bets
+        </h3>
+        <table className="w-full text-left text-sm text-ivory/85">
           <thead>
-            <tr className="border-b border-gold/30 text-xs uppercase tracking-wider text-white/55">
+            <tr className="border-b border-brass/40 text-[10px] uppercase tracking-[0.18em] text-ivory/55">
               <th className="py-1.5 pr-4">Bet</th>
               <th className="py-1.5 pr-4">Pays</th>
               <th className="py-1.5">Limits</th>
             </tr>
           </thead>
           <tbody>
-            <tr className="border-b border-white/5">
-              <td className="py-1.5 pr-4">PLAYER wins</td>
-              <td className="py-1.5 pr-4">1 : 1</td>
-              <td className="py-1.5">5 – 2000</td>
+            <tr className="border-b border-brass/15">
+              <td className="py-1.5 pr-4">
+                <span className="font-display text-scoreboard-player">PLAYER</span> wins
+              </td>
+              <td className="py-1.5 pr-4 font-mono text-gold-bright">1 : 1</td>
+              <td className="py-1.5 font-mono">5 – 2000</td>
             </tr>
-            <tr className="border-b border-white/5">
-              <td className="py-1.5 pr-4">BANKER wins</td>
-              <td className="py-1.5 pr-4">1 : 1 minus 5% commission</td>
-              <td className="py-1.5">5 – 2000</td>
+            <tr className="border-b border-brass/15">
+              <td className="py-1.5 pr-4">
+                <span className="font-display text-scoreboard-banker">BANKER</span> wins
+              </td>
+              <td className="py-1.5 pr-4 font-mono text-gold-bright">1 : 1 − 5%</td>
+              <td className="py-1.5 font-mono">5 – 2000</td>
             </tr>
             <tr>
-              <td className="py-1.5 pr-4">TIE</td>
-              <td className="py-1.5 pr-4">8 : 1 (PLAYER &amp; BANKER push on tie)</td>
-              <td className="py-1.5">5 – 2000</td>
+              <td className="py-1.5 pr-4">
+                <span className="font-display text-scoreboard-tie">TIE</span>
+              </td>
+              <td className="py-1.5 pr-4 font-mono text-gold-bright">8 : 1</td>
+              <td className="py-1.5 font-mono">5 – 2000</td>
             </tr>
           </tbody>
         </table>
-        <p className="mt-2 text-xs text-white/60">
-          Banker commission = <code>floor(winnings × 0.05)</code> — small wins keep the whole prize.
+        <p className="mt-2 text-xs text-ivory/65">
+          On a TIE, Player / Banker stakes <em>push</em> (returned, no win). Banker commission is
+          floor-rounded — <code className="text-gold-bright">floor(winnings × 0.05)</code> — so
+          banker wins under 20 chips effectively pay the whole prize.
         </p>
       </section>
 
       <section>
-        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold">SIDE BETS</h3>
-        <table className="w-full text-left text-sm">
+        <h3 className="mb-1 font-display text-xs uppercase tracking-[0.18em] text-gold">
+          Side bets
+        </h3>
+        <table className="w-full text-left text-sm text-ivory/85">
           <thead>
-            <tr className="border-b border-gold/30 text-xs uppercase tracking-wider text-white/55">
+            <tr className="border-b border-brass/40 text-[10px] uppercase tracking-[0.18em] text-ivory/55">
               <th className="py-1.5 pr-4">Bet</th>
-              <th className="py-1.5 pr-4">Wins When</th>
+              <th className="py-1.5 pr-4">Wins when</th>
               <th className="py-1.5">Pays</th>
             </tr>
           </thead>
           <tbody>
-            <tr className="border-b border-white/5">
-              <td className="py-1.5 pr-4">Player Pair / Banker Pair</td>
+            <tr className="border-b border-brass/15">
+              <td className="py-1.5 pr-4">Player Pair · Banker Pair</td>
               <td className="py-1.5 pr-4">That side&rsquo;s first two cards are the same rank</td>
-              <td className="py-1.5">11 : 1</td>
+              <td className="py-1.5 font-mono text-gold-bright">11 : 1</td>
             </tr>
-            <tr className="border-b border-white/5">
+            <tr className="border-b border-brass/15">
               <td className="py-1.5 pr-4">Small</td>
-              <td className="py-1.5 pr-4">Exactly 4 cards drawn (no third for either side)</td>
-              <td className="py-1.5">1.5 : 1 (floor)</td>
+              <td className="py-1.5 pr-4">Exactly 4 cards dealt (no third for either side)</td>
+              <td className="py-1.5 font-mono text-gold-bright">1.5 : 1 (floor)</td>
             </tr>
             <tr>
               <td className="py-1.5 pr-4">Big</td>
-              <td className="py-1.5 pr-4">5 or 6 cards drawn (either side drew a third)</td>
-              <td className="py-1.5">0.54 : 1 (floor)</td>
+              <td className="py-1.5 pr-4">5 or 6 cards dealt (either side drew a third)</td>
+              <td className="py-1.5 font-mono text-gold-bright">0.54 : 1 (floor)</td>
             </tr>
           </tbody>
         </table>
-        <p className="mt-2 text-xs text-white/60">
-          10 and J do <strong>not</strong> pair — pairs are rank-based, not value-based.
+        <p className="mt-2 text-xs text-ivory/65">
+          Small + Big are mutually exclusive — every round resolves exactly one.
         </p>
       </section>
 
       <section>
-        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold">
-          DRAGON BONUS (Player Dragon / Banker Dragon)
+        <h3 className="mb-1 font-display text-xs uppercase tracking-[0.18em] text-gold">
+          Dragon Bonus
         </h3>
-        <p className="mb-2 text-white/85">
-          Pays on the winning side based on margin of victory. A natural (8 or 9 on first two cards)
-          wins regardless of margin. A non-natural margin of 1, 2, or 3 loses even if your side
+        <p className="mb-2 text-sm text-ivory/85">
+          Player Dragon / Banker Dragon pay on the chosen side based on the margin of victory. A
+          natural always wins (any margin). A non-natural win by 1 / 2 / 3 loses — even if your side
           wins.
         </p>
-        <table className="w-full text-left text-sm">
+        <table className="w-full text-left text-sm text-ivory/85">
           <thead>
-            <tr className="border-b border-gold/30 text-xs uppercase tracking-wider text-white/55">
+            <tr className="border-b border-brass/40 text-[10px] uppercase tracking-[0.18em] text-ivory/55">
               <th className="py-1.5 pr-4">Win condition</th>
               <th className="py-1.5">Pays</th>
             </tr>
           </thead>
           <tbody>
-            <tr className="border-b border-white/5">
+            <tr className="border-b border-brass/15">
               <td className="py-1.5 pr-4">Natural win (2-card 8 or 9)</td>
-              <td className="py-1.5">1 : 1</td>
+              <td className="py-1.5 font-mono text-gold-bright">1 : 1</td>
             </tr>
-            <tr className="border-b border-white/5">
+            <tr className="border-b border-brass/15">
               <td className="py-1.5 pr-4">Non-natural win by 4</td>
-              <td className="py-1.5">1 : 1</td>
+              <td className="py-1.5 font-mono text-gold-bright">1 : 1</td>
             </tr>
-            <tr className="border-b border-white/5">
+            <tr className="border-b border-brass/15">
               <td className="py-1.5 pr-4">Win by 5</td>
-              <td className="py-1.5">2 : 1</td>
+              <td className="py-1.5 font-mono text-gold-bright">2 : 1</td>
             </tr>
-            <tr className="border-b border-white/5">
+            <tr className="border-b border-brass/15">
               <td className="py-1.5 pr-4">Win by 6</td>
-              <td className="py-1.5">4 : 1</td>
+              <td className="py-1.5 font-mono text-gold-bright">4 : 1</td>
             </tr>
-            <tr className="border-b border-white/5">
+            <tr className="border-b border-brass/15">
               <td className="py-1.5 pr-4">Win by 7</td>
-              <td className="py-1.5">6 : 1</td>
+              <td className="py-1.5 font-mono text-gold-bright">6 : 1</td>
             </tr>
-            <tr className="border-b border-white/5">
+            <tr className="border-b border-brass/15">
               <td className="py-1.5 pr-4">Win by 8</td>
-              <td className="py-1.5">10 : 1</td>
+              <td className="py-1.5 font-mono text-gold-bright">10 : 1</td>
             </tr>
-            <tr className="border-b border-white/5">
+            <tr className="border-b border-brass/15">
               <td className="py-1.5 pr-4">Win by 9</td>
-              <td className="py-1.5 text-neon-magenta">30 : 1</td>
+              <td className="py-1.5 font-mono text-jewel-magenta">30 : 1</td>
             </tr>
             <tr>
               <td className="py-1.5 pr-4">Tie with both sides natural</td>
@@ -142,26 +196,47 @@ export default function BaccaratRules(): JSX.Element {
       </section>
 
       <section>
-        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold">THIRD-CARD RULES</h3>
-        <p className="text-white/85">
-          Implemented to the canonical Punto Banco tableau. If either side is dealt a natural (8 or
-          9 on the first two cards), the round ends immediately. Otherwise: PLAYER draws on 0–5,
-          stands on 6–7. BANKER&rsquo;s action then depends on its own total and (if PLAYER drew)
-          the value of PLAYER&rsquo;s third card.
+        <h3 className="mb-1 font-display text-xs uppercase tracking-[0.18em] text-gold">
+          Shoe + cut card
+        </h3>
+        <p className="text-sm text-ivory/85">
+          Cards come from an 8-deck persistent shoe (~416 cards) — every dealt card stays out of
+          play until the shoe reshuffles. A cut card is placed uniformly somewhere between 14 and 28
+          cards from the back. When the dealer crosses it, the <em>current</em> round finishes
+          normally and the <em>next</em> round opens with a fresh shoe.
         </p>
       </section>
 
       <section>
-        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold">SCOREBOARD</h3>
-        <ul className="ml-5 list-disc space-y-1 text-white/85">
+        <h3 className="mb-1 font-display text-xs uppercase tracking-[0.18em] text-gold">
+          Bet limits
+        </h3>
+        <ul className="ml-5 list-disc space-y-1 text-sm text-ivory/85">
           <li>
-            <strong>Bead plate</strong> — one dot per round, oldest first, column-by-column. Red =
-            Player, blue = Banker, green = Tie.
+            <strong>Player / Banker / Tie</strong> — 5 to 2000 chips per zone.
+          </li>
+          <li>
+            <strong>Pairs / Big / Small / Dragons</strong> — 5 to 1000 chips per zone.
+          </li>
+        </ul>
+      </section>
+
+      <section>
+        <h3 className="mb-1 font-display text-xs uppercase tracking-[0.18em] text-gold">
+          Scoreboard
+        </h3>
+        <ul className="ml-5 list-disc space-y-1 text-sm text-ivory/85">
+          <li>
+            <strong>Bead plate</strong> — one dot per round, oldest first, top-to-bottom and then
+            left-to-right. <span className="text-scoreboard-player">Blue = Player</span> ·{' '}
+            <span className="text-scoreboard-banker">Red = Banker</span> ·{' '}
+            <span className="text-scoreboard-tie">Green = Tie</span>. A small dot in the corner
+            marks a pair on that side.
           </li>
           <li>
             <strong>Big road</strong> — the canonical walked-pen layout: same-side wins drop down
             the column; a different winner starts a new column; ties overlay a count on the most
-            recent cell.
+            recent non-tie cell. Use it however helps your superstition.
           </li>
         </ul>
       </section>
