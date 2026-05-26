@@ -61,7 +61,7 @@ describe('BingoCard', () => {
     expect(screen.queryAllByRole('button').length).toBe(0);
   });
 
-  it('daubed cell wears the jewel-magenta inset ring', () => {
+  it('daubed cell wears a gold inset ring', () => {
     const card = generateCard('test-daubed', 'british');
     const daubed = emptyDaubGrid('british');
     // Find a cell with a numeric value to flip daubed.
@@ -78,7 +78,7 @@ describe('BingoCard', () => {
     );
     const daubedCell = container.querySelector('[data-daubed="true"]');
     expect(daubedCell).not.toBeNull();
-    expect(daubedCell!.className).toContain('ring-jewel-magenta');
+    expect(daubedCell!.className).toContain('ring-gold');
   });
 
   it('uses the velvet card surface with brass border', () => {

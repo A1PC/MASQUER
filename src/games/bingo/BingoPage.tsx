@@ -1,6 +1,6 @@
 import type { JSX } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useSearchParams, Navigate, useNavigate } from 'react-router';
+import { useSearchParams, useNavigate } from 'react-router';
 import { useMachine } from '@xstate/react';
 import { AnimatePresence } from 'framer-motion';
 import { useCurrentUser } from '@/store/sessionStore';
@@ -32,6 +32,7 @@ import DaubToggle from './DaubToggle';
 import WinBanner from './WinBanner';
 import EndScreen from './EndScreen';
 import BingoRules from './BingoRules';
+import BingoVariantModal from './BingoVariantModal';
 
 function isVariant(v: string | null): v is Variant {
   return v === 'british' || v === 'american';
@@ -212,9 +213,22 @@ export default function BingoPage(): JSX.Element | null {
     return out;
   }, [snapshot.context.claimLog]);
 
-  // Guards that fire after all hooks
+  // Guards that fire after all hooks.
+  // When no `?variant=` param is present (e.g. user clicked Bingo in the
+  // sidebar), render the variant chooser modal in-page instead of bouncing
+  // to the lobby. The modal navigates to `/play/bingo?variant=X` on pick,
+  // which re-enters this component with `invalidVariant === false`. The
+  // close action (Esc / backdrop) takes the user back to the lobby — that
+  // preserves the "back out" option without changing the modal's own API.
   if (invalidVariant) {
-    return <Navigate to="/lobby" replace />;
+    return (
+      <BingoVariantModal
+        open
+        onClose={() => {
+          void navigate('/lobby');
+        }}
+      />
+    );
   }
 
   if (!user) return null;

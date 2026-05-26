@@ -17,10 +17,10 @@ interface Props {
 
 /**
  * Player + CPU card surface. Brass-framed velvet panel with daubed cells
- * marked by a `bg-jewel-magenta` ring (instead of the old gold fill that
- * obscured the underlying number). Manual-mode taps fire a small scale
- * punch (1.0 → 1.05 → 1.0) per spec §4.4; reduced-motion collapses to
- * instant via `useEffectiveReducedMotion`.
+ * marked by a gold ring around a darker felt body so the underlying number
+ * still reads. Manual-mode taps fire a small scale punch (1.0 → 1.05 → 1.0)
+ * per spec §4.4; reduced-motion collapses to instant via
+ * `useEffectiveReducedMotion`.
  */
 export default function BingoCard({
   card,
@@ -63,13 +63,13 @@ export default function BingoCard({
           const isEmpty = cell.value === null && !isFree;
           const interactive =
             manualMode && !isDaubed && !isFree && cell.value !== null && onCellClick;
-          // Layered chrome: undaubed = ivory on a darker felt; daubed = ivory
-          // on a deep felt with a magenta inset ring so the number still
+          // Layered chrome: undaubed = ivory on a darker felt; daubed = gold-
+          // bright on a deep felt with a gold inset ring so the number still
           // reads. Free centre stays gold so it's instantly recognisable.
           const bg = isFree
             ? 'bg-gold/30 text-gold-bright'
             : isDaubed
-              ? 'bg-felt-table-deep text-ivory ring-2 ring-jewel-magenta ring-inset'
+              ? 'bg-felt-table-deep text-gold-bright ring-2 ring-gold ring-inset'
               : isEmpty
                 ? 'bg-transparent text-transparent'
                 : 'bg-felt-table-deep/60 text-ivory';
