@@ -18,13 +18,13 @@ describe('HistorySlide', () => {
     await waitFor(() => expect(screen.getByText(/no draws yet/i)).toBeInTheDocument());
   });
 
-  it('renders a draw row with winning numbers', async () => {
+  it('renders a draw row with 6+1 winning numbers', async () => {
     const r = await register({ username: 'b', password: 'password123' });
     if (!r.ok) throw new Error();
     await db.lotteryDraws.put({
       id: '2026-05-19',
       drawAt: Date.now(),
-      mainNumbers: [3, 12, 25, 41, 49],
+      mainNumbers: [3, 12, 25, 41, 49, 33],
       bonus: 7,
       totalLines: 0,
       totalRevenue: 0,
@@ -32,7 +32,7 @@ describe('HistorySlide', () => {
     });
     render(<HistorySlide userId={r.user.id} />);
     await waitFor(() => expect(screen.getByText('2026-05-19')).toBeInTheDocument());
-    expect(screen.getByText(/3 · 12 · 25 · 41 · 49/)).toBeInTheDocument();
+    expect(screen.getByText(/3 · 12 · 25 · 41 · 49 · 33/)).toBeInTheDocument();
   });
 
   it('expands to show per-line detail on click', async () => {
@@ -41,10 +41,10 @@ describe('HistorySlide', () => {
     await db.lotteryDraws.put({
       id: '2026-05-19',
       drawAt: Date.now(),
-      mainNumbers: [3, 12, 25, 41, 49],
+      mainNumbers: [3, 12, 25, 41, 49, 33],
       bonus: 7,
       totalLines: 1,
-      totalRevenue: 10,
+      totalRevenue: 5,
       totalPayout: 0,
     });
     await db.lotteryTickets.put({
@@ -52,7 +52,7 @@ describe('HistorySlide', () => {
       userId: r.user.id,
       drawId: '2026-05-19',
       purchasedAt: Date.now(),
-      totalCost: 10,
+      totalCost: 5,
       lineCount: 1,
     });
     await db.lotteryLines.put({
@@ -60,18 +60,21 @@ describe('HistorySlide', () => {
       ticketId: 't-1',
       userId: r.user.id,
       drawId: '2026-05-19',
-      mainNumbers: [1, 2, 3, 4, 5],
+      mainNumbers: [1, 2, 3, 12, 25, 41],
       bonusNumber: 7,
       isLuckyDip: false,
       isFreeReentry: false,
       settled: true,
-      matchTier: '2+bonus',
-      payout: 0,
+      matchTier: '4',
+      payout: 150,
     });
     const user = userEvent.setup();
     render(<HistorySlide userId={r.user.id} />);
     await waitFor(() => expect(screen.getByText('2026-05-19')).toBeInTheDocument());
     await user.click(screen.getByRole('button', { name: /2026-05-19/i }));
-    expect(screen.getByText(/2\+bonus/i)).toBeInTheDocument();
+    // Tier badge renders the new '4' tier.
+    expect(screen.getAllByText('4').length).toBeGreaterThan(0);
+    // +150 appears in both the row summary and the expanded line detail.
+    expect(screen.getAllByText('+150').length).toBeGreaterThanOrEqual(1);
   });
 });

@@ -39,7 +39,7 @@ describe('YourTicketsSlide', () => {
     expect(screen.getByText(new Date(purchasedAt).toLocaleString())).toBeInTheDocument();
   });
 
-  it('expands to show per-line numbers on click', async () => {
+  it('expands to show per-line 6-number lines on click', async () => {
     const r = await register({ username: 'c', password: 'password123' });
     if (!r.ok) throw new Error();
     await db.lotteryTickets.put({
@@ -47,7 +47,7 @@ describe('YourTicketsSlide', () => {
       userId: r.user.id,
       drawId: '2026-05-19',
       purchasedAt: Date.now(),
-      totalCost: 10,
+      totalCost: 5,
       lineCount: 1,
     });
     await db.lotteryLines.put({
@@ -55,7 +55,7 @@ describe('YourTicketsSlide', () => {
       ticketId: 'tk-2',
       userId: r.user.id,
       drawId: '2026-05-19',
-      mainNumbers: [7, 14, 21, 35, 42],
+      mainNumbers: [7, 14, 21, 35, 42, 9],
       bonusNumber: 5,
       isLuckyDip: false,
       isFreeReentry: false,
@@ -68,8 +68,8 @@ describe('YourTicketsSlide', () => {
     await waitFor(() => expect(screen.getByText('2026-05-19')).toBeInTheDocument());
     // Click the row button to expand
     await user.click(screen.getByRole('button', { name: /2026-05-19/i }));
-    // Main numbers and bonus number are visible in the expanded line
-    const lineText = screen.getByText(/7 · 14 · 21 · 35 · 42/);
+    // All 6 main numbers + bonus visible in the expanded line.
+    const lineText = screen.getByText(/7 · 14 · 21 · 35 · 42 · 9/);
     expect(lineText).toBeInTheDocument();
     // Status: unsettled = pending
     expect(screen.getByText('pending')).toBeInTheDocument();
