@@ -4,7 +4,7 @@
 **Date:** 2026-05-26 (initial + addendum same day).
 **Sub-project:** #9 in the Phase 15 umbrella (`2026-05-22-phase-15-umbrella-roadmap-design.md`). Per release order, follows #8 Baccarat ✅, precedes #10 Bingo (British / American).
 **Original release:** Phase 10 (`v0.10-lottery`, 2026-05-19). Pick-5+1 daily lottery with strict 20:00 local draw + idempotent backfill, 4 Dexie tables (lotteryDraws / lotteryTickets / lotteryLines / lotteryFavorites), `systems/lottery.ts` (logic + system; ADR-0040 — not a games-sandbox citizen), LotteryPage (HeroSection + NumberGrid + TicketCart + FavoritesDropdown + HistorySlide + YourTicketsSlide + DrawAnimationModal), Sidebar 🎟️ LOTTERY + unread dot, AdminLotteryPage (4 stat cards + 2 frequency charts + recent draws), 1M jackpot, ~43% RTP, match-2 free re-entry.
-**Scope answer:** _Pure re-skin + draw-reveal sound polish + dramatic ball reveal + scrollable modals + admin consistency + new economy (20M jackpot, 2-credit ticket)._
+**Scope answer:** _Pure re-skin + draw-reveal sound polish + dramatic ball reveal + scrollable modals + admin consistency + Pick-6+1 expansion with UK National Lottery payouts (jackpot 20M, ticket cost 5 chips → ~77% RTP)._
 
 ---
 
@@ -157,13 +157,13 @@ Rules content sections:
 const MAIN_POOL_SIZE = 50; // unchanged
 const BONUS_POOL_SIZE = 10; // unchanged
 const MAIN_PICKS = 6; // NEW — was implicit 5 throughout
-const LINE_COST = 2; // was 10
+const LINE_COST = 5; // was 10 — locked at 5 for ~77% RTP
 
 // payoutFor() rewritten per the table above; LotteryMatchTier union becomes
 // '6' | '5+bonus' | '5' | '4' | '3' | '2' (+ null for losses).
 ```
 
-`REENTRY_VALUE = LINE_COST` → free re-entry now worth 2 chips.
+`REENTRY_VALUE = LINE_COST` → free re-entry now worth 5 chips.
 
 **Logic-side files touched** (`systems/lottery.ts` + `lottery.test.ts`):
 
@@ -248,9 +248,9 @@ Per the umbrella's §6 cycle:
 
 ---
 
-## 8. ⚠ RTP recalc for Pick-6+1 + new UK tier shape — please confirm
+## 8. Economy — locked
 
-The current economy (Pick-5+1, `LINE_COST=10`, jackpot=1M) yields ~43% RTP. The new proposal (Pick-6+1, `LINE_COST=2`, UK Lottery tier shape — see §4.8) recomputed against `C(50,6) = 15,890,700`:
+User-confirmed: **`LINE_COST = 5` chips** with the Pick-6+1 UK tier table from §4.8.
 
 | Tier                | Probability            | Payout (chips) | EV/ticket (chips) |
 | ------------------- | ---------------------- | -------------- | ----------------- |
@@ -259,26 +259,19 @@ The current economy (Pick-5+1, `LINE_COST=10`, jackpot=1M) yields ~43% RTP. The 
 | 5 mains only        | 2,376 / 158,907,000    | 1,750          | ~0.026            |
 | 4 mains             | 14,190 / 15,890,700    | 150            | ~0.134            |
 | 3 mains             | 264,880 / 15,890,700   | 30             | ~0.500            |
-| 2 (free re-entry)   | 2,036,265 / 15,890,700 | 2 chip value   | ~0.256            |
-| **Total EV/ticket** |                        |                | **~3.84**         |
-| **Ticket cost**     |                        |                | **2**             |
-| **RTP**             |                        |                | **~192%**         |
+| 2 (free re-entry)   | 2,036,265 / 15,890,700 | 5 chip value   | ~0.640            |
+| **Total EV/ticket** |                        |                | **~4.22**         |
+| **Ticket cost**     |                        |                | **5**             |
+| **RTP**             |                        |                | **~84%**          |
 
-**The proposed economy means the house loses ~92 chips per 100 wagered.** Still well above 100%, driven primarily by the 5× ticket-cost drop. The 6-tier jackpot is ~33% of EV, the 5+bonus tier is ~43%, the 3-match tier (because it hits often at 30 chips a pop) is another ~13%.
+**House edge: ~16%.** Lottery acts as a mild chip-sink long-run while still letting the 6-tier jackpot (20M, one-in-15.9M odds) and the 5+bonus tier (1M, one-in-602K odds) feel like real wins. Probabilistic flow:
 
-**For reference**: UK National Lottery's real RTP is ~50%. To hit that here:
+- ~12.8% of tickets win something on the 2-tier (free re-entry — keeps engagement up).
+- ~1.7% win the 3-tier (30 chips — 6× the 5-chip ticket cost).
+- ~0.089% win the 4-tier (150 chips — 30× ticket cost).
+- ~0.0015% win the 5-tier or better (rare highlight events).
 
-- Ticket cost = **8 chips** → ~48% RTP (recommended if you want lottery to behave as a chip-sink like the other games).
-- Ticket cost = **4 chips** → ~96% RTP (roughly break-even — neither sinks nor showers chips).
-- Ticket cost = **2 chips** (as requested) → ~192% RTP (deliberately generous — players net up over time).
-
-**Three resolutions — pick one before I write the plan:**
-
-- **A) Keep as requested** (`LINE_COST=2`, ~192% RTP). Lottery becomes a "weekly windfall" that nets players up over time. Fine if that's the intent.
-- **B) `LINE_COST=8`** (~48% RTP). Tracks real UK Lottery economics; lottery behaves as a chip-sink like the other games.
-- **C) Different numbers.** Tell me a target RTP or ticket cost and I'll back-solve.
-
-I'll lock the plan once you pick. Recommend **(B)** if you want the lottery to drain chips long-run like other games, **(A)** if you want it to be a generous showcase feature.
+Note: the 2-tier free re-entry was originally `REENTRY_VALUE = LINE_COST` (10 chips → 10-chip value). With the new `LINE_COST=5` it tracks automatically (5-chip value), preserving the semantic "a free re-entry = a free ticket = current line cost." Its EV contribution went from ~0.256 chips (at LINE_COST=2) to ~0.640 chips (at LINE_COST=5) — proportional to the re-entry's chip value.
 
 ---
 
@@ -287,6 +280,6 @@ I'll lock the plan once you pick. Recommend **(B)** if you want the lottery to d
 1. **Placeholder scan**: none.
 2. **Internal consistency**: single-PR scope, logic invariants spelled out, the only logic-side changes are two constants.
 3. **Scope check**: bounded — most files are touched cosmetically; only `systems/lottery.ts` and its test get logic-level changes.
-4. **Ambiguity check**: RTP shift is the biggest open question — explicitly raised in §8.
+4. **Ambiguity check**: All locked. The Pick-5+1 → Pick-6+1 expansion is now explicit in §4.8; the destructive Dexie v3 → v4 migration is called out; LINE_COST=5 (~84% RTP) confirmed by user in §8.
 
 ---
