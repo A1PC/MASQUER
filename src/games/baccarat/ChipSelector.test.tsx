@@ -5,38 +5,48 @@ import ChipSelector from './ChipSelector';
 import { CHIP_DENOMINATIONS } from './config';
 
 describe('ChipSelector', () => {
-  it('renders one button per denomination as radio role', () => {
+  it('renders one shared ChipDenominationButton per denomination', () => {
     render(<ChipSelector value={25} onChange={() => {}} />);
-    const radios = screen.getAllByRole('radio');
-    expect(radios).toHaveLength(CHIP_DENOMINATIONS.length);
+    // Each chip is a single <button> (no role="radio" wrapper) sharing
+    // the canonical 44 × 44 px shared component.
+    const buttons = screen.getAllByRole('button');
+    expect(buttons).toHaveLength(CHIP_DENOMINATIONS.length);
   });
 
-  it('marks the current value as checked', () => {
+  it('exposes data-chip + data-selected for the current value', () => {
+    const { container } = render(<ChipSelector value={100} onChange={() => {}} />);
+    const selected = container.querySelector('button[data-chip="100"]');
+    const unselected = container.querySelector('button[data-chip="25"]');
+    expect(selected?.getAttribute('data-selected')).toBe('true');
+    expect(unselected?.getAttribute('data-selected')).toBe('false');
+  });
+
+  it('uses aria-pressed on each chip for the selection state', () => {
     render(<ChipSelector value={100} onChange={() => {}} />);
-    const checked = screen.getByRole('radio', { name: /chip 100/i });
-    expect(checked).toHaveAttribute('aria-checked', 'true');
-    const unchecked = screen.getByRole('radio', { name: /chip 25/i });
-    expect(unchecked).toHaveAttribute('aria-checked', 'false');
+    const selected = screen.getByRole('button', { name: /select 100-chip/i });
+    expect(selected).toHaveAttribute('aria-pressed', 'true');
+    const unselected = screen.getByRole('button', { name: /select 25-chip/i });
+    expect(unselected).toHaveAttribute('aria-pressed', 'false');
   });
 
   it('clicking a chip calls onChange with that denomination', async () => {
     const onChange = vi.fn();
     const user = userEvent.setup();
     render(<ChipSelector value={25} onChange={onChange} />);
-    await user.click(screen.getByRole('radio', { name: /chip 500/i }));
+    await user.click(screen.getByRole('button', { name: /select 500-chip/i }));
     expect(onChange).toHaveBeenCalledWith(500);
   });
 
   it('1K label is used for 1000 (no substring collision with 100)', () => {
     render(<ChipSelector value={25} onChange={() => {}} />);
-    expect(screen.getByRole('radio', { name: /chip 1K/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /select 1K-chip/i })).toBeInTheDocument();
   });
 
   it('disabled blocks clicks', async () => {
     const onChange = vi.fn();
     const user = userEvent.setup();
     render(<ChipSelector value={25} onChange={onChange} disabled />);
-    await user.click(screen.getByRole('radio', { name: /chip 100/i }));
+    await user.click(screen.getByRole('button', { name: /select 100-chip/i }));
     expect(onChange).not.toHaveBeenCalled();
   });
 });
