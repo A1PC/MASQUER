@@ -272,7 +272,22 @@ export default function SlotsPage(): JSX.Element | null {
           <div className="md:self-center">
             <Paytable winningKey={payout?.key ?? null} />
           </div>
-          <div className="flex items-center justify-center gap-5">
+          {/* Reels container — `relative` so the payline indicator lines
+              can sit absolutely on top, spanning all three reels (and the
+              gaps between them) at the top + bottom edge of the middle
+              row. The container's height equals 3 × CELL_SIZE (110 px),
+              so top-1/3 = top of middle, top-2/3 = bottom of middle. The
+              lines make the payline unmistakable; the user reported the
+              top/bottom rows were being mistaken for the winning line. */}
+          <div className="relative flex items-center justify-center gap-5">
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-x-0 top-1/3 z-10 h-[2px] bg-brass shadow-[0_0_6px_rgba(212,175,55,0.6)]"
+            />
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-x-0 top-2/3 z-10 h-[2px] bg-brass shadow-[0_0_6px_rgba(212,175,55,0.6)]"
+            />
             {[0, 1, 2].map((i) => (
               <ReelView
                 key={i}
