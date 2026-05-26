@@ -238,5 +238,34 @@ export class LocalGambleDB extends Dexie {
       // Phase 15 #2: per-user sound + motion preferences
       prefs: 'userId',
     });
+    /**
+     * v6 (Phase 15 #9, 2026-05-26): destructive wipe of the four lottery
+     * tables. The Pick-5+1 line shape from Phase 10 cannot be re-validated
+     * against the new Pick-6+1 game rules, so the cleanest path for a
+     * local play-money app is to clear those rows on upgrade. `rounds`
+     * rows for past lottery wins stay untouched (they're historical and
+     * don't affect new aggregates). All other tables are unchanged.
+     */
+    this.version(6)
+      .stores({
+        users: 'id, &usernameLower, createdAt',
+        balances: 'userId',
+        rounds: 'id, userId, game, playedAt, [userId+playedAt]',
+        sessions: 'id, userId, loginAt, [userId+loginAt]',
+        gameVisits: 'id, userId, game, sessionId, [userId+game], [userId+enteredAt]',
+        adjustments: 'id, userId, adjustedAt, [userId+adjustedAt]',
+        lotteryDraws: 'id, drawAt',
+        lotteryTickets: 'id, userId, drawId, purchasedAt, [userId+drawId]',
+        lotteryLines: 'id, ticketId, userId, drawId, settled, [userId+drawId], [drawId+settled]',
+        lotteryFavorites: 'id, userId, createdAt, [userId+createdAt]',
+        bingoConfig: '&difficulty',
+        prefs: 'userId',
+      })
+      .upgrade(async (tx) => {
+        await tx.table('lotteryDraws').clear();
+        await tx.table('lotteryTickets').clear();
+        await tx.table('lotteryLines').clear();
+        await tx.table('lotteryFavorites').clear();
+      });
   }
 }
