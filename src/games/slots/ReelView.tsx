@@ -65,6 +65,20 @@ export default function ReelView({
         height: CELL_SIZE * 3,
       }}
     >
+      {/* Glass-plate vignette — dims the top and bottom thirds so the
+          middle row (the payline) reads as the focal point. Pure
+          decoration; sits on top of both the idle cells and the
+          spinning strip via z-10 so the effect is consistent across
+          states. Pairs with the brass payline lines at the page level. */}
+      <div
+        aria-hidden="true"
+        data-reel-vignette
+        className="pointer-events-none absolute inset-0 z-10"
+        style={{
+          background:
+            'linear-gradient(to bottom, rgba(6,18,12,0.6) 0%, rgba(6,18,12,0.6) 30%, rgba(6,18,12,0) 38%, rgba(6,18,12,0) 62%, rgba(6,18,12,0.6) 70%, rgba(6,18,12,0.6) 100%)',
+        }}
+      />
       {showScroll ? (
         <motion.div
           data-reel-strip
