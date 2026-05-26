@@ -205,7 +205,7 @@ function DrawRevealContent({
             {userLines.map((line) => {
               const tier = evaluateLine(line, { mainNumbers: draw.mainNumbers, bonus: draw.bonus });
               const payout = payoutFor(tier);
-              const reentry = tier === '2' || tier === '2+bonus';
+              const reentry = tier === '2';
               return (
                 <li
                   key={line.id}

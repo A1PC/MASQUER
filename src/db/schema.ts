@@ -80,13 +80,14 @@ export interface Adjustment {
 }
 
 /** v3 (Phase 10): one row per scheduled daily draw. Settled lazily on app open
- *  via settleMissedDraws(). Numbers are deterministic from the date seed. */
+ *  via settleMissedDraws(). Numbers are deterministic from the date seed.
+ *  v6 (Phase 15 #9): main pick count grew 5 → 6 (UK National Lottery shape). */
 export interface LotteryDraw {
   /** Date string `YYYY-MM-DD` (user's local timezone). Primary key. */
   id: string;
   /** Epoch ms when the draw was actually run (NOT the scheduled time). */
   drawAt: number;
-  /** Sorted-asc 5 main numbers in [1, 50]. */
+  /** Sorted-asc 6 main numbers in [1, 50] (Phase 15 #9; was 5 in Phase 10). */
   mainNumbers: number[];
   /** Bonus number in [1, 10]. */
   bonus: number;
@@ -109,7 +110,7 @@ export interface LotteryTicket {
   lineCount: number;
 }
 
-/** v3 (Phase 10): one row per 5+1 entry into a draw. */
+/** v3 (Phase 10): one row per 6+1 entry into a draw (was 5+1 pre-Phase 15 #9). */
 export interface LotteryLine {
   id: string;
   ticketId: string;
@@ -126,15 +127,9 @@ export interface LotteryLine {
   sourceLineId?: string;
 }
 
-export type LotteryMatchTier =
-  | '5+bonus'
-  | '5'
-  | '4+bonus'
-  | '4'
-  | '3+bonus'
-  | '3'
-  | '2+bonus'
-  | '2';
+/** Phase 15 #9: UK National Lottery tier shape. The bonus number matters only
+ *  for the `5+bonus` tier; `4` / `3` / `2` tiers ignore the bonus. */
+export type LotteryMatchTier = '6' | '5+bonus' | '5' | '4' | '3' | '2';
 
 /** v3 (Phase 10): user-saved favorite number sets. */
 export interface LotteryFavorite {

@@ -11,7 +11,10 @@ import { randomInt } from '@/systems/rng';
 import { placeBet, settleRound } from '@/systems/wallet';
 
 const MAIN_POOL_SIZE = 50;
-const MAIN_PICK_COUNT = 5;
+/** Pick-6+1 per UK National Lottery shape (Phase 15 #9). Was 5 in Phase 10. */
+const MAIN_PICK_COUNT = 6;
+/** Re-export the same value under the spec/plan name. */
+export const MAIN_PICKS = MAIN_PICK_COUNT;
 const BONUS_POOL_SIZE = 10;
 
 /**
@@ -43,10 +46,10 @@ function dateSeed(date: string): number {
   return h >>> 0;
 }
 
-/** Deterministic per-date draw: 5 sorted-asc main numbers + 1 bonus number. */
+/** Deterministic per-date draw: 6 sorted-asc main numbers + 1 bonus number. */
 export function drawForDate(date: string): { mainNumbers: number[]; bonus: number } {
   const rng = mulberry32(dateSeed(date));
-  // Pick 5 distinct from [1, MAIN_POOL_SIZE]. Fisher-Yates partial draw.
+  // Pick 6 distinct from [1, MAIN_POOL_SIZE]. Fisher-Yates partial draw.
   const pool: number[] = [];
   for (let i = 1; i <= MAIN_POOL_SIZE; i += 1) pool.push(i);
   for (let i = 0; i < MAIN_PICK_COUNT; i += 1) {
@@ -64,7 +67,9 @@ export function lineKey(line: { mainNumbers: number[]; bonusNumber: number }): s
   return `${sorted.join(',')}|${line.bonusNumber}`;
 }
 
-/** Match a line against a draw. Returns the tier or null for no match. */
+/** Match a line against a draw per UK National Lottery semantics: the bonus
+ *  number matters only for the `5+bonus` tier; `4` / `3` / `2` tiers ignore
+ *  the bonus. Returns the tier or null for no match. */
 export function evaluateLine(
   line: { mainNumbers: number[]; bonusNumber: number },
   draw: { mainNumbers: number[]; bonus: number },
@@ -73,33 +78,29 @@ export function evaluateLine(
   let mains = 0;
   for (const n of line.mainNumbers) if (drawSet.has(n)) mains += 1;
   const bonus = line.bonusNumber === draw.bonus;
+  if (mains === 6) return '6';
   if (mains === 5 && bonus) return '5+bonus';
   if (mains === 5) return '5';
-  if (mains === 4 && bonus) return '4+bonus';
   if (mains === 4) return '4';
-  if (mains === 3 && bonus) return '3+bonus';
   if (mains === 3) return '3';
-  if (mains === 2 && bonus) return '2+bonus';
   if (mains === 2) return '2';
   return null;
 }
 
-/** Tier → chip payout. Match-2 tiers return 0 (the free re-entry is granted elsewhere). */
+/** Tier → chip payout per the UK National Lottery shape (Phase 15 #9).
+ *  Match-2 returns 0 — the free re-entry is granted by settleMissedDraws. */
 export function payoutFor(tier: LotteryMatchTier | null): number {
   switch (tier) {
+    case '6':
+      return 20_000_000;
     case '5+bonus':
       return 1_000_000;
     case '5':
-      return 500_000;
-    case '4+bonus':
-      return 100_000;
+      return 1_750;
     case '4':
-      return 10_000;
-    case '3+bonus':
-      return 2_000;
+      return 150;
     case '3':
-      return 100;
-    case '2+bonus':
+      return 30;
     case '2':
       return 0; // free re-entry granted by settleMissedDraws
     case null:
@@ -115,7 +116,7 @@ export type { LotteryDraw };
 const DRAW_HOUR = 20; // 20:00 local time
 const LUCKY_DIP_RETRY_BUDGET = 500;
 
-/** Generates a fresh 5+1 line that's distinct from `existing`. Throws if the
+/** Generates a fresh 6+1 line that's distinct from `existing`. Throws if the
  *  retry budget is exhausted (practically impossible at sane line counts). */
 export function generateLuckyDipLine(
   existing: ReadonlyArray<{ mainNumbers: number[]; bonusNumber: number }>,
@@ -158,7 +159,8 @@ export function dateStringFor(ts: number): string {
   return `${y}-${m}-${day}`;
 }
 
-const LINE_COST = 10;
+/** Locked at 5 by spec §8 (Phase 15 #9, ~84% RTP). Was 10 in Phase 10. */
+export const LINE_COST = 5;
 
 export type BuyTicketInput =
   | { kind: 'manual'; mainNumbers: number[]; bonusNumber: number }
@@ -179,7 +181,7 @@ export async function buyTicket(input: {
   const now = input.now ?? Date.now();
   const drawId = dateStringFor(nextDrawAt(now));
 
-  // 1. Validate manual lines: each is a valid 5+1, and no two are duplicates.
+  // 1. Validate manual lines: each is a valid 6+1, and no two are duplicates.
   const manualLines: { mainNumbers: number[]; bonusNumber: number }[] = [];
   for (const item of input.lines) {
     if (item.kind === 'manual') {
@@ -267,7 +269,9 @@ function isValidLine(line: { mainNumbers: number[]; bonusNumber: number }): bool
   return true;
 }
 
-const REENTRY_VALUE = LINE_COST; // 10 chips — implied refund credit for a paid match-2
+/** Match-2 free-re-entry value — tracks `LINE_COST` so a free entry is always
+ *  worth one current ticket-line. After Phase 15 #9: 5 chips. */
+const REENTRY_VALUE = LINE_COST;
 
 export async function settleMissedDraws(options: { now?: number } = {}): Promise<{
   settledDrawIds: string[];
@@ -328,9 +332,7 @@ export async function settleMissedDraws(options: { now?: number } = {}): Promise
 
           // Match-2 → free re-entry for the next draw.
           const nextDateStr = nextDate(date);
-          const reentryLines = unsettled.filter(
-            (l) => l.matchTier === '2' || l.matchTier === '2+bonus',
-          );
+          const reentryLines = unsettled.filter((l) => l.matchTier === '2');
           for (const src of reentryLines) {
             const fresh = generateLuckyDipLine([]);
             const ticketId = crypto.randomUUID();
@@ -381,7 +383,7 @@ async function writeRoundForLine(line: LotteryLine, draw: LotteryDraw): Promise<
   const tier = line.matchTier;
 
   // Free re-entry that didn't win cash → no rounds row.
-  if (!isPaid && (tier === null || tier === '2' || tier === '2+bonus')) return;
+  if (!isPaid && (tier === null || tier === '2')) return;
 
   let betAmount: number;
   let payout: number;
@@ -391,7 +393,7 @@ async function writeRoundForLine(line: LotteryLine, draw: LotteryDraw): Promise<
     if (tier === null) {
       payout = 0;
       outcome = 'loss';
-    } else if (tier === '2' || tier === '2+bonus') {
+    } else if (tier === '2') {
       payout = REENTRY_VALUE;
       outcome = 'push';
     } else {
