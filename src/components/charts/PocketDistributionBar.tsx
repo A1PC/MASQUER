@@ -11,6 +11,7 @@ import {
   YAxis,
 } from 'recharts';
 import type { RouletteDistributionPoint } from '@/systems/stats';
+import { ChartTooltipShell } from './ChartTooltip';
 
 interface Props {
   /** 37 entries (one per pocket 0–36). Colours per ADR-0029. */
@@ -55,10 +56,7 @@ export function ChartTooltip({
   const point = item.payload as RouletteDistributionPoint;
   const { number, count, color } = point;
   return (
-    <div
-      data-chart-tooltip="pocket-distribution"
-      className="rounded-md border border-brass/60 bg-velvet-deep px-3 py-2 text-ivory shadow-lg"
-    >
+    <ChartTooltipShell variant="pocket-distribution">
       <div
         className={`font-display text-[10px] uppercase tracking-[0.18em] ${POCKET_EYEBROW[color]}`}
       >
@@ -67,7 +65,7 @@ export function ChartTooltip({
       <div className="font-body text-sm text-ivory">
         {count.toLocaleString()} spin{count === 1 ? '' : 's'}
       </div>
-    </div>
+    </ChartTooltipShell>
   );
 }
 

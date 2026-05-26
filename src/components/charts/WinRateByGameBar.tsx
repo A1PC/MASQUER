@@ -6,9 +6,30 @@ import {
   Cell,
   ResponsiveContainer,
   Tooltip,
+  type TooltipProps,
   XAxis,
   YAxis,
 } from 'recharts';
+import { ChartTooltipShell } from './ChartTooltip';
+
+function WinRateTooltip({
+  active,
+  payload,
+  label,
+}: TooltipProps<number, string>): JSX.Element | null {
+  if (!active || !payload || payload.length === 0) return null;
+  const item = payload[0];
+  if (!item) return null;
+  const v = typeof item.value === 'number' ? item.value : 0;
+  return (
+    <ChartTooltipShell variant="win-rate">
+      <div className="mb-0.5 font-display text-[10px] uppercase tracking-[0.18em] text-gold">
+        {String(label ?? '')}
+      </div>
+      <div className="font-mono text-xs tabular-nums text-ivory">{v.toFixed(1)}%</div>
+    </ChartTooltipShell>
+  );
+}
 
 export type WinRatePoint = {
   game: string;
@@ -42,15 +63,7 @@ export default function WinRateByGameBar({ data, height = 220 }: Props): JSX.Ele
           fontSize={11}
           width={80}
         />
-        <Tooltip
-          formatter={(value: number) => `${value.toFixed(1)}%`}
-          contentStyle={{
-            background: '#06120c',
-            border: '1px solid #d4af37',
-            fontSize: 12,
-            color: '#f0c64a',
-          }}
-        />
+        <Tooltip cursor={{ fill: 'rgba(199,154,75,0.12)' }} content={<WinRateTooltip />} />
         <Bar dataKey="winRate">
           {data.map((d) => (
             <Cell key={d.game} fill={d.winRate >= 50 ? '#3dd17a' : '#d4af37'} />

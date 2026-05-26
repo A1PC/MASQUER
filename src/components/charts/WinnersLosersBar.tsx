@@ -9,6 +9,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
+import { DefaultChartTooltip } from './ChartTooltip';
 
 type Entry = { username: string; totalNetChange: number };
 type Props = { winners: Entry[]; losers: Entry[]; height?: number };
@@ -31,14 +32,7 @@ export default function WinnersLosersBar({ winners, losers, height = 240 }: Prop
           fontSize={11}
           width={70}
         />
-        <Tooltip
-          contentStyle={{
-            background: '#06120c',
-            border: '1px solid #d4af37',
-            fontSize: 12,
-            color: '#f0c64a',
-          }}
-        />
+        <Tooltip cursor={{ fill: 'rgba(199,154,75,0.12)' }} content={<DefaultChartTooltip />} />
         <Bar dataKey="value">
           {chartData.map((d) => (
             <Cell key={d.name} fill={d.value >= 0 ? '#3dd17a' : '#a3122a'} />

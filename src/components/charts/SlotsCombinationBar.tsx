@@ -11,6 +11,7 @@ import {
   YAxis,
 } from 'recharts';
 import type { SlotsCombinationCount } from '@/systems/stats';
+import { ChartTooltipShell } from './ChartTooltip';
 
 interface Props {
   /** One entry per paytable combination, paytable-order (highest first). */
@@ -50,10 +51,7 @@ export function ChartTooltip({
   const point = item.payload as SlotsCombinationCount;
   const { label, count, totalPaid, payoutMultiple, tier } = point;
   return (
-    <div
-      data-chart-tooltip="slots-combination"
-      className="rounded-md border border-brass/60 bg-velvet-deep px-3 py-2 text-ivory shadow-lg"
-    >
+    <ChartTooltipShell variant="slots-combination">
       <div className={`font-display text-[10px] uppercase tracking-[0.18em] ${TIER_EYEBROW[tier]}`}>
         {label} · {payoutMultiple}× · {tier}
       </div>
@@ -63,7 +61,7 @@ export function ChartTooltip({
       <div className="font-body text-[11px] text-ivory/70">
         paid {totalPaid.toLocaleString()} chip{totalPaid === 1 ? '' : 's'}
       </div>
-    </div>
+    </ChartTooltipShell>
   );
 }
 
