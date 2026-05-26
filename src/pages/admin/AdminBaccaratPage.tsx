@@ -12,7 +12,24 @@ import {
 } from '@/systems/stats';
 import { db } from '@/db';
 import type { Round } from '@/db';
-import type { RoundResult as BaccaratRoundResult, Winner } from '@/games/baccarat/types';
+import type { Winner } from '@/games/baccarat/types';
+
+/**
+ * Shape of `rounds.details` for a baccarat row — flattened at persist time
+ * in BaccaratPage.persistRound (not the nested in-memory `RoundResult`).
+ * The admin page only reads the scalar fields it needs.
+ */
+interface PersistedBaccaratDetails {
+  readonly winner: Winner;
+  readonly margin: number;
+  readonly playerTotal: number;
+  readonly bankerTotal: number;
+  readonly playerPair: boolean;
+  readonly bankerPair: boolean;
+  readonly winnerNatural: boolean;
+  readonly bothNatural: boolean;
+  readonly totalCards: number;
+}
 
 const EMPTY_STATS: BaccaratAllTimeStats = {
   roundsPlayed: 0,
@@ -305,11 +322,11 @@ export default function AdminBaccaratPage(): JSX.Element {
             </thead>
             <tbody>
               {recentRounds.map((r) => {
-                const d = r.details as BaccaratRoundResult | undefined;
+                const d = r.details as PersistedBaccaratDetails | undefined;
                 const winner: Winner = d?.winner ?? 'tie';
                 const badge = WINNER_BADGE[winner];
-                const playerTotal = d?.player.total ?? 0;
-                const bankerTotal = d?.banker.total ?? 0;
+                const playerTotal = d?.playerTotal ?? 0;
+                const bankerTotal = d?.bankerTotal ?? 0;
                 const totalCards = d?.totalCards ?? 0;
                 const margin = d?.margin ?? 0;
                 const winnerNatural = d?.winnerNatural ?? false;

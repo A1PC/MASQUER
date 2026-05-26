@@ -1876,26 +1876,22 @@ import {
   getBaccaratStreakStats,
   getBaccaratWinnerDistribution,
 } from './stats';
-import type {
-  Card as BaccaratCard,
-  Hand as BaccaratHand,
-  HandTotal,
-  RoundResult as BaccaratRoundResult,
-  Winner as BaccaratWinner,
-} from '@/games/baccarat/types';
+import type { HandTotal, Winner as BaccaratWinner } from '@/games/baccarat/types';
 
-/** Pseudo-card for fixture purposes — exact rank/suit don't matter for the
- *  aggregations under test (they read winner / margin / totalCards / pair
- *  flags from the precomputed RoundResult). */
-function fakeCard(): BaccaratCard {
-  return { rank: 'A', suit: '♠', faceUp: true };
-}
-
-function fakeHand(total: HandTotal, cardCount: number): BaccaratHand {
-  return {
-    cards: Array.from({ length: cardCount }, () => fakeCard()),
-    total,
-  };
+/** Mirrors the FLATTENED shape baccarat actually writes to rounds.details
+ *  (see BaccaratPage.persistRound). The aggregations in stats.ts cast to
+ *  this shape; the fixture seeds it. Kept in sync with the same interface
+ *  in AdminBaccaratPage.tsx + stats.ts. */
+interface PersistedBaccaratDetails {
+  readonly winner: BaccaratWinner;
+  readonly margin: number;
+  readonly playerTotal: HandTotal;
+  readonly bankerTotal: HandTotal;
+  readonly playerPair: boolean;
+  readonly bankerPair: boolean;
+  readonly winnerNatural: boolean;
+  readonly bothNatural: boolean;
+  readonly totalCards: number;
 }
 
 function baccaratDetails(opts: {
@@ -1909,12 +1905,12 @@ function baccaratDetails(opts: {
   bothNatural: boolean;
   playerPair: boolean;
   bankerPair: boolean;
-}): BaccaratRoundResult {
+}): PersistedBaccaratDetails {
   return {
-    player: fakeHand(opts.playerTotal, opts.playerCards),
-    banker: fakeHand(opts.bankerTotal, opts.bankerCards),
     winner: opts.winner,
     margin: opts.margin,
+    playerTotal: opts.playerTotal,
+    bankerTotal: opts.bankerTotal,
     winnerNatural: opts.winnerNatural,
     bothNatural: opts.bothNatural,
     playerPair: opts.playerPair,
@@ -1925,7 +1921,7 @@ function baccaratDetails(opts: {
 
 function baccaratRow(opts: {
   id: string;
-  details: BaccaratRoundResult;
+  details: PersistedBaccaratDetails;
   betAmount: number;
   payoutChips: number;
   playedAt: number;
