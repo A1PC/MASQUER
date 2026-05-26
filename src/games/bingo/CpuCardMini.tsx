@@ -35,9 +35,9 @@ export default function CpuCardMini({
       <div
         className={`font-display text-[9px] tracking-[0.18em] ${
           highlightTier === 'tier3'
-            ? 'text-jewel-magenta'
+            ? 'text-gold-bright'
             : highlightTier
-              ? 'text-gold-bright'
+              ? 'text-gold'
               : 'text-ivory/50'
         }`}
       >

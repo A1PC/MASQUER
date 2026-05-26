@@ -57,10 +57,10 @@ export default function Sidebar({ collapsed }: Props): JSX.Element {
       animate={{ width: collapsed ? 0 : 200 }}
       initial={false}
       transition={reduce ? { duration: 0 } : { duration: 0.2, ease: 'easeOut' }}
-      className="flex-shrink-0 overflow-hidden border-r border-gold/20 bg-felt-deep"
+      className="flex-shrink-0 overflow-hidden border-r border-brass/40 bg-velvet-deep shadow-[inset_-8px_0_16px_-12px_rgba(0,0,0,0.6)]"
       aria-hidden={collapsed}
     >
-      <nav className="w-[200px] py-4">
+      <nav className="w-[200px] py-5">
         <SectionLabel>GAMES</SectionLabel>
         {GAMES.map((item) => (
           <NavItem key={item.to} item={item} reduce={reduce} />
@@ -82,14 +82,14 @@ export default function Sidebar({ collapsed }: Props): JSX.Element {
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <div className="px-4 pb-1 font-display text-[10px] tracking-[1.5px] text-gold/80">
+    <div className="mb-1 px-4 pt-1 font-display text-[10px] uppercase tracking-[0.22em] text-gold">
       {children}
     </div>
   );
 }
 
 function Divider() {
-  return <div className="mx-4 my-3.5 border-t border-gold/20" />;
+  return <div className="mx-4 my-4 border-t border-brass/30" />;
 }
 
 function NavItem({
@@ -106,8 +106,10 @@ function NavItem({
     <NavLink
       to={to}
       className={({ isActive }) =>
-        `group relative flex items-center justify-between px-4 py-2 text-[13px] outline-none transition-colors focus-visible:bg-gold/10 ${
-          isActive ? 'text-gold' : 'text-ivory/85 hover:bg-white/5 hover:text-ivory'
+        `group relative flex items-center justify-between px-4 py-2 font-display text-[12.5px] tracking-[0.05em] outline-none transition-colors focus-visible:bg-gold/10 ${
+          isActive
+            ? 'bg-gradient-to-r from-gold/15 to-transparent text-gold-bright'
+            : 'text-ivory/85 hover:bg-gold/5 hover:text-ivory'
         }`
       }
     >
@@ -115,31 +117,31 @@ function NavItem({
         <>
           {isActive &&
             (reduce ? (
-              <span className="absolute inset-y-1 left-0 w-[3px] rounded-r bg-gold" />
+              <span className="absolute inset-y-1 left-0 w-[3px] rounded-r bg-gold-bright shadow-[0_0_8px_rgba(232,189,109,0.7)]" />
             ) : (
               <motion.span
                 layoutId="sidebar-active-rail"
-                className="absolute inset-y-1 left-0 w-[3px] rounded-r bg-gold"
+                className="absolute inset-y-1 left-0 w-[3px] rounded-r bg-gold-bright shadow-[0_0_8px_rgba(232,189,109,0.7)]"
                 transition={{ type: 'spring', stiffness: 500, damping: 40 }}
               />
             ))}
-          <span className="flex items-center gap-2">
+          <span className="flex items-center gap-2.5">
             <Icon
               name={iconName}
               size={15}
-              className={isActive ? 'text-gold' : 'text-ivory/70 group-hover:text-ivory'}
+              className={isActive ? 'text-gold-bright' : 'text-ivory/65 group-hover:text-gold'}
             />
             {label}
           </span>
           {unread && (
             <span
               data-testid="unread-dot"
-              className="ml-1 inline-block h-2 w-2 rounded-full bg-casino-red"
+              className="ml-1 inline-block h-2 w-2 rounded-full bg-casino-red shadow-[0_0_6px_rgba(220,38,38,0.7)]"
               aria-label="New lottery draw"
             />
           )}
           {badge && (
-            <span className="rounded-full bg-neon-cyan px-1.5 text-[9px] font-bold text-felt-deep">
+            <span className="rounded-full border border-gold-bright/60 bg-velvet px-1.5 text-[9px] font-bold uppercase tracking-wider text-gold-bright">
               {badge}
             </span>
           )}
