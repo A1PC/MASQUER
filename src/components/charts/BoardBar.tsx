@@ -6,10 +6,12 @@ import {
   Cell,
   ResponsiveContainer,
   Tooltip,
+  type TooltipProps,
   XAxis,
   YAxis,
 } from 'recharts';
 import type { LeaderboardRow } from '@/systems/stats';
+import { ChartTooltipShell } from './ChartTooltip';
 
 interface Props {
   rows: readonly LeaderboardRow[];
@@ -20,6 +22,26 @@ interface Props {
 }
 
 const DEFAULT_FORMAT = (v: number): string => v.toLocaleString();
+
+function BoardTooltipContent({
+  active,
+  payload,
+  label,
+  formatValue,
+}: TooltipProps<number, string> & { formatValue: (v: number) => string }): JSX.Element | null {
+  if (!active || !payload || payload.length === 0) return null;
+  const item = payload[0];
+  if (!item) return null;
+  const v = typeof item.value === 'number' ? item.value : 0;
+  return (
+    <ChartTooltipShell variant="board-bar">
+      <div className="mb-0.5 font-display text-[10px] uppercase tracking-[0.18em] text-gold">
+        {String(label ?? '')}
+      </div>
+      <div className="font-mono text-xs tabular-nums text-ivory">{formatValue(v)}</div>
+    </ChartTooltipShell>
+  );
+}
 
 export default function BoardBar({
   rows,
@@ -48,13 +70,10 @@ export default function BoardBar({
           width={80}
         />
         <Tooltip
-          formatter={(value: number) => formatValue(value)}
-          contentStyle={{
-            background: '#06120c',
-            border: '1px solid #d4af37',
-            fontSize: 12,
-            color: '#f0c64a',
-          }}
+          cursor={{ fill: 'rgba(199,154,75,0.12)' }}
+          content={(p: TooltipProps<number, string>) => (
+            <BoardTooltipContent {...p} formatValue={formatValue} />
+          )}
         />
         <Bar dataKey="value">
           {chartData.map((d) => (

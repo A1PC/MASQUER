@@ -1,6 +1,7 @@
 import type { JSX } from 'react';
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
 import type { GameDistributionPoint } from '@/systems/stats';
+import { DefaultChartTooltip } from './ChartTooltip';
 
 const COLORS: Record<string, string> = {
   blackjack: '#3dd17a',
@@ -32,14 +33,7 @@ export default function GameDistributionDonut({ data, height = 220 }: Props): JS
             <Cell key={d.name} fill={COLORS[d.name] ?? '#888'} />
           ))}
         </Pie>
-        <Tooltip
-          contentStyle={{
-            background: '#06120c',
-            border: '1px solid #d4af37',
-            fontSize: 12,
-            color: '#f0c64a',
-          }}
-        />
+        <Tooltip content={<DefaultChartTooltip />} />
       </PieChart>
     </ResponsiveContainer>
   );

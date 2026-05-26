@@ -11,6 +11,7 @@ import {
   YAxis,
 } from 'recharts';
 import type { BaccaratWinnerCount } from '@/systems/stats';
+import { ChartTooltipShell } from './ChartTooltip';
 
 interface Props {
   /** Exactly 3 entries in canonical Player → Banker → Tie order. */
@@ -63,10 +64,7 @@ export function ChartTooltip({
   const point = item.payload as BaccaratWinnerCount;
   const { winner, count } = point;
   return (
-    <div
-      data-chart-tooltip="baccarat-winner"
-      className="rounded-md border border-brass/60 bg-velvet-deep px-3 py-2 text-ivory shadow-lg"
-    >
+    <ChartTooltipShell variant="baccarat-winner">
       <div
         className={`font-display text-[10px] uppercase tracking-[0.18em] ${WINNER_EYEBROW[winner]}`}
       >
@@ -75,7 +73,7 @@ export function ChartTooltip({
       <div className="font-body text-sm text-ivory">
         {count.toLocaleString()} win{count === 1 ? '' : 's'}
       </div>
-    </div>
+    </ChartTooltipShell>
   );
 }
 
