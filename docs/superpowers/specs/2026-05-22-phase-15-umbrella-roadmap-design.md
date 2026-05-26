@@ -111,24 +111,24 @@ This umbrella's **Progress** table is updated as each sub-project completes.
 
 ## 8. Progress
 
-| #     | Sub-project                       | Status                            |
-| ----- | --------------------------------- | --------------------------------- |
-| 0     | Brand + Design Language           | ✅ Done (merged)                  |
-| 1     | Design-system component library   | ✅ Done (25 primitives, merged)   |
-| 2     | Motion & Sound infrastructure     | ✅ Done (3 PRs, merged)           |
-| 3     | Shell & navigation overhaul       | ✅ Done (3 PRs + fixes, merged)   |
-| 4     | Coin-flip upgrade                 | ✅ Done (single PR + fix, merged) |
-| 5     | Blackjack upgrade                 | In progress (spec)                |
-| 6     | Roulette upgrade                  | Not started                       |
-| 7     | Slots upgrade                     | Not started                       |
-| 8     | Baccarat upgrade                  | Not started                       |
-| 9     | Lottery upgrade                   | Not started                       |
-| 10.v1 | Bingo — British upgrade           | Not started                       |
-| 10.v2 | Bingo — American upgrade          | Not started                       |
-| 11    | Plinko upgrade                    | Not started                       |
-| 12.v1 | Poker — Texas Hold'em upgrade     | Not started                       |
-| 12.v2 | Poker — Five-Card Draw upgrade    | Not started                       |
-| 12.v3 | Poker — Omaha upgrade             | Not started                       |
-| 13    | Craps upgrade                     | Not started                       |
-| 14    | Admin overhaul + expansion        | Not started                       |
-| 15    | Final integration & launch polish | Not started                       |
+| #     | Sub-project                       | Status                                                                               |
+| ----- | --------------------------------- | ------------------------------------------------------------------------------------ |
+| 0     | Brand + Design Language           | ✅ Done (merged)                                                                     |
+| 1     | Design-system component library   | ✅ Done (25 primitives, merged)                                                      |
+| 2     | Motion & Sound infrastructure     | ✅ Done (3 PRs, merged)                                                              |
+| 3     | Shell & navigation overhaul       | ✅ Done (3 PRs + fixes, merged)                                                      |
+| 4     | Coin-flip upgrade                 | ✅ Done (single PR + fix, merged)                                                    |
+| 5     | Blackjack upgrade                 | ✅ Done (3 PRs + 5 fix/polish PRs, merged · Velvet Duel variant + ADR-0045)          |
+| 6     | Roulette upgrade                  | ✅ Done (4 PRs, merged · auto-spin betting windows + ADR-0046)                       |
+| 7     | Slots upgrade                     | ✅ Done (4 PRs, merged · SVG symbols + sticky bet + admin)                           |
+| 8     | Baccarat upgrade                  | ✅ Done (4 PRs + admin-details fix, merged)                                          |
+| 9     | Lottery upgrade                   | ✅ Done (3 PRs, merged · Pick-6+1 UK tier table + ADR-0040 amend)                    |
+| 10.v1 | Bingo — British upgrade           | ✅ Done (3 PRs + gold-daubs/sidebar fix + free-centre MaskMark, merged)              |
+| 10.v2 | Bingo — American upgrade          | ✅ Done (3 PRs, merged · B-I-N-G-O headers + brass-ring free centre + MaskMark logo) |
+| 11    | Plinko upgrade                    | Not started — NEXT                                                                   |
+| 12.v1 | Poker — Texas Hold'em upgrade     | Not started                                                                          |
+| 12.v2 | Poker — Five-Card Draw upgrade    | Not started                                                                          |
+| 12.v3 | Poker — Omaha upgrade             | Not started                                                                          |
+| 13    | Craps upgrade                     | Not started                                                                          |
+| 14    | Admin overhaul + expansion        | Not started                                                                          |
+| 15    | Final integration & launch polish | Not started                                                                          |
