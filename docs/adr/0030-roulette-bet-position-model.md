@@ -105,3 +105,20 @@ Implementation: `addBet` in `src/games/roulette/machine.ts` no longer
 short-circuits when `bets.length >= cap`; `ROULETTE_CONFIG.MAX_POSITIONS_PER_ROUND`
 is deleted from `src/games/roulette/config.ts`. Tests asserting the
 cap-rejection branch are removed.
+
+## Amendment (2026-05-26, Phase 15 #6 follow-up)
+
+Bug reported post-#235: with `MAX_BET = 1_000` (per-position cap),
+stacking more than one max-denomination chip on a single position
+(e.g. five 1,000 chips on RED) made `placeBet` reject the position
+(`amount > max`). The page's bridge then refunded the placed bets
+and the spin ran cosmetically via `wallet.recordSpinOnly` from #237,
+showing a result on screen with no real wallet change.
+
+Resolution: raise `ROULETTE_CONFIG.MAX_BET` to `1_000_000` so the
+per-position cap is effectively unbounded for normal play. Total
+stake is still bounded by the player's chip balance (enforced by
+`placeBet` against current chips). The user's intent
+"as much money and as many chips as they would like" is now met:
+no per-position cap, no position-count cap, no per-round total cap;
+only balance.

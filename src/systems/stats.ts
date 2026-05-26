@@ -2,9 +2,26 @@ import { db } from '@/db';
 import type { Round } from '@/db';
 import type { RouletteRoundDetails } from '@/games/roulette/types';
 import type { SlotsRoundDetails, Symbol as SlotsSymbol } from '@/games/slots/types';
-import type { RoundResult as BaccaratRoundResult } from '@/games/baccarat/types';
+import type { Winner as BaccaratWinner } from '@/games/baccarat/types';
 import { SLOTS_PAYTABLE } from '@/games/slots/config';
 import { WALLET_CONFIG } from '@/systems/wallet';
+
+/**
+ * Shape of `rounds.details` for a baccarat row — flattened at persist time
+ * in BaccaratPage.persistRound (not the nested in-memory `RoundResult`).
+ * Mirrored in AdminBaccaratPage.tsx; if you change this, update both.
+ */
+interface PersistedBaccaratDetails {
+  readonly winner: BaccaratWinner;
+  readonly margin: number;
+  readonly playerTotal: number;
+  readonly bankerTotal: number;
+  readonly playerPair: boolean;
+  readonly bankerPair: boolean;
+  readonly winnerNatural: boolean;
+  readonly bothNatural: boolean;
+  readonly totalCards: number;
+}
 
 export type UserStatsRow = {
   userId: string;
@@ -890,7 +907,7 @@ export async function getBaccaratAllTimeStats(): Promise<BaccaratAllTimeStats> {
   let playerDragons = 0;
   let bankerDragons = 0;
   for (const r of rows) {
-    const d = r.details as BaccaratRoundResult | undefined;
+    const d = r.details as PersistedBaccaratDetails | undefined;
     if (!d?.winner) continue;
     roundsPlayed += 1;
     totalWagered += r.betAmount;
@@ -949,7 +966,7 @@ export async function getBaccaratWinnerDistribution(): Promise<BaccaratWinnerCou
   const rows = await db.rounds.where('game').equals('baccarat').toArray();
   const counts: Record<BaccaratWinnerCount['winner'], number> = { player: 0, banker: 0, tie: 0 };
   for (const r of rows) {
-    const d = r.details as BaccaratRoundResult | undefined;
+    const d = r.details as PersistedBaccaratDetails | undefined;
     if (!d?.winner) continue;
     counts[d.winner] += 1;
   }
@@ -968,13 +985,13 @@ export interface BaccaratStreakStats {
 export async function getBaccaratStreakStats(): Promise<BaccaratStreakStats> {
   const rows = await db.rounds.where('game').equals('baccarat').toArray();
   rows.sort((a, b) => a.playedAt - b.playedAt);
-  let curWinner: BaccaratRoundResult['winner'] | null = null;
+  let curWinner: BaccaratWinner | null = null;
   let curRun = 0;
   let longestPlayer = 0;
   let longestBanker = 0;
   let longestTie = 0;
   for (const r of rows) {
-    const d = r.details as BaccaratRoundResult | undefined;
+    const d = r.details as PersistedBaccaratDetails | undefined;
     if (!d?.winner) continue;
     if (d.winner === curWinner) {
       curRun += 1;

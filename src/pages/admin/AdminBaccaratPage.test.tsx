@@ -4,23 +4,23 @@ import { MemoryRouter } from 'react-router';
 import AdminBaccaratPage from './AdminBaccaratPage';
 import { resetDb } from '@/test/db-helpers';
 import { db } from '@/db';
-import type {
-  Card as BaccaratCard,
-  Hand as BaccaratHand,
-  HandTotal,
-  RoundResult as BaccaratRoundResult,
-  Winner,
-} from '@/games/baccarat/types';
+import type { HandTotal, Winner } from '@/games/baccarat/types';
 
-function fakeCard(): BaccaratCard {
-  return { rank: 'A', suit: '♠', faceUp: true };
-}
-
-function fakeHand(total: HandTotal, cards: number): BaccaratHand {
-  return {
-    cards: Array.from({ length: cards }, () => fakeCard()),
-    total,
-  };
+/** Mirrors the FLATTENED shape baccarat actually writes to rounds.details
+ *  (see BaccaratPage.persistRound). The in-memory `RoundResult` from
+ *  baccarat/types.ts uses nested `player.total` / `banker.total`, but the
+ *  persisted shape spreads them. AdminBaccaratPage + stats.ts both read
+ *  the flat shape; this test seeds the flat shape too. */
+interface PersistedBaccaratDetails {
+  readonly winner: Winner;
+  readonly margin: number;
+  readonly playerTotal: HandTotal;
+  readonly bankerTotal: HandTotal;
+  readonly playerPair: boolean;
+  readonly bankerPair: boolean;
+  readonly winnerNatural: boolean;
+  readonly bothNatural: boolean;
+  readonly totalCards: number;
 }
 
 function baccaratDetails(opts: {
@@ -34,12 +34,12 @@ function baccaratDetails(opts: {
   bothNatural: boolean;
   playerPair: boolean;
   bankerPair: boolean;
-}): BaccaratRoundResult {
+}): PersistedBaccaratDetails {
   return {
-    player: fakeHand(opts.playerTotal, opts.playerCards),
-    banker: fakeHand(opts.bankerTotal, opts.bankerCards),
     winner: opts.winner,
     margin: opts.margin,
+    playerTotal: opts.playerTotal,
+    bankerTotal: opts.bankerTotal,
     winnerNatural: opts.winnerNatural,
     bothNatural: opts.bothNatural,
     playerPair: opts.playerPair,
@@ -50,7 +50,7 @@ function baccaratDetails(opts: {
 
 async function seedRow(opts: {
   id: string;
-  details: BaccaratRoundResult;
+  details: PersistedBaccaratDetails;
   betAmount: number;
   payoutChips: number;
   playedAt: number;

@@ -1,8 +1,12 @@
 export const ROULETTE_CONFIG = {
   /** Per-bet-position chip minimum. Matches Blackjack via ADR-0025. */
   MIN_BET: 5,
-  /** Per-bet-position chip maximum. Matches Blackjack via ADR-0025. */
-  MAX_BET: 1_000,
+  /** Per-bet-position chip maximum. Set very high so the player can stack
+   *  any number of chips on a single position — total stake is bounded by
+   *  the player's balance (enforced by `placeBet` against current chips),
+   *  not by an arbitrary per-position cap. Pairs with ADR-0030's removed
+   *  position-count cap from Phase 15 #6 to give "unlimited bets". */
+  MAX_BET: 1_000_000,
   /** Chip denominations shown in the selector (left → right). ADR-0030. */
   CHIP_DENOMINATIONS: [5, 25, 100, 250, 500, 1_000] as const,
   /** Spin animation duration in ms. ADR-0031. */
