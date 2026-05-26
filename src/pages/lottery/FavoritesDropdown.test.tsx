@@ -21,7 +21,7 @@ describe('FavoritesDropdown', () => {
     render(
       <FavoritesDropdown
         userId="u"
-        currentPick={{ mainNumbers: [1, 2, 3, 4, 5], bonusNumber: 1 }}
+        currentPick={{ mainNumbers: [1, 2, 3, 4, 5, 6], bonusNumber: 1 }}
         onLoad={() => {}}
       />,
     );
@@ -36,7 +36,7 @@ describe('FavoritesDropdown', () => {
     render(
       <FavoritesDropdown
         userId={r.user.id}
-        currentPick={{ mainNumbers: [1, 2, 3, 4, 5], bonusNumber: 1 }}
+        currentPick={{ mainNumbers: [1, 2, 3, 4, 5, 6], bonusNumber: 1 }}
         onLoad={() => {}}
       />,
     );
@@ -52,7 +52,7 @@ describe('FavoritesDropdown', () => {
     await saveFavorite({
       userId: r.user.id,
       name: 'Picked',
-      mainNumbers: [10, 20, 30, 40, 50],
+      mainNumbers: [10, 20, 30, 40, 50, 7],
       bonusNumber: 9,
     });
     const user = userEvent.setup();
@@ -60,6 +60,10 @@ describe('FavoritesDropdown', () => {
     render(<FavoritesDropdown userId={r.user.id} currentPick={null} onLoad={onLoad} />);
     await waitFor(() => expect(screen.getByText('Picked')).toBeInTheDocument());
     await user.click(screen.getByRole('button', { name: /load favorite picked/i }));
-    expect(onLoad).toHaveBeenCalledWith({ mainNumbers: [10, 20, 30, 40, 50], bonusNumber: 9 });
+    // saveFavorite sorts mainNumbers ascending before persisting.
+    expect(onLoad).toHaveBeenCalledWith({
+      mainNumbers: [7, 10, 20, 30, 40, 50],
+      bonusNumber: 9,
+    });
   });
 });

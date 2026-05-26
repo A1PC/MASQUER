@@ -340,18 +340,47 @@ Each row: avatar color + username, the ranked metric, and a couple of secondary 
 
 ## 10.5 Daily Lottery
 
-Pick-5+1 daily lottery; one shared draw per local calendar day. See ADR-0040 for the "lottery as a system, not games-sandbox citizen" decision.
+Pick-6+1 daily lottery (UK National Lottery shape); one shared draw per local
+calendar day. See ADR-0040 for the "lottery as a system, not games-sandbox
+citizen" decision.
 
-- **Pools:** 5 main from 1–50 + 1 bonus from 1–10 (21,187,600 combinations).
-- **Ticket model:** 10 chips per line; a ticket can hold multiple lines (manual + lucky-dip); unlimited tickets per draw (wallet-capped).
-- **Lucky dip:** numbers generated at purchase time, ensuring within-ticket uniqueness.
-- **Free re-entry:** match-2 grants a free ticket for the next draw (auto-generated lucky-dip line).
-- **Payout tiers:** 5+bonus = 1,000,000; 5 = 500,000; 4+bonus = 100,000; 4 = 10,000; 3+bonus = 2,000; 3 = 100; 2+bonus / 2 = free re-entry. ≈ 43% RTP.
+- **Pools:** 6 main from 1–50 + 1 bonus from 1–10 (15,890,700 combinations).
+- **Ticket model:** 5 chips per line; a ticket can hold multiple lines
+  (manual and/or lucky-dip); unlimited tickets per draw (wallet-capped).
+- **Lucky dip:** numbers generated at purchase time, ensuring within-ticket
+  uniqueness.
+- **Free re-entry:** match-2 grants a free ticket for the next draw
+  (auto-generated lucky-dip line; value tracks `LINE_COST` = 5 chips).
+- **Payout tiers** (per UK National Lottery shape):
+
+  | Player matched | Tier      | Payout (chips)               |
+  | -------------- | --------- | ---------------------------- |
+  | 6 main         | `6`       | 20,000,000 (jackpot)         |
+  | 5 main + bonus | `5+bonus` | 1,000,000                    |
+  | 5 main only    | `5`       | 1,750                        |
+  | 4 main         | `4`       | 150                          |
+  | 3 main         | `3`       | 30                           |
+  | 2 main         | `2`       | free re-entry (5-chip value) |
+  | 0 / 1 main     | —         | 0                            |
+
+  RTP ≈ 84%. House edge ≈ 16%. Bonus number matters only for the `5+bonus`
+  tier; `4` / `3` / `2` tiers ignore the bonus (UK Lottery semantics).
+
 - **Draw timing:** strict 20:00 local daily; backfills on app open if missed.
-- **Integration:** every settled line writes a `rounds` row, so /stats and /leaderboard pick lottery up automatically.
-- **Admin:** /admin/lottery shows 4 stat cards (tickets sold today, revenue, payout, profit), 2 frequency bar charts (main + bonus pool), and a recent-draws table.
+- **Integration:** every settled line writes a `rounds` row, so /stats and
+  /leaderboard pick lottery up automatically.
+- **Admin:** /admin/lottery shows 4 stat cards (tickets sold today, revenue,
+  payout, profit), 2 frequency bar charts (main + bonus pool), and a
+  recent-draws table.
+- **History migration:** when the schema bumps to add lottery's Pick-6 shape
+  (Phase 15 #9), the four lottery tables (`lotteryDraws`, `lotteryTickets`,
+  `lotteryLines`, `lotteryFavorites`) are wiped — the old Pick-5 line shape
+  can't be revalidated against the new Pick-6 rules. `rounds` rows for past
+  lottery wins stay (no impact on game-history aggregates).
 
-Design spec: `docs/superpowers/specs/2026-05-19-phase-10-daily-lottery-design.md`. Implementation plan: `docs/superpowers/plans/2026-05-19-phase-10-daily-lottery-plan.md`.
+Design specs: `docs/superpowers/specs/2026-05-19-phase-10-daily-lottery-design.md`
+(initial Pick-5+1) + `docs/superpowers/specs/2026-05-26-phase-15-9-lottery-design.md`
+(Phase 15 #9 reskin + Pick-6+1 + UK tiers).
 
 ---
 

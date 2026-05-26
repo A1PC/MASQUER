@@ -14,7 +14,8 @@ describe('lottery → /stats integration', () => {
     if (!r.ok) throw new Error();
     const date = '2026-05-19';
     const { mainNumbers, bonus } = drawForDate(date);
-    // Line that matches all 5 main + bonus → guaranteed jackpot for this seeded date.
+    // Line that matches all 6 main + bonus → guaranteed jackpot ('6' tier, 20M chips)
+    // for this seeded date. Phase 15 #9 expanded Pick-5+1 → Pick-6+1.
     await buyTicket({
       userId: r.user.id,
       lines: [{ kind: 'manual', mainNumbers, bonusNumber: bonus }],

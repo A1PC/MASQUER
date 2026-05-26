@@ -36,7 +36,20 @@ describe('NumberGrid', () => {
     );
   });
 
-  it('disables unselected main buttons when 5 are already selected', () => {
+  it('disables unselected main buttons when MAIN_PICKS (6) are already selected', () => {
+    render(
+      <NumberGrid
+        mainSelected={[1, 2, 3, 4, 5, 6]}
+        bonusSelected={null}
+        onMainToggle={() => {}}
+        onBonusSelect={() => {}}
+      />,
+    );
+    expect(screen.getByRole('button', { name: 'Main number 7' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Main number 1' })).not.toBeDisabled();
+  });
+
+  it('still allows selection when only 5 main numbers are selected (Phase 15 #9 = Pick-6)', () => {
     render(
       <NumberGrid
         mainSelected={[1, 2, 3, 4, 5]}
@@ -45,8 +58,19 @@ describe('NumberGrid', () => {
         onBonusSelect={() => {}}
       />,
     );
-    expect(screen.getByRole('button', { name: 'Main number 6' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Main number 1' })).not.toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Main number 6' })).not.toBeDisabled();
+  });
+
+  it('renders an "X/6 selected" counter', () => {
+    render(
+      <NumberGrid
+        mainSelected={[1, 2, 3]}
+        bonusSelected={null}
+        onMainToggle={() => {}}
+        onBonusSelect={() => {}}
+      />,
+    );
+    expect(screen.getByText(/3\/6 selected/i)).toBeInTheDocument();
   });
 
   it('fires onMainToggle with the clicked number', async () => {

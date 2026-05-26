@@ -1,11 +1,12 @@
 import type { JSX } from 'react';
+import { MAIN_PICKS } from '@/systems/lottery';
 
 interface Props {
-  /** Currently selected main numbers (any order). Length 0..5. */
+  /** Currently selected main numbers (any order). Length 0..MAIN_PICKS. */
   mainSelected: number[];
   /** Currently selected bonus number, or null. */
   bonusSelected: number | null;
-  /** Called when a main number cell is clicked. Parent must enforce length cap of 5. */
+  /** Called when a main number cell is clicked. Parent must enforce length cap of MAIN_PICKS. */
   onMainToggle: (n: number) => void;
   /** Called when a bonus cell is clicked. Parent enforces single-selection. */
   onBonusSelect: (n: number) => void;
@@ -14,6 +15,12 @@ interface Props {
 const MAIN_NUMBERS = Array.from({ length: 50 }, (_, i) => i + 1);
 const BONUS_NUMBERS = Array.from({ length: 10 }, (_, i) => i + 1);
 
+/**
+ * NumberGrid — the player's lottery pick surface. Reskinned for MASQUER /
+ * Velvet Deco in Phase 15 #9: brand tokens only, ≥44 px touch targets, and
+ * Pick-6 (was Pick-5 in Phase 10). Bonus is single-select and treated with
+ * the jewel-magenta signature pop to differentiate from the brass main pool.
+ */
 export default function NumberGrid({
   mainSelected,
   bonusSelected,
@@ -21,12 +28,15 @@ export default function NumberGrid({
   onBonusSelect,
 }: Props): JSX.Element {
   const mainSet = new Set(mainSelected);
-  const mainFull = mainSelected.length === 5;
+  const mainFull = mainSelected.length === MAIN_PICKS;
   return (
     <div className="flex flex-col gap-4" data-number-grid>
       <section>
         <h3 className="mb-2 font-display text-[11px] tracking-[0.18em] text-gold">
-          MAIN NUMBERS — pick 5
+          MAIN NUMBERS — pick {MAIN_PICKS}
+          <span className="ml-2 font-body tabular-nums text-ivory/60" data-main-count>
+            {mainSelected.length}/{MAIN_PICKS} selected
+          </span>
         </h3>
         <div className="grid grid-cols-10 gap-1.5">
           {MAIN_NUMBERS.map((n) => {
@@ -41,12 +51,14 @@ export default function NumberGrid({
                 disabled={disabled}
                 onClick={() => onMainToggle(n)}
                 className={[
-                  'h-9 rounded-full border text-xs tabular-nums transition',
+                  // ≥44 px touch target per HIG / Material; gold focus ring.
+                  'inline-flex h-11 min-w-[44px] items-center justify-center rounded-full border text-xs tabular-nums transition',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2 focus-visible:ring-offset-felt-table-deep',
                   selected
-                    ? 'border-gold bg-gold text-felt-deep'
+                    ? 'border-brass bg-gold text-velvet-deep shadow-gold-glow'
                     : disabled
-                      ? 'border-white/10 bg-felt-deep/40 text-white/20'
-                      : 'border-white/30 bg-felt-deep text-white/70 hover:border-gold hover:text-white',
+                      ? 'border-brass/20 bg-felt-table-deep/40 text-ivory/20'
+                      : 'border-brass/50 bg-felt-table-deep text-ivory/80 hover:border-brass hover:bg-velvet-deep hover:text-ivory',
                 ].join(' ')}
               >
                 {n}
@@ -70,10 +82,11 @@ export default function NumberGrid({
                 aria-label={`Bonus number ${n}`}
                 onClick={() => onBonusSelect(n)}
                 className={[
-                  'h-9 rounded-full border text-xs tabular-nums transition',
+                  'inline-flex h-11 min-w-[44px] items-center justify-center rounded-full border text-xs tabular-nums transition',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2 focus-visible:ring-offset-felt-table-deep',
                   selected
-                    ? 'border-neon-magenta bg-neon-magenta text-felt-deep'
-                    : 'border-white/30 bg-felt-deep text-white/70 hover:border-neon-magenta hover:text-white',
+                    ? 'border-jewel-magenta bg-jewel-magenta text-ivory'
+                    : 'border-brass/50 bg-felt-table-deep text-ivory/80 hover:border-jewel-magenta hover:text-ivory',
                 ].join(' ')}
               >
                 {n}

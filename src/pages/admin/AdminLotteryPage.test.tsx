@@ -26,7 +26,7 @@ describe('AdminLotteryPage', () => {
     await db.lotteryDraws.put({
       id: '2026-05-19',
       drawAt: Date.now(),
-      mainNumbers: [1, 2, 3, 4, 5],
+      mainNumbers: [1, 2, 3, 4, 5, 6],
       bonus: 1,
       totalLines: 10,
       totalRevenue: 100,
@@ -47,7 +47,7 @@ describe('AdminLotteryPage', () => {
     await db.lotteryDraws.put({
       id: '2026-05-19',
       drawAt: Date.now(),
-      mainNumbers: [1, 2, 3, 4, 5],
+      mainNumbers: [1, 2, 3, 4, 5, 6],
       bonus: 1,
       totalLines: 1,
       totalRevenue: 10,
@@ -71,14 +71,14 @@ describe('AdminLotteryPage', () => {
     expect(card.textContent).toContain('-90');
   });
 
-  it('renders recent draws table when draws exist', async () => {
+  it('renders recent draws table when draws exist (with 6 main numbers per draw)', async () => {
     await db.lotteryDraws.put({
       id: '2026-05-19',
       drawAt: Date.now(),
-      mainNumbers: [3, 12, 25, 41, 49],
+      mainNumbers: [3, 12, 25, 41, 49, 33],
       bonus: 7,
       totalLines: 1,
-      totalRevenue: 10,
+      totalRevenue: 5,
       totalPayout: 0,
     });
     render(
@@ -87,6 +87,61 @@ describe('AdminLotteryPage', () => {
       </MemoryRouter>,
     );
     await waitFor(() => expect(screen.getByText('2026-05-19')).toBeInTheDocument());
-    expect(screen.getByText(/3 · 12 · 25 · 41 · 49/)).toBeInTheDocument();
+    expect(screen.getByText(/3 · 12 · 25 · 41 · 49 · 33/)).toBeInTheDocument();
+  });
+
+  it('shows a brand-consistent tier badge per draw (Phase 15 #9 restyle)', async () => {
+    await db.lotteryDraws.put({
+      id: '2026-05-19',
+      drawAt: Date.now(),
+      mainNumbers: [1, 2, 3, 4, 5, 6],
+      bonus: 1,
+      totalLines: 1,
+      totalRevenue: 5,
+      totalPayout: 150,
+    });
+    await db.lotteryLines.put({
+      id: 'line-1',
+      ticketId: 'tkt',
+      userId: 'u',
+      drawId: '2026-05-19',
+      mainNumbers: [1, 2, 3, 4, 7, 8],
+      bonusNumber: 2,
+      isLuckyDip: false,
+      isFreeReentry: false,
+      settled: true,
+      matchTier: '4',
+      payout: 150,
+    });
+    const { container } = render(
+      <MemoryRouter>
+        <AdminLotteryPage />
+      </MemoryRouter>,
+    );
+    await waitFor(() => expect(screen.getByText('2026-05-19')).toBeInTheDocument());
+    await waitFor(() =>
+      expect(container.querySelector('[data-tier-badge="4"]')).toBeInTheDocument(),
+    );
+  });
+
+  it('renders "None" tier badge when a draw has no winning lines', async () => {
+    await db.lotteryDraws.put({
+      id: '2026-05-20',
+      drawAt: Date.now(),
+      mainNumbers: [10, 20, 30, 40, 50, 11],
+      bonus: 9,
+      totalLines: 0,
+      totalRevenue: 0,
+      totalPayout: 0,
+    });
+    const { container } = render(
+      <MemoryRouter>
+        <AdminLotteryPage />
+      </MemoryRouter>,
+    );
+    await waitFor(() => expect(screen.getByText('2026-05-20')).toBeInTheDocument());
+    await waitFor(() =>
+      expect(container.querySelector('[data-tier-badge="none"]')).toBeInTheDocument(),
+    );
   });
 });

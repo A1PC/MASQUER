@@ -68,3 +68,30 @@ Phase 10's daily lottery violates two of those assumptions:
 - `src/pages/lottery/` (page directory — created in PR B)
 - Phase 10 spec §8 (architecture)
 - ADR-0039 — Shared Recharts chunk (lazy-load pattern)
+
+## Amendment (2026-05-26, Phase 15 #9)
+
+Game shape expanded from Pick-5+1 to Pick-6+1 to match the UK National
+Lottery payout shape (per user request — see spec
+`docs/superpowers/specs/2026-05-26-phase-15-9-lottery-design.md`). Tier
+matcher and payout table rewritten:
+
+- `LotteryMatchTier` union: `'6' | '5+bonus' | '5' | '4' | '3' | '2'`.
+- `LINE_COST` changed `10 → 5`. `REENTRY_VALUE` tracks `LINE_COST`
+  (a free re-entry is worth one current line cost).
+- Jackpot (`6` tier) = 20,000,000 chips. Other tiers per the new table
+  in BUILD_GUIDE §10.5.
+- Old `4+bonus` (was 100K) and `3+bonus` (was 2K) tiers removed —
+  the bonus number matters only for the `5+bonus` tier (UK Lottery
+  semantics).
+
+The Dexie schema bumps with a destructive wipe of the four lottery
+tables (`lotteryDraws`, `lotteryTickets`, `lotteryLines`,
+`lotteryFavorites`); old Pick-5 lines can't be revalidated against
+the new Pick-6 rules. `rounds` rows for past lottery wins stay
+untouched (they're historical and don't affect new aggregates).
+
+ADR-0040's core decision is **unchanged**: lottery still lives in
+`src/systems/lottery.ts` + `src/pages/lottery/`, still imports
+`@/db` and `@/store` freely, and still writes one rounds row per
+evaluated line per the Phase-10 decision matrix.

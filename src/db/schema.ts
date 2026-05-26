@@ -80,13 +80,14 @@ export interface Adjustment {
 }
 
 /** v3 (Phase 10): one row per scheduled daily draw. Settled lazily on app open
- *  via settleMissedDraws(). Numbers are deterministic from the date seed. */
+ *  via settleMissedDraws(). Numbers are deterministic from the date seed.
+ *  v6 (Phase 15 #9): main pick count grew 5 → 6 (UK National Lottery shape). */
 export interface LotteryDraw {
   /** Date string `YYYY-MM-DD` (user's local timezone). Primary key. */
   id: string;
   /** Epoch ms when the draw was actually run (NOT the scheduled time). */
   drawAt: number;
-  /** Sorted-asc 5 main numbers in [1, 50]. */
+  /** Sorted-asc 6 main numbers in [1, 50] (Phase 15 #9; was 5 in Phase 10). */
   mainNumbers: number[];
   /** Bonus number in [1, 10]. */
   bonus: number;
@@ -109,7 +110,7 @@ export interface LotteryTicket {
   lineCount: number;
 }
 
-/** v3 (Phase 10): one row per 5+1 entry into a draw. */
+/** v3 (Phase 10): one row per 6+1 entry into a draw (was 5+1 pre-Phase 15 #9). */
 export interface LotteryLine {
   id: string;
   ticketId: string;
@@ -126,15 +127,9 @@ export interface LotteryLine {
   sourceLineId?: string;
 }
 
-export type LotteryMatchTier =
-  | '5+bonus'
-  | '5'
-  | '4+bonus'
-  | '4'
-  | '3+bonus'
-  | '3'
-  | '2+bonus'
-  | '2';
+/** Phase 15 #9: UK National Lottery tier shape. The bonus number matters only
+ *  for the `5+bonus` tier; `4` / `3` / `2` tiers ignore the bonus. */
+export type LotteryMatchTier = '6' | '5+bonus' | '5' | '4' | '3' | '2';
 
 /** v3 (Phase 10): user-saved favorite number sets. */
 export interface LotteryFavorite {
@@ -243,5 +238,34 @@ export class LocalGambleDB extends Dexie {
       // Phase 15 #2: per-user sound + motion preferences
       prefs: 'userId',
     });
+    /**
+     * v6 (Phase 15 #9, 2026-05-26): destructive wipe of the four lottery
+     * tables. The Pick-5+1 line shape from Phase 10 cannot be re-validated
+     * against the new Pick-6+1 game rules, so the cleanest path for a
+     * local play-money app is to clear those rows on upgrade. `rounds`
+     * rows for past lottery wins stay untouched (they're historical and
+     * don't affect new aggregates). All other tables are unchanged.
+     */
+    this.version(6)
+      .stores({
+        users: 'id, &usernameLower, createdAt',
+        balances: 'userId',
+        rounds: 'id, userId, game, playedAt, [userId+playedAt]',
+        sessions: 'id, userId, loginAt, [userId+loginAt]',
+        gameVisits: 'id, userId, game, sessionId, [userId+game], [userId+enteredAt]',
+        adjustments: 'id, userId, adjustedAt, [userId+adjustedAt]',
+        lotteryDraws: 'id, drawAt',
+        lotteryTickets: 'id, userId, drawId, purchasedAt, [userId+drawId]',
+        lotteryLines: 'id, ticketId, userId, drawId, settled, [userId+drawId], [drawId+settled]',
+        lotteryFavorites: 'id, userId, createdAt, [userId+createdAt]',
+        bingoConfig: '&difficulty',
+        prefs: 'userId',
+      })
+      .upgrade(async (tx) => {
+        await tx.table('lotteryDraws').clear();
+        await tx.table('lotteryTickets').clear();
+        await tx.table('lotteryLines').clear();
+        await tx.table('lotteryFavorites').clear();
+      });
   }
 }

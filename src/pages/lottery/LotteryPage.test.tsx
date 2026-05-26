@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeEach } from 'vitest';
+import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { waitFor } from '@testing-library/react';
@@ -10,9 +10,17 @@ import { register } from '@/systems/auth';
 import { resetDb } from '@/test/db-helpers';
 import { db } from '@/db';
 
+// Mock useSound so the page's win-tier stingers + chip.place commit sound
+// are observable without booting the real audio engine.
+const playMock = vi.fn();
+vi.mock('@/systems/sound/useSound', () => ({
+  useSound: () => ({ play: playMock }),
+}));
+
 describe('LotteryPage shell', () => {
   beforeEach(async () => {
     await resetDb();
+    playMock.mockClear();
     useSessionStore.setState({
       currentUser: null,
       isAdmin: false,
@@ -31,7 +39,7 @@ describe('LotteryPage shell', () => {
     expect(container.firstChild).toBeNull();
   });
 
-  it('renders the page title and placeholder sections when logged in', async () => {
+  it('renders the MASQUER Lottery title + LobbyButton + OddsInfoBox when logged in', async () => {
     const r = await register({ username: 'a', password: 'password123' });
     if (!r.ok) throw new Error();
     useSessionStore.setState({ currentUser: r.user });
@@ -40,8 +48,27 @@ describe('LotteryPage shell', () => {
         <LotteryPage />
       </MemoryRouter>,
     );
-    expect(screen.getByRole('heading', { name: /daily lottery/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /masquer.*lottery/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /back to lobby/i })).toBeInTheDocument();
+    expect(screen.getByText(/jackpot 20m/i)).toBeInTheDocument();
     expect(screen.getByText(/RECENT DRAWS/i)).toBeInTheDocument();
+  });
+
+  it('shows the RULES button which opens the rules modal', async () => {
+    const r = await register({ username: 'rules', password: 'password123' });
+    if (!r.ok) throw new Error();
+    useSessionStore.setState({ currentUser: r.user });
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <LotteryPage />
+      </MemoryRouter>,
+    );
+    await user.click(screen.getByRole('button', { name: /rules/i }));
+    expect(screen.getByRole('dialog', { name: /lottery.*rules/i })).toBeInTheDocument();
+    // Spot-check a known rules section that only appears inside the modal.
+    expect(screen.getByText(/OBJECT/)).toBeInTheDocument();
+    expect(screen.getByText(/MATCH-2 FREE RE-ENTRY/)).toBeInTheDocument();
   });
 
   it('lets a user pick + add a manual line + buy a ticket', async () => {
@@ -55,7 +82,7 @@ describe('LotteryPage shell', () => {
         <LotteryPage />
       </MemoryRouter>,
     );
-    for (const n of [1, 2, 3, 4, 5]) {
+    for (const n of [1, 2, 3, 4, 5, 6]) {
       await user.click(screen.getByRole('button', { name: `Main number ${n}` }));
     }
     await user.click(screen.getByRole('button', { name: 'Bonus number 1' }));
@@ -76,12 +103,12 @@ describe('LotteryPage shell', () => {
         <LotteryPage />
       </MemoryRouter>,
     );
-    for (const n of [1, 2, 3, 4, 5]) {
+    for (const n of [1, 2, 3, 4, 5, 6]) {
       await user.click(screen.getByRole('button', { name: `Main number ${n}` }));
     }
     await user.click(screen.getByRole('button', { name: 'Bonus number 1' }));
     await user.click(screen.getByRole('button', { name: /add line/i }));
-    for (const n of [1, 2, 3, 4, 5]) {
+    for (const n of [1, 2, 3, 4, 5, 6]) {
       await user.click(screen.getByRole('button', { name: `Main number ${n}` }));
     }
     await user.click(screen.getByRole('button', { name: 'Bonus number 1' }));
@@ -130,7 +157,7 @@ describe('LotteryPage shell', () => {
       ticketId,
       userId: r.user.id,
       drawId,
-      mainNumbers: [1, 2, 3, 4, 5],
+      mainNumbers: [1, 2, 3, 4, 5, 6],
       bonusNumber: 1,
       isLuckyDip: false,
       isFreeReentry: false,
