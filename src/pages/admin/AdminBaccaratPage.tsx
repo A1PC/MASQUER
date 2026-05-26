@@ -17,7 +17,8 @@ import type { Winner } from '@/games/baccarat/types';
 /**
  * Shape of `rounds.details` for a baccarat row — flattened at persist time
  * in BaccaratPage.persistRound (not the nested in-memory `RoundResult`).
- * The admin page only reads the scalar fields it needs.
+ * The admin page only reads the scalar fields it needs. Mirrored in
+ * `src/systems/stats.ts` and `AdminBaccaratPage.test.tsx`.
  */
 interface PersistedBaccaratDetails {
   readonly winner: Winner;
