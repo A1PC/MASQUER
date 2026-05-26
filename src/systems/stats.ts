@@ -1009,3 +1009,200 @@ export async function getBaccaratStreakStats(): Promise<BaccaratStreakStats> {
     longestTieStreak: longestTie,
   };
 }
+
+// ─── Phase 15 #10.v1 — Bingo all-time admin stats ─────────────────────
+
+export type BingoVariant = 'british' | 'american';
+export type BingoDifficulty = 'easy' | 'medium' | 'hard';
+
+/**
+ * Shape of `rounds.details` for a bingo row — verified against the settle
+ * bridge in `src/games/bingo/BingoPage.tsx` (~line 117). Mirrored in the
+ * admin page + stats test fixtures; if you change this, update all three.
+ *
+ * Notably absent: `cardCount` (the 1-4 cards the player chose at setup).
+ * The spec §4.8.5 card-count usage stat isn't derivable from the
+ * persisted details, so this PR ships the stats that ARE derivable and
+ * documents the gap in the PR description. Extending the details write
+ * is logic-side and out of scope per the plan's hard rules.
+ */
+interface PersistedBingoDetails {
+  readonly variant: BingoVariant;
+  readonly difficulty: BingoDifficulty;
+  readonly finalCallCount: number;
+  readonly userTier1: boolean;
+  readonly userTier2: boolean;
+  readonly userTier3: boolean;
+  readonly cpuTier3Winner: number | null;
+  readonly bonusesEarned: number;
+  readonly pot: number;
+}
+
+/** True when the row's details look like a settled bingo round. We require
+ *  `variant` + `difficulty` + numeric `finalCallCount` so the aggregator
+ *  can skip half-written / legacy rows without throwing. */
+function isBingoDetails(d: unknown): d is PersistedBingoDetails {
+  if (typeof d !== 'object' || d === null) return false;
+  const obj = d as Record<string, unknown>;
+  return (
+    (obj.variant === 'british' || obj.variant === 'american') &&
+    (obj.difficulty === 'easy' || obj.difficulty === 'medium' || obj.difficulty === 'hard') &&
+    typeof obj.finalCallCount === 'number'
+  );
+}
+
+export interface BingoAllTimeStats {
+  /** Settled bingo rounds (excludes legacy / half-written rows). */
+  gamesPlayed: number;
+  totalWagered: number;
+  totalPaid: number;
+  /** `totalWagered - totalPaid` (positive = house won). */
+  netHouseChips: number;
+  /** Mirror of `netHouseChips` (sign-flipped, zero normalised). */
+  netPlayerChips: number;
+  /** `totalPaid / totalWagered` (null when no wagering). */
+  actualRtp: number | null;
+  /** Count of games where the player won the tier-3 BINGO. */
+  playerTier3Wins: number;
+  /** Count of games where a CPU won the tier-3 BINGO (player loss). */
+  cpuTier3Wins: number;
+  /** `playerTier3Wins / gamesPlayed` (0 when no games yet). */
+  playerBingoCapturePct: number;
+  /** Player tier-3 wins with `finalCallCount ≤ 40` (the FAST BINGO kicker). */
+  fastBingoPlayerWins: number;
+  /** `fastBingoPlayerWins / playerTier3Wins` (0 when no player tier-3 wins). */
+  fastBingoHitRate: number;
+  /** Games where `userTier1 === true` (player won a LINE). */
+  lineWins: number;
+  /** Games where `userTier2 === true` (DOUBLE LINE / FOUR CORNERS — the
+   *  persisted details collapse both into the tier-2 flag, spec §4.8.7
+   *  acknowledges the limitation). */
+  doubleLineWins: number;
+  /** Total bonus chips paid across tier-1 + tier-2 (sum of `bonusesEarned`). */
+  totalBonusesPaid: number;
+  /** Sum of `pot` across games the player won (tier-3 take). */
+  totalPotsWonByPlayer: number;
+}
+
+export async function getBingoAllTimeStats(): Promise<BingoAllTimeStats> {
+  const rows = await db.rounds.where('game').equals('bingo').toArray();
+  let gamesPlayed = 0;
+  let totalWagered = 0;
+  let totalPaid = 0;
+  let playerTier3Wins = 0;
+  let cpuTier3Wins = 0;
+  let fastBingoPlayerWins = 0;
+  let lineWins = 0;
+  let doubleLineWins = 0;
+  let totalBonusesPaid = 0;
+  let totalPotsWonByPlayer = 0;
+
+  for (const r of rows) {
+    if (!isBingoDetails(r.details)) continue;
+    const d = r.details;
+    gamesPlayed += 1;
+    totalWagered += r.betAmount;
+    totalPaid += r.payout;
+    if (d.userTier3) {
+      playerTier3Wins += 1;
+      totalPotsWonByPlayer += d.pot;
+      if (d.finalCallCount <= 40) fastBingoPlayerWins += 1;
+    } else if (d.cpuTier3Winner !== null) {
+      cpuTier3Wins += 1;
+    }
+    if (d.userTier1) lineWins += 1;
+    if (d.userTier2) doubleLineWins += 1;
+    totalBonusesPaid += d.bonusesEarned;
+  }
+
+  const netHouseChips = totalWagered - totalPaid;
+  return {
+    gamesPlayed,
+    totalWagered,
+    totalPaid,
+    netHouseChips,
+    // Add zero to normalise `-0` (e.g. `-(0)`) to `+0` for strict assertions.
+    netPlayerChips: -netHouseChips + 0,
+    actualRtp: totalWagered > 0 ? totalPaid / totalWagered : null,
+    playerTier3Wins,
+    cpuTier3Wins,
+    playerBingoCapturePct: gamesPlayed > 0 ? playerTier3Wins / gamesPlayed : 0,
+    fastBingoPlayerWins,
+    fastBingoHitRate: playerTier3Wins > 0 ? fastBingoPlayerWins / playerTier3Wins : 0,
+    lineWins,
+    doubleLineWins,
+    totalBonusesPaid,
+    totalPotsWonByPlayer,
+  };
+}
+
+export interface BingoVariantDifficultyCount {
+  variant: BingoVariant;
+  difficulty: BingoDifficulty;
+  count: number;
+}
+
+/** Canonical row order for the stacked-bar chart + tests. */
+const BINGO_VARIANT_DIFFICULTY_ORDER: readonly {
+  variant: BingoVariant;
+  difficulty: BingoDifficulty;
+}[] = [
+  { variant: 'british', difficulty: 'easy' },
+  { variant: 'british', difficulty: 'medium' },
+  { variant: 'british', difficulty: 'hard' },
+  { variant: 'american', difficulty: 'easy' },
+  { variant: 'american', difficulty: 'medium' },
+  { variant: 'american', difficulty: 'hard' },
+];
+
+export async function getBingoVariantDifficultyDistribution(): Promise<
+  BingoVariantDifficultyCount[]
+> {
+  const rows = await db.rounds.where('game').equals('bingo').toArray();
+  const counts = new Map<string, number>();
+  const key = (v: BingoVariant, d: BingoDifficulty) => `${v}|${d}`;
+  for (const r of rows) {
+    if (!isBingoDetails(r.details)) continue;
+    const k = key(r.details.variant, r.details.difficulty);
+    counts.set(k, (counts.get(k) ?? 0) + 1);
+  }
+  return BINGO_VARIANT_DIFFICULTY_ORDER.map(({ variant, difficulty }) => ({
+    variant,
+    difficulty,
+    count: counts.get(key(variant, difficulty)) ?? 0,
+  }));
+}
+
+export interface BingoBallsToBingo {
+  difficulty: BingoDifficulty;
+  /** Mean `finalCallCount` over games where the player won the tier-3.
+   *  `null` when no player wins at that difficulty yet (so the admin UI
+   *  can render '—' instead of dividing by zero). */
+  averageCalls: number | null;
+}
+
+const BINGO_DIFFICULTY_ORDER: readonly BingoDifficulty[] = ['easy', 'medium', 'hard'];
+
+export async function getBingoBallsToBingo(): Promise<BingoBallsToBingo[]> {
+  const rows = await db.rounds.where('game').equals('bingo').toArray();
+  const sums: Record<BingoDifficulty, { total: number; count: number }> = {
+    easy: { total: 0, count: 0 },
+    medium: { total: 0, count: 0 },
+    hard: { total: 0, count: 0 },
+  };
+  for (const r of rows) {
+    if (!isBingoDetails(r.details)) continue;
+    const d = r.details;
+    if (!d.userTier3) continue;
+    const slot = sums[d.difficulty];
+    slot.total += d.finalCallCount;
+    slot.count += 1;
+  }
+  return BINGO_DIFFICULTY_ORDER.map((difficulty) => {
+    const { total, count } = sums[difficulty];
+    return {
+      difficulty,
+      averageCalls: count > 0 ? total / count : null,
+    };
+  });
+}

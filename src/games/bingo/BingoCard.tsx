@@ -94,8 +94,9 @@ export default function BingoCard({
                 onClick={handleClick}
                 className={className}
                 data-cell-value={cell.value}
-                whileTap={reduceMotion ? undefined : { scale: 0.95 }}
-                transition={reduceMotion ? { duration: 0 } : { duration: 0.15 }}
+                {...(reduceMotion
+                  ? { transition: { duration: 0 } }
+                  : { whileTap: { scale: 0.95 }, transition: { duration: 0.15 } })}
               >
                 {content}
               </motion.button>
