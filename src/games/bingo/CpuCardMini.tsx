@@ -17,6 +17,9 @@ const TIER_LABELS = {
   tier3: 'WINNER',
 } as const;
 
+/** Mini CPU card. Same daubed-cell magenta ring as the player's BingoCard
+ *  (just smaller). Label tone shifts gold-bright when this CPU has hit
+ *  any tier so the operator/player can read at a glance who's where. */
 export default function CpuCardMini({
   cpu,
   cpuIdx,
@@ -25,12 +28,18 @@ export default function CpuCardMini({
 }: Props): JSX.Element {
   return (
     <div
-      className="flex flex-col items-center gap-1 rounded border border-white/10 bg-felt-deep/50 p-1"
+      className="flex flex-col items-center gap-1 rounded-md border border-brass/40 bg-felt-table-deep p-1"
       data-cpu-card
       data-cpu-idx={cpuIdx}
     >
       <div
-        className={`text-[9px] tracking-wider font-display ${highlightTier ? 'text-green-300' : 'text-white/50'}`}
+        className={`font-display text-[9px] tracking-[0.18em] ${
+          highlightTier === 'tier3'
+            ? 'text-jewel-magenta'
+            : highlightTier
+              ? 'text-gold-bright'
+              : 'text-ivory/50'
+        }`}
       >
         CPU {cpuIdx + 1}
         {highlightTier && ` · ${TIER_LABELS[highlightTier]}`}

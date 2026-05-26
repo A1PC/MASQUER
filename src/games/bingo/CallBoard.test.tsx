@@ -32,4 +32,20 @@ describe('CallBoard', () => {
     const bg = (ball as HTMLElement).style.background;
     expect(bg).toMatch(/ff5050|255,\s*80,\s*80/i);
   });
+
+  it('current ball is wrapped in motion.div with shadow-gold-glow ring', () => {
+    const { container } = render(<CallBoard calledSoFar={[42]} callCount={1} variant="british" />);
+    // Reduced motion is OFF by default in jsdom — the wrapper should carry
+    // the gold-glow utility for the dramatic reveal.
+    const wrapper = container.querySelector('[data-current-ball]');
+    expect(wrapper).not.toBeNull();
+    expect((wrapper as HTMLElement).className).toContain('shadow-gold-glow');
+  });
+
+  it('uses brand-token shell (felt-table-deep + brass)', () => {
+    const { container } = render(<CallBoard calledSoFar={[1]} callCount={1} variant="british" />);
+    const board = container.querySelector('[data-call-board]') as HTMLElement;
+    expect(board.className).toContain('bg-felt-table-deep');
+    expect(board.className).toContain('border-brass/60');
+  });
 });

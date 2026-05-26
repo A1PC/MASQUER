@@ -60,4 +60,33 @@ describe('BingoCard', () => {
     render(<BingoCard card={card} daubed={daubed} variant="british" manualMode={false} />);
     expect(screen.queryAllByRole('button').length).toBe(0);
   });
+
+  it('daubed cell wears the jewel-magenta inset ring', () => {
+    const card = generateCard('test-daubed', 'british');
+    const daubed = emptyDaubGrid('british');
+    // Find a cell with a numeric value to flip daubed.
+    outer: for (let r = 0; r < daubed.length; r += 1) {
+      for (let c = 0; c < daubed[r]!.length; c += 1) {
+        if (card.cells[r]?.[c]?.value !== null) {
+          daubed[r]![c] = true;
+          break outer;
+        }
+      }
+    }
+    const { container } = render(
+      <BingoCard card={card} daubed={daubed} variant="british" size="large" />,
+    );
+    const daubedCell = container.querySelector('[data-daubed="true"]');
+    expect(daubedCell).not.toBeNull();
+    expect(daubedCell!.className).toContain('ring-jewel-magenta');
+  });
+
+  it('uses the velvet card surface with brass border', () => {
+    const card = generateCard('test-shell', 'british');
+    const daubed = emptyDaubGrid('british');
+    const { container } = render(<BingoCard card={card} daubed={daubed} variant="british" />);
+    const grid = container.querySelector('[data-bingo-card]') as HTMLElement;
+    expect(grid.className).toContain('bg-velvet');
+    expect(grid.className).toMatch(/border-brass\/40|border-brass/);
+  });
 });

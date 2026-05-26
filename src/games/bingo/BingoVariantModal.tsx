@@ -1,7 +1,8 @@
 import type { JSX } from 'react';
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router';
-import { motion, useReducedMotion } from 'framer-motion';
+import { motion } from 'framer-motion';
+import { useEffectiveReducedMotion } from '@/motion/useEffectiveReducedMotion';
 
 interface Props {
   open: boolean;
@@ -10,7 +11,7 @@ interface Props {
 
 export default function BingoVariantModal({ open, onClose }: Props): JSX.Element | null {
   const navigate = useNavigate();
-  const reduceMotion = useReducedMotion();
+  const reduceMotion = useEffectiveReducedMotion();
 
   useEffect(() => {
     if (!open) return;
@@ -40,40 +41,44 @@ export default function BingoVariantModal({ open, onClose }: Props): JSX.Element
         transition={
           reduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 320, damping: 22 }
         }
-        className="bg-felt-deep border-2 border-gold rounded-lg p-6 max-w-2xl w-full"
+        className="w-full max-w-2xl rounded-lg border-2 border-brass bg-velvet-deep p-6 text-ivory shadow-gold-glow"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="font-display text-lg tracking-wider text-gold-bright mb-2 text-center">
+        <h2 className="mb-2 text-center font-display text-lg tracking-[0.18em] text-gold-bright">
           PICK YOUR BINGO STYLE
         </h2>
-        <p className="text-xs text-white/60 mb-4 text-center">Choose a variant to begin.</p>
-        <div className="grid grid-cols-2 gap-4">
+        <p className="mb-4 text-center text-xs text-ivory/60">Choose a variant to begin.</p>
+        <div
+          className="grid grid-cols-2 gap-4 overflow-y-auto"
+          style={{ maxHeight: '60vh' }}
+          data-bingo-variant-body
+        >
           <button
             type="button"
             onClick={() => go('british')}
-            className="rounded-lg border-2 border-white/20 bg-felt-deep/70 p-6 text-center hover:border-gold transition"
+            className="min-h-[44px] rounded-lg border-2 border-brass/50 bg-felt-table-deep p-6 text-center transition hover:border-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
             data-variant-choice="british"
           >
-            <div className="text-4xl mb-2">🇬🇧</div>
-            <div className="font-display text-base text-gold-bright tracking-wider">
+            <div className="mb-2 text-4xl">🇬🇧</div>
+            <div className="font-display text-base tracking-[0.18em] text-gold-bright">
               BRITISH 90-BALL
             </div>
-            <p className="text-[11px] text-white/60 mt-2">
-              3×9 cards. Line → two lines → full house.
+            <p className="mt-2 text-[11px] text-ivory/60">
+              3&times;9 cards. Line &rarr; double line &rarr; full house.
             </p>
           </button>
           <button
             type="button"
             onClick={() => go('american')}
-            className="rounded-lg border-2 border-white/20 bg-felt-deep/70 p-6 text-center hover:border-gold transition"
+            className="min-h-[44px] rounded-lg border-2 border-brass/50 bg-felt-table-deep p-6 text-center transition hover:border-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
             data-variant-choice="american"
           >
-            <div className="text-4xl mb-2">🇺🇸</div>
-            <div className="font-display text-base text-gold-bright tracking-wider">
+            <div className="mb-2 text-4xl">🇺🇸</div>
+            <div className="font-display text-base tracking-[0.18em] text-gold-bright">
               AMERICAN 75-BALL
             </div>
-            <p className="text-[11px] text-white/60 mt-2">
-              5×5 cards with free centre. Line → four corners → blackout.
+            <p className="mt-2 text-[11px] text-ivory/60">
+              5&times;5 cards with free centre. Line &rarr; four corners &rarr; blackout.
             </p>
           </button>
         </div>

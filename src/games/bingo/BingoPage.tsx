@@ -8,9 +8,16 @@ import { useBalance } from '@/store/walletStore';
 import { useBingoConfigStore } from '@/store/bingoConfigStore';
 import { resolveDifficulty } from '@/systems/bingoConfig';
 import { useGameRound } from '@/games/_shared/useGameRound';
+import LobbyButton from '@/games/_shared/LobbyButton';
+import OddsInfoBox from '@/games/_shared/OddsInfoBox';
+import RulesButton from '@/games/_shared/RulesButton';
+import RulesModal from '@/games/_shared/RulesModal';
+import { useSound } from '@/systems/sound/useSound';
+import { useEffectiveReducedMotion } from '@/motion/useEffectiveReducedMotion';
 import { bingoMachine, type ClaimLogEntry } from './machine';
 import {
   BUY_IN,
+  CALL_SPEEDS,
   type BingoSpeed,
   type Difficulty,
   type DifficultyConfig,
@@ -24,10 +31,18 @@ import { useBingoBallCaller } from './useBingoBallCaller';
 import DaubToggle from './DaubToggle';
 import WinBanner from './WinBanner';
 import EndScreen from './EndScreen';
+import BingoRules from './BingoRules';
 
 function isVariant(v: string | null): v is Variant {
   return v === 'british' || v === 'american';
 }
+
+/** Hard-difficulty ball-call cadence is fast enough that 75–90 `ball.drop`
+ *  stingers in quick succession would feel exhausting. Coalesce to at most
+ *  one drop sound per `BALL_DROP_DEBOUNCE_MS` (spec §7 risk + plan §A.5
+ *  step 2). The threshold is applied uniformly — at slower speeds calls
+ *  arrive far apart so the debounce is a no-op in practice. */
+const BALL_DROP_DEBOUNCE_MS = 200;
 
 export default function BingoPage(): JSX.Element | null {
   const user = useCurrentUser();
@@ -50,17 +65,26 @@ export default function BingoPage(): JSX.Element | null {
 
   const { placeBet, settle } = useGameRound('bingo');
   const [snapshot, send] = useMachine(bingoMachine);
+  const { play } = useSound();
+  const reduceMotion = useEffectiveReducedMotion();
 
   const [pendingDifficulty, setPendingDifficulty] = useState<Difficulty>('easy');
   const [pendingSpeed, setPendingSpeed] = useState<BingoSpeed>('normal');
   const [pendingDaubMode, setPendingDaubMode] = useState<'auto' | 'manual'>('auto');
+  const [rulesOpen, setRulesOpen] = useState(false);
   const settledRef = useRef<string | null>(null);
   const [activeBanners, setActiveBanners] = useState<Array<{ key: string; entry: ClaimLogEntry }>>(
     [],
   );
   const shownClaimsRef = useRef<number>(0);
+  const lastBallSoundAtRef = useRef<number>(0);
+  const lastCallIndexRef = useRef<number>(0);
+  const settledOutcomeRef = useRef<string | null>(null);
 
-  // Banner sync from claimLog.
+  // Banner sync from claimLog. Also fires the tier win/loss stingers via a
+  // single bridge: each new entry pushes a banner AND plays its associated
+  // sound (gated on the prefs-aware `useSound`). Reduced motion does NOT
+  // gate audio — players who reduce motion may still want chip cues.
   useEffect(() => {
     const log = snapshot.context.claimLog;
     if (log.length === 0) {
@@ -73,12 +97,47 @@ export default function BingoPage(): JSX.Element | null {
     if (log.length > shownClaimsRef.current) {
       const newBanners: Array<{ key: string; entry: ClaimLogEntry }> = [];
       for (let i = shownClaimsRef.current; i < log.length; i += 1) {
-        newBanners.push({ key: `${i}-${log[i]!.tier}`, entry: log[i]! });
+        const entry = log[i]!;
+        newBanners.push({ key: `${i}-${entry.tier}`, entry });
+        // Stinger per claim. User-side gets a win.*; CPU-side tier3 is the
+        // player loss path. CPU tier-1/2 claims are silent (player has
+        // already paid; firing a stinger would feel like negative
+        // reinforcement on every CPU sub-claim).
+        if (entry.source === 'user') {
+          if (entry.tier === 'tier1') play('win.small');
+          else if (entry.tier === 'tier2') play('win.medium');
+          else play('win.jackpot');
+        } else if (entry.tier === 'tier3') {
+          play('loss');
+        }
       }
       shownClaimsRef.current = log.length;
       setActiveBanners((cur) => [...cur, ...newBanners]);
     }
-  }, [snapshot.context.claimLog]);
+  }, [snapshot.context.claimLog, play]);
+
+  // Per-ball `ball.drop` sound bridge. Watches the `callIndex` for change
+  // and fires once per new ball, debounced at `BALL_DROP_DEBOUNCE_MS` so
+  // the Hard difficulty's tight cadence doesn't drown the player in
+  // overlapping drops.
+  useEffect(() => {
+    const idx = snapshot.context.callIndex;
+    if (idx <= lastCallIndexRef.current) return;
+    lastCallIndexRef.current = idx;
+    const now = performance.now();
+    if (now - lastBallSoundAtRef.current >= BALL_DROP_DEBOUNCE_MS) {
+      lastBallSoundAtRef.current = now;
+      play('ball.drop');
+    }
+  }, [snapshot.context.callIndex, play]);
+
+  // Reset bridges when a fresh game starts (callIndex drops back to 0).
+  useEffect(() => {
+    if (snapshot.context.callIndex === 0) {
+      lastCallIndexRef.current = 0;
+      lastBallSoundAtRef.current = 0;
+    }
+  }, [snapshot.context.callIndex]);
 
   const dismissBanner = useCallback((key: string) => {
     setActiveBanners((cur) => cur.filter((b) => b.key !== key));
@@ -101,6 +160,7 @@ export default function BingoPage(): JSX.Element | null {
     const totalPayout = ctx.bonusesEarned + (ctx.winner === 'user' ? ctx.pot : 0);
     const netChange = totalPayout - ctx.betAmount;
     const outcome = ctx.winner === 'user' ? 'win' : totalPayout >= ctx.betAmount ? 'push' : 'loss';
+    settledOutcomeRef.current = outcome;
     void settle(
       {
         betId: handleId,
@@ -176,18 +236,55 @@ export default function BingoPage(): JSX.Element | null {
     })();
   }
 
+  function handleManualDaub(row: number, col: number): void {
+    play('chip.place');
+    send({ type: 'MANUAL_DAUB', row, col });
+  }
+
+  const inGame =
+    snapshot.matches('playing') || snapshot.matches('settling') || snapshot.matches('done');
+  const subtitle = inGame
+    ? `${variant === 'british' ? 'British' : 'American'} · ${snapshot.context.difficulty}`
+    : `${variant === 'british' ? 'British' : 'American'} · setup`;
+  // Hard-cadence note via the ball-caller CALL_SPEEDS lookup so we don't
+  // hard-code the speed knob's tick rate here.
+  void CALL_SPEEDS;
+  void reduceMotion;
+
   return (
-    <div className="flex min-h-screen bg-felt-deep text-white">
+    <div className="flex min-h-screen bg-felt-table text-ivory">
       <main className="flex-1 overflow-auto p-6">
-        <header className="mb-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <h1 className="font-display text-base tracking-wider text-gold-bright">
-              🎯 BINGO — {variant === 'british' ? '🇬🇧' : '🇺🇸'}{' '}
-              {snapshot.context.difficulty.toUpperCase() || 'SETUP'}
+        <header className="mb-4 flex w-full items-start justify-between gap-4">
+          <div className="flex-shrink-0">
+            <LobbyButton />
+          </div>
+          <div className="min-w-0 flex-1 text-center">
+            <h1
+              className="truncate font-display text-2xl tracking-[0.18em] text-gold-bright"
+              title="MASQUER · Bingo"
+            >
+              MASQUER &middot; Bingo
             </h1>
-            {(snapshot.matches('playing') ||
-              snapshot.matches('settling') ||
-              snapshot.matches('done')) && (
+            <p
+              className="mt-1 font-display text-[10px] uppercase tracking-[0.18em] text-ivory/55"
+              data-bingo-subtitle
+            >
+              {subtitle}
+            </p>
+          </div>
+          <div className="flex-shrink-0">
+            <OddsInfoBox>
+              <span className="tabular-nums">
+                Line 25 &middot; Double Line 75 &middot; BINGO 250 &middot; Fast BINGO 500 (&le;40
+                calls)
+              </span>
+            </OddsInfoBox>
+          </div>
+        </header>
+
+        <div className="mb-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            {inGame && (
               <DaubToggle
                 mode={snapshot.context.daubMode}
                 onToggle={() => send({ type: 'TOGGLE_DAUB' })}
@@ -198,11 +295,11 @@ export default function BingoPage(): JSX.Element | null {
               />
             )}
           </div>
-          <span className="font-display text-xs text-white/60">
+          <span className="font-display text-xs text-ivory/60">
             Balance:{' '}
-            <span className="text-gold-bright tabular-nums">{balance.toLocaleString()}</span>
+            <span className="tabular-nums text-gold-bright">{balance.toLocaleString()}</span>
           </span>
-        </header>
+        </div>
 
         {snapshot.matches('setup') && (
           <SetupPanel
@@ -223,12 +320,10 @@ export default function BingoPage(): JSX.Element | null {
         )}
 
         {snapshot.matches('awaiting_bet_handle') && (
-          <p className="text-center text-xs text-white/60">Placing bet…</p>
+          <p className="text-center text-xs text-ivory/60">Placing bet&hellip;</p>
         )}
 
-        {(snapshot.matches('playing') ||
-          snapshot.matches('settling') ||
-          snapshot.matches('done')) && (
+        {inGame && (
           <div className="flex flex-col gap-4">
             {activeBanners.length > 0 && (
               <div className="flex flex-col items-center gap-2" data-banner-stack>
@@ -260,14 +355,13 @@ export default function BingoPage(): JSX.Element | null {
                 size="large"
                 manualMode={snapshot.context.daubMode === 'manual'}
                 {...(snapshot.context.daubMode === 'manual' && snapshot.matches('playing')
-                  ? {
-                      onCellClick: (row: number, col: number) =>
-                        send({ type: 'MANUAL_DAUB', row, col }),
-                    }
+                  ? { onCellClick: handleManualDaub }
                   : {})}
               />
             </div>
-            <div className="text-[10px] tracking-wider text-white/50 mt-2">COMPUTERS</div>
+            <div className="mt-2 font-display text-[10px] tracking-[0.18em] text-ivory/50">
+              COMPUTERS
+            </div>
             <div className="grid grid-cols-3 gap-2" data-cpu-grid>
               {snapshot.context.cpuCards.map((cpu, idx) => (
                 <CpuCardMini
@@ -291,6 +385,7 @@ export default function BingoPage(): JSX.Element | null {
               pot={snapshot.context.pot}
               bonusesEarned={snapshot.context.bonusesEarned}
               claimLog={snapshot.context.claimLog}
+              finalCallCount={snapshot.context.callIndex}
               onPlayAgain={() => send({ type: 'PLAY_AGAIN' })}
               onChangeVariant={() => {
                 void navigate('/lobby');
@@ -298,6 +393,11 @@ export default function BingoPage(): JSX.Element | null {
             />
           </div>
         )}
+
+        <RulesButton onClick={() => setRulesOpen(true)} />
+        <RulesModal open={rulesOpen} title="MASQUER · Bingo" onClose={() => setRulesOpen(false)}>
+          <BingoRules />
+        </RulesModal>
       </main>
     </div>
   );

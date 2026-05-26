@@ -7,6 +7,8 @@ interface Props {
   disabledReason?: string;
 }
 
+/** Auto / Manual daub pill. Disabled-state (Hard difficulty) renders as a
+ *  static badge with a brass hairline + ivory hint instead of a button. */
 export default function DaubToggle({
   mode,
   onToggle,
@@ -16,7 +18,7 @@ export default function DaubToggle({
   if (disabled) {
     return (
       <span
-        className="rounded-full bg-felt-deep/60 px-3 py-1 text-[10px] tracking-wider font-display text-white/40 border border-white/20"
+        className="inline-flex min-h-[28px] items-center rounded-full border border-brass/40 bg-felt-table-deep px-3 py-1 font-display text-[10px] tracking-[0.18em] text-ivory/40"
         {...(disabledReason ? { title: disabledReason } : {})}
         data-daub-toggle
         data-disabled="true"
@@ -31,7 +33,7 @@ export default function DaubToggle({
       onClick={onToggle}
       role="switch"
       aria-checked={mode === 'manual'}
-      className="rounded-full bg-felt-deep px-3 py-1 text-[10px] tracking-wider font-display text-gold-bright border border-gold/40 hover:border-gold"
+      className="inline-flex min-h-[28px] items-center rounded-full border border-brass/60 bg-felt-table-deep px-3 py-1 font-display text-[10px] tracking-[0.18em] text-gold-bright hover:border-brass focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
       data-daub-toggle
     >
       {mode === 'auto' ? 'AUTO' : 'MANUAL'}
