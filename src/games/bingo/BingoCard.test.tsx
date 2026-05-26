@@ -14,7 +14,7 @@ describe('BingoCard', () => {
     expect(within(grid as HTMLElement).queryAllByText(/^[0-9]+$/).length).toBe(15);
   });
 
-  it('renders american 5×5 grid with free centre star', () => {
+  it('renders american 5×5 grid with the MASQUER mask in the free centre', () => {
     const card = generateCard('test-am', 'american');
     const daubed = emptyDaubGrid('american');
     const { container } = render(
@@ -22,7 +22,8 @@ describe('BingoCard', () => {
     );
     const grid = container.querySelector('[data-bingo-card]')!;
     expect(grid).toHaveAttribute('data-variant', 'american');
-    expect(screen.getByText('★')).toBeInTheDocument();
+    // MaskMark renders an SVG with role="img" + aria-label="Free centre".
+    expect(screen.getByRole('img', { name: 'Free centre' })).toBeInTheDocument();
   });
 
   it('mini size hides numbers', () => {
@@ -131,10 +132,10 @@ describe('BingoCard', () => {
     const { container } = render(
       <BingoCard card={card} daubed={daubed} variant="american" size="large" />,
     );
-    // The free centre is the only cell rendering the ★ glyph; walk up to its
-    // wrapping motion.div which owns the brass ring + glow classes.
-    const star = container.querySelector('span.text-xl')!;
-    const cell = star.parentElement!;
+    // The free centre wraps a MaskMark SVG inside the cell that owns the
+    // brass ring + glow classes — find the cell by data-cell-value="free".
+    const cell = container.querySelector('[data-cell-value="free"]')!;
+    expect(cell).not.toBeNull();
     expect(cell.className).toContain('ring-brass');
     expect(cell.className).toContain('ring-inset');
     expect(cell.className).toMatch(/shadow-\[0_0_8px_/);

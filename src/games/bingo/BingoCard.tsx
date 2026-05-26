@@ -1,6 +1,7 @@
 import type { JSX } from 'react';
 import { motion } from 'framer-motion';
 import { useEffectiveReducedMotion } from '@/motion/useEffectiveReducedMotion';
+import MaskMark from '@/components/brand/MaskMark';
 import type { BingoCard as BingoCardType, Variant } from './logic';
 import { VARIANTS } from './logic';
 
@@ -124,9 +125,13 @@ export default function BingoCard({
               return <div key={`${r}-${c}`} className={`${cellSize} ${bg}`} data-cell-empty />;
             }
 
+            // Free centre = the MASQUER Colombina mask — ties the brand to
+            // the card's focal anchor. `simple` variant has the silhouette +
+            // inner rule + eyes + crest only (no fine filigree); reads
+            // cleanly at the cell size. Minicard stays blank for room.
             const content = isFree ? (
               isLarge ? (
-                <span className="text-xl leading-none">★</span>
+                <MaskMark variant="simple" size={36} title="Free centre" />
               ) : (
                 ''
               )
