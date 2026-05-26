@@ -5,6 +5,16 @@ import SymbolView from './SymbolView';
 import { pickSymbol } from './symbols';
 import type { Symbol as SymbolType } from './types';
 
+/** Initial cosmetic fillers picked on mount — used only when there's no
+ *  spin result yet (cabinet at first render). After the first spin lands,
+ *  `stripPack` below supplies fresh random fillers per spin. Picked once
+ *  per ReelView instance so the initial cabinet shows random non-pattern
+ *  symbols instead of the historical "cherry / cherry / lemon" lockup. */
+const INITIAL_FILLERS: { top: SymbolType; bottom: SymbolType } = {
+  top: pickSymbol(),
+  bottom: pickSymbol(),
+};
+
 export interface ReelProps {
   /** 0 / 1 / 2 — left / centre / right reel. Used for staggered start. */
   reelIndex: 0 | 1 | 2;
@@ -28,18 +38,26 @@ const CELL_SIZE = 110;
 const SYMBOL_SCALE = 0.86; // Leaves a small brass border around each cell.
 const SYMBOL_SIZE = Math.round(CELL_SIZE * SYMBOL_SCALE);
 
-/** Idle filler symbols (deterministic — purely cosmetic). */
-const IDLE_FILLERS: readonly [SymbolType, SymbolType] = ['cherry', 'lemon'];
-
 /** Number of filler symbols above the centre symbol in the strip. */
 const STRIP_FILLER_COUNT = 24;
 
-/** Build a strip of symbols: fillers at the top, then the final-three
- *  arrangement (top=cherry, centre=symbol, bottom=lemon) at the bottom.
- *  Filler symbols are RNG-picked (purely cosmetic — not recorded). */
-function buildScrollStrip(finalSymbol: SymbolType): SymbolType[] {
+/** Build a strip of symbols + pick fresh random top/bottom fillers for the
+ *  reel's resting state. The strip's terminal frame becomes the visible
+ *  cabinet after the spin stops, so the same `top` / `bottom` fillers are
+ *  reused in the post-spin idle render (via the `stripPack.top/bottom`
+ *  return values) to avoid a one-frame jump on transition out of motion.
+ *  All picks are cosmetic — production RNG uses `crypto.getRandomValues`
+ *  with no shared state, so these calls don't affect the spin result
+ *  computed upstream in `logic.ts`. */
+function buildStripPack(finalSymbol: SymbolType): {
+  top: SymbolType;
+  bottom: SymbolType;
+  strip: SymbolType[];
+} {
   const fillers: SymbolType[] = Array.from({ length: STRIP_FILLER_COUNT }, () => pickSymbol());
-  return [...fillers, IDLE_FILLERS[0], finalSymbol, IDLE_FILLERS[1]];
+  const top = pickSymbol();
+  const bottom = pickSymbol();
+  return { top, bottom, strip: [...fillers, top, finalSymbol, bottom] };
 }
 
 export default function ReelView({
@@ -51,7 +69,20 @@ export default function ReelView({
   winning = false,
 }: ReelProps): JSX.Element {
   const showScroll = spinning && symbol !== null;
-  const strip = useMemo(() => (symbol ? buildScrollStrip(symbol) : []), [symbol]);
+  // `stripPack` picks fresh random top + bottom fillers each time `symbol`
+  // changes (i.e. each new spin result). The same top/bottom are reused in
+  // the post-spin idle render below so the cabinet doesn't jump as the
+  // motion ends. Before the first spin (`symbol === null`), fall back to
+  // the per-instance INITIAL_FILLERS so the cabinet's first paint is also
+  // randomised instead of locking to cherry / lemon.
+  const stripPack = useMemo(
+    () =>
+      symbol
+        ? buildStripPack(symbol)
+        : { top: INITIAL_FILLERS.top, bottom: INITIAL_FILLERS.bottom, strip: [] },
+    [symbol],
+  );
+  const strip = stripPack.strip;
   const stripHeight = strip.length * CELL_SIZE;
   const finalY = -(stripHeight - 3 * CELL_SIZE);
   const effectiveDurationSec = reducedMotion || stopAtMs === 0 ? 0 : stopAtMs / 1000;
@@ -107,7 +138,7 @@ export default function ReelView({
             className="flex items-center justify-center border-b border-brass/30"
             style={{ height: CELL_SIZE }}
           >
-            <SymbolView symbol={IDLE_FILLERS[0]} size={SYMBOL_SIZE} />
+            <SymbolView symbol={stripPack.top} size={SYMBOL_SIZE} />
           </div>
           <div
             data-roulette-cell-position="centre"
@@ -121,14 +152,14 @@ export default function ReelView({
               background: winning ? 'rgba(230,192,104,0.09)' : undefined,
             }}
           >
-            <SymbolView symbol={symbol ?? IDLE_FILLERS[0]} size={SYMBOL_SIZE} winning={winning} />
+            <SymbolView symbol={symbol ?? stripPack.top} size={SYMBOL_SIZE} winning={winning} />
           </div>
           <div
             data-roulette-cell-position="bottom"
             className="flex items-center justify-center"
             style={{ height: CELL_SIZE }}
           >
-            <SymbolView symbol={IDLE_FILLERS[1]} size={SYMBOL_SIZE} />
+            <SymbolView symbol={stripPack.bottom} size={SYMBOL_SIZE} />
           </div>
         </>
       )}
