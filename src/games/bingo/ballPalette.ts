@@ -29,6 +29,14 @@ function britishBallStyle(value: number): BallStyle {
   return makeStyle('#c0c0c0', '#808080', '#1a1a1a'); // light grey (80-90)
 }
 
+/** US 5-column BINGO palette — kept as raw hex because the variant-
+ *  intrinsic colours (red B / blue I / yellow N / green G / purple O)
+ *  don't have clean brand-token equivalents. The Velvet Deco palette is
+ *  felt/velvet/gold/brass-centric with jewel-ruby/sapphire/emerald/magenta
+ *  accents — none of which read as the literal BINGO column colours every
+ *  American player expects. Forcing tokens here would dilute the brand
+ *  without improving the variant's signature. Mirrored by
+ *  `BINGO_LETTER_COLORS` in `BingoCard.tsx` for the header row. */
 function americanBallStyle(value: number): BallStyle {
   if (value <= 15) return makeStyle('#ff5050', '#a00000', '#fff'); // B - red
   if (value <= 30) return makeStyle('#5080d0', '#1a3060', '#fff'); // I - blue

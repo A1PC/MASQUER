@@ -89,4 +89,54 @@ describe('BingoCard', () => {
     expect(grid.className).toContain('bg-velvet');
     expect(grid.className).toMatch(/border-brass\/40|border-brass/);
   });
+
+  it('renders B-I-N-G-O column headers for american-large variant', () => {
+    const card = generateCard('test-am-hdr', 'american');
+    const daubed = emptyDaubGrid('american');
+    const { container } = render(
+      <BingoCard card={card} daubed={daubed} variant="american" size="large" />,
+    );
+    const headerRow = container.querySelector('[data-bingo-column-headers]');
+    expect(headerRow).not.toBeNull();
+    expect(headerRow).toHaveAttribute('aria-hidden', 'true');
+    const letters = headerRow!.querySelectorAll('[data-column-letter]');
+    expect(letters).toHaveLength(5);
+    const order = Array.from(letters).map((el) => el.getAttribute('data-column-letter'));
+    expect(order).toEqual(['B', 'I', 'N', 'G', 'O']);
+    // Each letter renders its glyph as text content.
+    expect(Array.from(letters).map((el) => el.textContent)).toEqual(['B', 'I', 'N', 'G', 'O']);
+  });
+
+  it('no column headers for british variant', () => {
+    const card = generateCard('test-br-no-hdr', 'british');
+    const daubed = emptyDaubGrid('british');
+    const { container } = render(
+      <BingoCard card={card} daubed={daubed} variant="british" size="large" />,
+    );
+    expect(container.querySelector('[data-bingo-column-headers]')).toBeNull();
+  });
+
+  it('no column headers for american minicard (size=mini)', () => {
+    const card = generateCard('test-am-mini', 'american');
+    const daubed = emptyDaubGrid('american');
+    const { container } = render(
+      <BingoCard card={card} daubed={daubed} variant="american" size="mini" />,
+    );
+    expect(container.querySelector('[data-bingo-column-headers]')).toBeNull();
+  });
+
+  it('free centre wears the brass ring + gold-glow signature polish', () => {
+    const card = generateCard('test-free-polish', 'american');
+    const daubed = emptyDaubGrid('american');
+    const { container } = render(
+      <BingoCard card={card} daubed={daubed} variant="american" size="large" />,
+    );
+    // The free centre is the only cell rendering the ★ glyph; walk up to its
+    // wrapping motion.div which owns the brass ring + glow classes.
+    const star = container.querySelector('span.text-xl')!;
+    const cell = star.parentElement!;
+    expect(cell.className).toContain('ring-brass');
+    expect(cell.className).toContain('ring-inset');
+    expect(cell.className).toMatch(/shadow-\[0_0_8px_/);
+  });
 });
