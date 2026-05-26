@@ -45,6 +45,7 @@ const AdminLotteryPage = lazy(() => import('@/pages/admin/AdminLotteryPage'));
 const AdminBingoPage = lazy(() => import('@/pages/admin/AdminBingoPage'));
 const AdminRoulettePage = lazy(() => import('@/pages/admin/AdminRoulettePage'));
 const AdminSlotsPage = lazy(() => import('@/pages/admin/AdminSlotsPage'));
+const AdminBaccaratPage = lazy(() => import('@/pages/admin/AdminBaccaratPage'));
 
 const adminFallback = (
   <div className="flex min-h-screen items-center justify-center bg-felt-deep text-xs text-white/40">
@@ -88,6 +89,7 @@ export const router = createBrowserRouter([
       { path: 'bingo', element: <AdminBingoPage /> },
       { path: 'roulette', element: <AdminRoulettePage /> },
       { path: 'slots', element: <AdminSlotsPage /> },
+      { path: 'baccarat', element: <AdminBaccaratPage /> },
     ],
   },
   {
