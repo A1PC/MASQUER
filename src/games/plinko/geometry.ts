@@ -75,3 +75,27 @@ export function pathColumns(path: readonly ('L' | 'R')[]): number[] {
   }
   return cols;
 }
+
+/** Build the (x%, y%) keyframe arrays for a drop. Pure — consumed by
+ *  `FallingBall` to animate the ball through the peg pyramid.
+ *
+ *  Returns one keyframe per peg arrival (rows 0..ROW_COUNT-1) plus a final
+ *  keyframe at `binCentreX(bin)` and y=100% for the bucket landing. The
+ *  load-bearing invariant: the LAST x value equals `binCentreX(bin)`. If it
+ *  drifts, the visible bucket no longer matches the resolved outcome. */
+export function buildTrajectory(
+  path: readonly ('L' | 'R')[],
+  bin: number,
+): { x: number[]; y: number[] } {
+  const cols = pathColumns(path); // length ROW_COUNT + 1
+  const xs: number[] = [];
+  const ys: number[] = [];
+  for (let row = 0; row < ROW_COUNT; row += 1) {
+    const pos = pegPosition(row, cols[row]!);
+    xs.push(pos.x);
+    ys.push(pos.y);
+  }
+  xs.push(binCentreX(bin));
+  ys.push(100);
+  return { x: xs, y: ys };
+}
