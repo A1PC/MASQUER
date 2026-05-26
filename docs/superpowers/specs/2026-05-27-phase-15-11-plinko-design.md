@@ -1,7 +1,7 @@
 # Phase 15 sub-project #11 — Plinko upgrade
 
-**Status:** Draft for user review.
-**Date:** 2026-05-27.
+**Status:** Draft for user review (amended 2026-05-27 — bigger pyramid: 26 rows / 27 bins + RTP retune of multiplier curves).
+**Date:** 2026-05-27 (initial + addendum same day).
 **Sub-project:** #11 in the Phase 15 umbrella. Per release order, follows #10.v2 American Bingo ✅, precedes #12.v1 Texas Hold'em.
 **Original release:** Phase 12 (`v0.12-plinko`, 2026-05-20). Modern-casino Plinko in `src/games/plinko/`: 20-row peg board / 21 bins, 4 risk levels (Safe / Low / Medium / High) with edge multipliers `16x / 110x / 420x / 5000x`, manual + auto modes (1-100 balls), multi-ball-in-flight via `inFlightBalls[]`, Framer-Motion keyframe animation, one `rounds` row per ball.
 **Scope answer:** _Full polish + admin page + critical animation/geometry rebuild + new bet limits._ User flagged this as "a very important one" with three blocking requirements:
@@ -16,11 +16,12 @@
 
 Make Plinko both look and feel like a real plinko cabinet. The geometry has to be right (triangular peg field + buckets aligned with the bottom row of pegs forming a pyramid base), the ball has to visibly bounce through the pegs along its actual RNG path, and the player has to be able to bet big and run a long auto session. Plus the standard polish recipe + a full new admin page.
 
-Three concrete blocking fixes (in priority order):
+Four concrete blocking fixes (in priority order):
 
 1. **Peg layout → triangular pyramid.** Today's peg grid is uniform across all rows; the edge buckets sit way below where any peg actually is. New layout: row N has N+1 pegs (or some triangle pattern), bottom row's pegs define the bucket column positions. Buckets sit immediately below the bottom peg row, each bucket centred on a peg gap.
 2. **Ball trajectory → peg-centred bouncing.** At each row, the ball arrives at a peg, bounces L or R based on the RNG path, lands at the next peg's column. The visible final-row column position MUST equal the bin the outcome resolves to. Add a small peg-hit visual cue (peg flash + ball brief scale-down) on every bounce; sound a `peg.ping` per bounce.
-3. **Bet ceiling 5,000 → 1,000,000 per ball; auto-drop session cap 100 → 1,000 balls.**
+3. **Bigger pyramid: 26 rows / 27 bins** (was 20 / 21 — see §4.3.1 for retune math) and the pyramid should fill ~70-80vh of viewport height so it reads as the focal piece of the screen.
+4. **Bet ceiling 5,000 → 1,000,000 per ball; auto-drop session cap 100 → 1,000 balls.**
 
 Plus everything else in the standard polish recipe + a new `/admin/plinko` analytics + curve-tuning page.
 
@@ -39,7 +40,7 @@ PR A is the big one. PR B is the standard admin pattern.
 
 ## 3. Standing invariants
 
-1. **Pure logic untouched.** `src/games/plinko/logic.ts` — `dropBall(rng)`, `payoutFor(risk, bin, stake)`, `MULTIPLIER_CURVES`, `ROW_COUNT`, `BIN_COUNT` all byte-stable. The RNG path is the source of truth; the new animation must follow it.
+1. **Pure logic structure untouched** — only the constants change. `dropBall(rng)` and `payoutFor(risk, bin, stake)` keep their shape (still produce a path of L/R + a bin = count of R; payout still `floor(stake × MULTIPLIER_CURVES[risk][bin])`). The CHANGED bits are `ROW_COUNT` (20 → 26), `BIN_COUNT` (21 → 27), and `MULTIPLIER_CURVES` (retuned to RTP 0.95-0.98 at the new binomial distribution). Existing `dropBall` + `payoutFor` test cases that pin specific bin payouts or per-risk RTP will need updates; the structural test cases (path length = ROW_COUNT, bin = count of R, monotonic curve) keep working.
 2. **Games sandbox** preserved. No `@/db` / `@/store` imports from `src/games/plinko/**`. Wallet via `@/systems/**`.
 3. **One `rounds` row per ball** (ADR-0016).
 4. **Integer money. No `Math.random()`.** ESLint enforces.
@@ -67,16 +68,45 @@ Tokenize colours across `PlinkoPage.tsx`, `Board.tsx`, `BinRow.tsx`, `FallingBal
 
 Pegs themselves: small brass discs (`bg-brass` with subtle gradient + tiny gold-glow on hit).
 
-### 4.3 The big one — geometry rebuild (peg pyramid + bucket alignment)
+### 4.3 The big one — geometry rebuild + bigger pyramid (peg pyramid + bucket alignment)
 
 **Current state**: 20 rows × 21 columns of pegs in a uniform grid. Buckets sit in a flat row well below the pegs. The end buckets are visually disconnected from any peg above them.
 
+#### 4.3.1 Row count bump 20 → 26 (+ multiplier curve retune)
+
+User direction: bigger pyramid + more pins + more bounces + more bins. Locking at:
+
+- **`ROW_COUNT = 26`** (was 20)
+- **`BIN_COUNT = 27`** (was 21; always `ROW_COUNT + 1`)
+- **`MULTIPLIER_CURVES` retuned per risk** so RTP stays in [0.95, 0.98] under the new `Binomial(26, 0.5)` distribution. Edge probabilities drop ~64× (from `1/2²⁰ ≈ 9.5e-7` to `1/2²⁶ ≈ 1.5e-8`). Curves must rescale accordingly.
+
+**Suggested retuned edge multipliers** (implementer should compute the exact RTP and tweak; these are starting points):
+
+| Risk   | Old edge × | New edge × (target) | Notes                      |
+| ------ | ---------- | ------------------- | -------------------------- |
+| Safe   | 16         | ~40-50              | Gentle V, lowest variance  |
+| Low    | 110        | ~600-800            | Moderate V                 |
+| Medium | 420        | ~5,000-8,000        | Heavy V                    |
+| High   | 5,000      | ~50,000-80,000      | Steepest V, dramatic edges |
+
+Centre-bin multipliers stay sub-1.0 (loss territory) per the original tuning intent. The full curve shape stays "monotonically non-increasing from edge to centre, symmetric" — just the values change.
+
+**Verification**: a new test in `logic.test.ts` should compute actual RTP per risk under `Binomial(26, 0.5)` and assert each is in [0.95, 0.98]. (The existing RTP test stays but with updated bounds.)
+
+#### 4.3.2 Pyramid takes ~70-80vh of viewport
+
+The Plinko board must read as the focal piece of the screen. The new pyramid scales to fill **~70-80vh** of viewport height (or whatever maxes the visible board while keeping setup panel + history strip + bet bar all readable on a 1080p screen). Tailwind: `h-[78vh]` or similar on the Board wrapper; width derived from the equilateral-triangle geometry constraint (~0.7 × height for a 60° triangle).
+
+Pegs scale proportionally — at 26 rows × 78vh, each row height ≈ 3vh ≈ 30px on 1080p. Peg diameter ~12px. Ball diameter ~14px (slightly bigger than the peg gap so the squish-on-impact reads).
+
+#### 4.3.3 Triangular layout
+
 **New layout — staggered triangular pyramid**:
 
-- **Row R has R + 1 pegs** (or similar progression — row 0 = 1 peg, row 19 = 20 pegs). Pegs in row R sit at horizontal positions `(col + 0.5) / (R + 1)` × board-width (so they're centred between pegs in row R-1).
-- **Even/odd rows offset by half a peg-spacing** (the classic staggered plinko look). Or use the more authentic "triangle of equilateral triangles" where each peg sits in the gap between two pegs above.
-- **20 rows → row 19 has 20 pegs → 21 gaps** between pegs (+ outside edges count as gaps). 21 gaps ⇒ 21 bins, one per gap.
-- **Buckets sit immediately below row 19's pegs**, each bucket centred on a peg gap. Bucket 0 at the far-left gap (between left edge and leftmost peg of row 19), bucket 20 at the far-right gap.
+- **Row R has R + 1 pegs** — row 0 = 1 peg (apex), row 25 = 26 pegs (base). Pegs in row R sit at horizontal positions `(col + 0.5) / (R + 1)` × board-width (so they're centred between pegs in row R-1).
+- **Equilateral-triangle peg layout** (classic plinko) — each peg sits in the gap between two pegs above, so the ball at peg (R, C) bounces to peg (R+1, C) on L or peg (R+1, C+1) on R.
+- **26 rows → row 25 has 26 pegs → 27 gaps** between pegs (counting outside edges). 27 gaps ⇒ 27 bins, one per gap.
+- **Buckets sit immediately below row 25's pegs**, each bucket centred on a peg gap. Bucket 0 at the far-left gap (between left edge and leftmost peg of row 25), bucket 26 at the far-right gap.
 - **No vertical gap** between the bottom peg row and the bucket row — they touch (or near-touch, with the brass divider that frames the bin row). The pyramid base = bucket array.
 
 The implementer should pick the EXACT triangular pattern that looks best (classic equilateral-triangle peg layout is the safe choice; matches Plinko-go and most cabinets) and document the geometry in a code comment.
@@ -172,8 +202,8 @@ Standard: `max-h-[60vh] overflow-y-auto` on `EndScreen` body + new RulesModal bo
 
 **Not allowed:**
 
-- `src/games/plinko/logic.ts` rules / multiplier curves / `dropBall` / `payoutFor` — byte-stable
-- `src/games/plinko/machine.ts` semantics — byte-stable (config constants OK to change)
+- `src/games/plinko/logic.ts` STRUCTURE (`dropBall`/`payoutFor` shapes, RNG source, monotonic-curve invariant) — preserved. CHANGED: `ROW_COUNT` 20→26, `BIN_COUNT` 21→27, `MULTIPLIER_CURVES` retuned per §4.3.1 to keep RTP 0.95-0.98 under the new distribution.
+- `src/games/plinko/machine.ts` semantics — preserved (config constants OK to change).
 - Other games / admin pages
 - New gameplay (drop-from-column picker, 5th risk tier, progressive jackpot — all stay in the deferred docket)
 
