@@ -13,7 +13,7 @@ import type {
 } from '@/games/baccarat/types';
 
 function fakeCard(): BaccaratCard {
-  return { rank: 'A', suit: 'spades' } as BaccaratCard;
+  return { rank: 'A', suit: '♠', faceUp: true };
 }
 
 function fakeHand(total: HandTotal, cards: number): BaccaratHand {

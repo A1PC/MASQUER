@@ -1888,7 +1888,7 @@ import type {
  *  aggregations under test (they read winner / margin / totalCards / pair
  *  flags from the precomputed RoundResult). */
 function fakeCard(): BaccaratCard {
-  return { rank: 'A', suit: 'spades' } as BaccaratCard;
+  return { rank: 'A', suit: '♠', faceUp: true };
 }
 
 function fakeHand(total: HandTotal, cardCount: number): BaccaratHand {
