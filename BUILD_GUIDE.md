@@ -406,19 +406,20 @@ Design spec: `docs/superpowers/specs/2026-05-19-phase-11.5-bingo-competitive-des
 
 ## 10.7 Plinko
 
-Modern-casino-style Plinko. 20-row peg board, 21 bins, four risk levels.
+Modern-casino-style Plinko. Triangular peg pyramid (26 rows × R+1 pegs each, base = 26 pegs), 27 bins, four risk levels. Amended in Phase 15 #11 — see ADR-0047 for the geometry rebuild + RTP retune.
 
-- **Board:** fixed 20 rows of pegs; 21 bins at the bottom. Drop point centred. No player aim.
-- **Risk levels:** Safe / Low / Medium / High — same board, different multiplier curves. RTP ~95-100% across all risk levels.
-- **Bet:** 10–5000 chips per ball. Manual mode = 1 ball per click. Auto mode = 1-100 balls at intervals 250/500/1000 ms.
-- **Math:** deterministic Binomial(20, 0.5) walk via mulberry32. Bin = sum of R-moves. Centre bin (10) most likely (~17.6%); edges (0, 20) ~1 per million.
-- **Payouts:** integer floor(stake × multiplier). High-risk edge multiplier is 5000x → max single-ball win at 5000 stake = 25M chips.
+- **Board:** triangular peg pyramid — row R has R+1 pegs; row 0 = 1 peg at the apex, row 25 = 26 pegs at the base. 27 buckets sit immediately below the bottom peg row, each bucket centred on a peg gap. Pyramid fills ~70-80vh of the viewport. Drop point centred. No player aim.
+- **Risk levels:** Safe / Low / Medium / High — same board, different multiplier curves. RTP ~95-98% across all risk levels under `Binomial(26, 0.5)`.
+- **Bet:** 10–**1,000,000** chips per ball. Manual mode = 1 ball per click (150 ms cooldown to prevent stack-clicking). Auto mode = 1–**1,000** balls at intervals 250 / 500 / 1000 ms.
+- **Math:** deterministic Binomial(26, 0.5) walk via mulberry32. Bin = sum of R-moves. Centre bin (13) most likely (~15.5%); edges (0, 26) ~1 per ~67 million.
+- **Payouts:** integer floor(stake × multiplier). Approx edge multipliers (per ADR-0047): Safe 45×, Low 700×, Medium 6,000×, High 60,000×. Centre-bin multipliers are sub-1 (loss territory) on every risk. Max single-ball win at 1M stake, High edge = 60B chips (play-money, no real-world cap).
 - **Bonuses:** none. Each ball settles standalone — `won` if `payout > stake`.
 - **Settle:** one `rounds` row per ball via `wallet.settleRound`. Each row carries `details = { risk, bin, multiplier, sessionId }`. Manual = new sessionId per click; Auto = shared sessionId across all balls in the session.
-- **Animation:** Framer Motion keyframes per row (~75ms/row, ~1.5s total per ball). Multiple balls in flight simultaneously during auto. `useReducedMotion` collapses to instant placement.
-- **Integration:** sidebar, lobby cabinet, /stats per-game tab, /leaderboard per-game tab all wired.
+- **Animation:** Framer Motion keyframes per row (~75ms/row, ~2s total per ball) tracing the actual RNG path — final-frame x equals `binCentreX(bin)` (test-pinned invariant). Per-row peg-squash on impact. Multiple balls in flight simultaneously during auto. `useReducedMotion` collapses to instant placement. Tier-3 edge-bin celebration (coin shower + screen shake + jackpot stinger) on High-risk edge hits.
+- **Sound:** `chip.place` on bet · `ball.drop` on spawn · `peg.ping` per bounce (debounced 30 ms across all in-flight balls) · `win.small / .medium / .jackpot` on landing (gated on `payout/stake`) · `loss` when `payout < stake`.
+- **Integration:** sidebar, lobby cabinet, /stats per-game tab, /leaderboard per-game tab all wired. `/admin/plinko` analytics page ships in Phase 15 #11 PR B.
 
-Design spec: `docs/superpowers/specs/2026-05-20-phase-12-plinko-design.md`. Implementation plan: `docs/superpowers/plans/2026-05-20-phase-12-plinko-plan.md`.
+Design spec: `docs/superpowers/specs/2026-05-20-phase-12-plinko-design.md` (Phase 12 baseline) + `docs/superpowers/specs/2026-05-27-phase-15-11-plinko-design.md` (Phase 15 polish). Implementation plans: `docs/superpowers/plans/2026-05-20-phase-12-plinko-plan.md` + `docs/superpowers/plans/2026-05-27-phase-15-11-plinko-plan.md`. ADR: `docs/adr/0047-plinko-peg-geometry.md`.
 
 ---
 
