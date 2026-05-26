@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import 'fake-indexeddb/auto';
 import { resetDb } from '@/test/db-helpers';
+import { db } from '@/db';
 import { DIFFICULTY, BUY_IN } from '@/games/bingo/logic';
 import { useBingoConfigStore } from '@/store/bingoConfigStore';
 import AdminBingoPage from './AdminBingoPage';
@@ -28,7 +29,7 @@ afterEach(async () => {
   await resetDb();
 });
 
-describe('AdminBingoPage', () => {
+describe('AdminBingoPage — per-difficulty tuning (preserved)', () => {
   it('renders three difficulty sections', () => {
     renderPage();
     expect(screen.getByText('EASY')).toBeInTheDocument();
@@ -74,18 +75,14 @@ describe('AdminBingoPage', () => {
 
   it('save button calls saveDifficulty on the store', async () => {
     renderPage();
-    // Change the CPU count input
     const cpuInput = screen.getByRole('spinbutton', { name: /easy CPU count/i });
     await userEvent.clear(cpuInput);
     await userEvent.type(cpuInput, '12');
-    // Click SAVE (first save button = easy)
     const saveButtons = screen.getAllByRole('button', { name: /^SAVE$/i });
     await userEvent.click(saveButtons[0]!);
-    // Should show saved confirmation
     await waitFor(() => {
       expect(screen.getByText(/saved — applies to the next game/i)).toBeInTheDocument();
     });
-    // Store should be updated
     expect(useBingoConfigStore.getState().overrides.easy?.cpuCount).toBe(12);
   });
 
@@ -125,7 +122,6 @@ describe('AdminBingoPage', () => {
     await waitFor(() => {
       expect(screen.getByRole('alert')).toHaveTextContent(/min latency must be ≤ max latency/i);
     });
-    // Save should not have persisted
     expect(useBingoConfigStore.getState().overrides.easy).toBeNull();
   });
 
@@ -143,7 +139,6 @@ describe('AdminBingoPage', () => {
 
   it('shows default text for each field', () => {
     renderPage();
-    // Check default hints appear
     expect(
       screen.getAllByText(new RegExp(`Default: ${DIFFICULTY.easy.cpuCount}`)).length,
     ).toBeGreaterThan(0);
@@ -166,10 +161,114 @@ describe('AdminBingoPage', () => {
 
   it('pot preview shows BUY_IN * multiplier info in hint text', () => {
     renderPage();
-    // The hint text says: "Default: X (pot = 50 × multiplier)"
     expect(screen.getAllByText(new RegExp(`pot = ${BUY_IN} × multiplier`)).length).toBe(3);
   });
 });
 
 // Suppress unused within import
 void within;
+
+describe('AdminBingoPage — STATISTICS section (new)', () => {
+  it('renders the STATISTICS heading + 4 stat cards alongside the tuning UI', () => {
+    renderPage();
+    expect(screen.getByText('STATISTICS')).toBeInTheDocument();
+    // Tuning UI still present (preservation contract).
+    expect(screen.getByText('EASY')).toBeInTheDocument();
+    expect(screen.getByText('HARD')).toBeInTheDocument();
+    // 4 StatCards by label.
+    expect(screen.getByText(/GAMES PLAYED \(ALL-TIME\)/i)).toBeInTheDocument();
+    expect(screen.getByText(/HOUSE NET CHIPS/i)).toBeInTheDocument();
+    expect(screen.getByText(/PLAYER BINGO CAPTURE %/i)).toBeInTheDocument();
+    expect(screen.getByText(/FAST BINGO HIT RATE/i)).toBeInTheDocument();
+  });
+
+  it('shows the empty-state copy when no bingo rounds are recorded', async () => {
+    renderPage();
+    await waitFor(() => {
+      expect(screen.getByText(/No bingo rounds recorded yet/i)).toBeInTheDocument();
+    });
+    expect(screen.getByText(/No games yet/i)).toBeInTheDocument();
+  });
+
+  it('renders the variant×difficulty distribution chart when data exists', async () => {
+    await db.rounds.bulkAdd([
+      {
+        id: 'bg-1',
+        userId: 'u-1',
+        game: 'bingo',
+        betAmount: 50,
+        payout: 100,
+        netChange: 50,
+        outcome: 'win',
+        details: {
+          variant: 'british',
+          difficulty: 'easy',
+          finalCallCount: 40,
+          userTier1: true,
+          userTier2: false,
+          userTier3: true,
+          cpuTier3Winner: null,
+          bonusesEarned: 25,
+          pot: 100,
+        },
+        balanceAfter: 1050,
+        playedAt: 1,
+      },
+      {
+        id: 'bg-2',
+        userId: 'u-1',
+        game: 'bingo',
+        betAmount: 50,
+        payout: 0,
+        netChange: -50,
+        outcome: 'loss',
+        details: {
+          variant: 'american',
+          difficulty: 'hard',
+          finalCallCount: 55,
+          userTier1: false,
+          userTier2: false,
+          userTier3: false,
+          cpuTier3Winner: 2,
+          bonusesEarned: 0,
+          pot: 400,
+          cpuCount: 9,
+        },
+        balanceAfter: 1000,
+        playedAt: 2,
+      },
+    ]);
+
+    renderPage();
+    await waitFor(() => {
+      // 2 games seeded.
+      expect(screen.getAllByText('2').length).toBeGreaterThan(0);
+    });
+    // Recent games table renders rows.
+    expect(screen.getByText(/RECENT GAMES \(LAST 20\)/i)).toBeInTheDocument();
+    expect(screen.getByText('British')).toBeInTheDocument();
+    expect(screen.getByText('American')).toBeInTheDocument();
+    // Outcome badges: BINGO (green) + LOST (red)
+    expect(screen.getByText('BINGO')).toBeInTheDocument();
+    expect(screen.getByText('LOST')).toBeInTheDocument();
+  });
+
+  it('renders the "Average balls to BINGO" 3-cell grid', async () => {
+    renderPage();
+    expect(screen.getByText(/AVERAGE BALLS TO BINGO/i)).toBeInTheDocument();
+    // useLiveQuery resolves async — wait for the 3 cells to mount.
+    await waitFor(() => {
+      const cells = document.querySelectorAll('[data-balls-to-bingo]');
+      expect(cells.length).toBe(3);
+    });
+  });
+
+  it('renders the bonus economics mini-bars', () => {
+    renderPage();
+    expect(screen.getByText(/BONUS ECONOMICS/i)).toBeInTheDocument();
+    expect(screen.getByText(/LINE WINS/i)).toBeInTheDocument();
+    expect(screen.getByText(/DOUBLE LINE \/ 4 CORNERS/i)).toBeInTheDocument();
+    expect(screen.getByText(/BINGO \(PLAYER WINS\)/i)).toBeInTheDocument();
+    expect(screen.getByText(/FAST BINGO KICKER/i)).toBeInTheDocument();
+  });
+});

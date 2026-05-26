@@ -1,5 +1,6 @@
 import type { JSX } from 'react';
-import { motion, useReducedMotion } from 'framer-motion';
+import { motion } from 'framer-motion';
+import { useEffectiveReducedMotion } from '@/motion/useEffectiveReducedMotion';
 import type { Tier } from './logic';
 import { VARIANTS, type Variant } from './logic';
 
@@ -12,6 +13,9 @@ interface Props {
   onDismiss: () => void;
 }
 
+/** Floating banner above the call board. Tier-3 user win wears the jewel
+ *  magenta signature; tier-1/2 user wins keep the gold-on-velvet treatment.
+ *  CPU banners stay subdued so they don't compete with player celebrations. */
 export default function WinBanner({
   source,
   cpuIdx,
@@ -19,7 +23,7 @@ export default function WinBanner({
   variant,
   onDismiss,
 }: Props): JSX.Element {
-  const reduceMotion = useReducedMotion();
+  const reduceMotion = useEffectiveReducedMotion();
   const label =
     tier === 'tier1'
       ? VARIANTS[variant].tier1Label
@@ -29,8 +33,10 @@ export default function WinBanner({
   const isUser = source === 'user';
   const prefix = isUser ? '' : `Computer ${(cpuIdx ?? 0) + 1} got `;
   const colors = isUser
-    ? 'bg-gradient-to-r from-gold to-gold-bright text-felt-deep border-gold'
-    : 'bg-felt-deep/90 text-white/70 border-white/20';
+    ? tier === 'tier3'
+      ? 'bg-velvet text-gold-bright border-jewel-magenta shadow-[0_0_18px_rgba(232,74,140,0.55)]'
+      : 'bg-gradient-to-r from-gold to-gold-bright text-velvet-deep border-gold'
+    : 'bg-felt-table-deep text-ivory/70 border-brass/40';
 
   return (
     <motion.div
@@ -44,7 +50,7 @@ export default function WinBanner({
       data-win-banner
       data-source={source}
       data-tier={tier}
-      className={`px-5 py-2 rounded-full font-display text-sm tracking-wider border-2 shadow-lg ${colors}`}
+      className={`rounded-full border-2 px-5 py-2 font-display text-sm tracking-[0.18em] shadow-lg ${colors}`}
     >
       {prefix}
       {label}

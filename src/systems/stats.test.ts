@@ -2613,3 +2613,548 @@ describe('queries.getBaccaratStreakStats', () => {
     });
   });
 });
+
+// ─── Phase 15 #10.v1 — Bingo all-time admin stats ──────────────────────
+
+import {
+  getBingoAllTimeStats,
+  getBingoBallsToBingo,
+  getBingoVariantDifficultyDistribution,
+  type BingoDifficulty,
+  type BingoVariant,
+} from './stats';
+
+interface PersistedBingoDetails {
+  readonly variant: BingoVariant;
+  readonly difficulty: BingoDifficulty;
+  readonly finalCallCount: number;
+  readonly userTier1: boolean;
+  readonly userTier2: boolean;
+  readonly userTier3: boolean;
+  readonly cpuTier3Winner: number | null;
+  readonly bonusesEarned: number;
+  readonly pot: number;
+}
+
+function bingoDetails(opts: {
+  variant: BingoVariant;
+  difficulty: BingoDifficulty;
+  finalCallCount: number;
+  userTier1?: boolean;
+  userTier2?: boolean;
+  userTier3?: boolean;
+  cpuTier3Winner?: number | null;
+  bonusesEarned?: number;
+  pot?: number;
+}): PersistedBingoDetails {
+  return {
+    variant: opts.variant,
+    difficulty: opts.difficulty,
+    finalCallCount: opts.finalCallCount,
+    userTier1: opts.userTier1 ?? false,
+    userTier2: opts.userTier2 ?? false,
+    userTier3: opts.userTier3 ?? false,
+    cpuTier3Winner: opts.cpuTier3Winner ?? null,
+    bonusesEarned: opts.bonusesEarned ?? 0,
+    pot: opts.pot ?? 0,
+  };
+}
+
+function bingoRow(opts: {
+  id: string;
+  details: PersistedBingoDetails;
+  betAmount: number;
+  payoutChips: number;
+  playedAt: number;
+}) {
+  const netChange = opts.payoutChips - opts.betAmount;
+  const outcome: 'win' | 'loss' | 'push' = netChange > 0 ? 'win' : netChange < 0 ? 'loss' : 'push';
+  return {
+    id: opts.id,
+    userId: 'u-1',
+    game: 'bingo' as const,
+    betAmount: opts.betAmount,
+    payout: opts.payoutChips,
+    netChange,
+    outcome,
+    details: opts.details as unknown,
+    balanceAfter: 1000,
+    playedAt: opts.playedAt,
+  };
+}
+
+/**
+ * Seed 15 bingo rounds covering BOTH variants × all 3 difficulties × mixed
+ * outcomes (tier-3 player wins / CPU wins / bonus-only / no-tier).
+ *
+ * Variant × difficulty counts:
+ *   british  easy 3  · medium 3  · hard 2  = 8
+ *   american easy 2  · medium 1  · hard 4  = 7
+ *
+ * Player tier-3 wins (userTier3 === true):
+ *   british easy bg-01 (40, FAST) · british medium bg-04 (55)
+ *   american hard bg-13 (30, FAST) · american hard bg-14 (62)
+ *   american easy bg-09 (38, FAST)
+ *   = 5 player tier-3 wins; 3 of them are FAST (calls ≤ 40).
+ *
+ * CPU tier-3 wins (cpuTier3Winner !== null && !userTier3):
+ *   british easy bg-02 · british medium bg-05 · british hard bg-07
+ *   british hard bg-08 · american medium bg-11 · american hard bg-15
+ *   = 6 CPU tier-3 wins.
+ *
+ * Bonus-only / no tier-3 (cpuTier3Winner === null):
+ *   british easy bg-03 (userTier1 + userTier2, bonus 100, pot 0)
+ *   british medium bg-06 (userTier1 only, bonus 25)
+ *   american easy bg-10 (no tiers, bonus 0)
+ *   american hard bg-12 (userTier2 only, bonus 75)
+ *   = 4 rounds.
+ */
+async function seedBingoRows() {
+  await resetDb();
+  const rows = [
+    // 1. British easy — player BINGO at 40 calls (FAST). bonus 50, pot 100.
+    bingoRow({
+      id: 'bg-01',
+      details: bingoDetails({
+        variant: 'british',
+        difficulty: 'easy',
+        finalCallCount: 40,
+        userTier1: true,
+        userTier2: true,
+        userTier3: true,
+        bonusesEarned: 50,
+        pot: 100,
+      }),
+      betAmount: 50,
+      payoutChips: 150,
+      playedAt: 1,
+    }),
+    // 2. British easy — CPU tier-3 (cpu idx 1), bonus 25 (user tier-1).
+    bingoRow({
+      id: 'bg-02',
+      details: bingoDetails({
+        variant: 'british',
+        difficulty: 'easy',
+        finalCallCount: 60,
+        userTier1: true,
+        cpuTier3Winner: 1,
+        bonusesEarned: 25,
+        pot: 100,
+      }),
+      betAmount: 50,
+      payoutChips: 25,
+      playedAt: 2,
+    }),
+    // 3. British easy — bonus-only (tier-1 + tier-2 but no tier-3 winner).
+    bingoRow({
+      id: 'bg-03',
+      details: bingoDetails({
+        variant: 'british',
+        difficulty: 'easy',
+        finalCallCount: 88,
+        userTier1: true,
+        userTier2: true,
+        bonusesEarned: 100,
+      }),
+      betAmount: 50,
+      payoutChips: 100,
+      playedAt: 3,
+    }),
+    // 4. British medium — player BINGO at 55 calls (NOT fast).
+    bingoRow({
+      id: 'bg-04',
+      details: bingoDetails({
+        variant: 'british',
+        difficulty: 'medium',
+        finalCallCount: 55,
+        userTier1: true,
+        userTier3: true,
+        bonusesEarned: 25,
+        pot: 200,
+      }),
+      betAmount: 50,
+      payoutChips: 225,
+      playedAt: 4,
+    }),
+    // 5. British medium — CPU tier-3 (cpu idx 3).
+    bingoRow({
+      id: 'bg-05',
+      details: bingoDetails({
+        variant: 'british',
+        difficulty: 'medium',
+        finalCallCount: 70,
+        cpuTier3Winner: 3,
+        pot: 200,
+      }),
+      betAmount: 50,
+      payoutChips: 0,
+      playedAt: 5,
+    }),
+    // 6. British medium — user tier-1 only, no tier-3 winner.
+    bingoRow({
+      id: 'bg-06',
+      details: bingoDetails({
+        variant: 'british',
+        difficulty: 'medium',
+        finalCallCount: 90,
+        userTier1: true,
+        bonusesEarned: 25,
+      }),
+      betAmount: 50,
+      payoutChips: 25,
+      playedAt: 6,
+    }),
+    // 7. British hard — CPU tier-3 (cpu idx 0).
+    bingoRow({
+      id: 'bg-07',
+      details: bingoDetails({
+        variant: 'british',
+        difficulty: 'hard',
+        finalCallCount: 45,
+        cpuTier3Winner: 0,
+        pot: 400,
+      }),
+      betAmount: 50,
+      payoutChips: 0,
+      playedAt: 7,
+    }),
+    // 8. British hard — CPU tier-3, bonus 50 (user tier-1).
+    bingoRow({
+      id: 'bg-08',
+      details: bingoDetails({
+        variant: 'british',
+        difficulty: 'hard',
+        finalCallCount: 50,
+        userTier1: true,
+        cpuTier3Winner: 5,
+        bonusesEarned: 25,
+        pot: 400,
+      }),
+      betAmount: 50,
+      payoutChips: 25,
+      playedAt: 8,
+    }),
+    // 9. American easy — player BINGO at 38 calls (FAST).
+    bingoRow({
+      id: 'bg-09',
+      details: bingoDetails({
+        variant: 'american',
+        difficulty: 'easy',
+        finalCallCount: 38,
+        userTier1: true,
+        userTier3: true,
+        bonusesEarned: 25,
+        pot: 100,
+      }),
+      betAmount: 50,
+      payoutChips: 125,
+      playedAt: 9,
+    }),
+    // 10. American easy — no tiers, no winner.
+    bingoRow({
+      id: 'bg-10',
+      details: bingoDetails({
+        variant: 'american',
+        difficulty: 'easy',
+        finalCallCount: 75,
+      }),
+      betAmount: 50,
+      payoutChips: 0,
+      playedAt: 10,
+    }),
+    // 11. American medium — CPU tier-3 (cpu idx 2).
+    bingoRow({
+      id: 'bg-11',
+      details: bingoDetails({
+        variant: 'american',
+        difficulty: 'medium',
+        finalCallCount: 65,
+        cpuTier3Winner: 2,
+        pot: 200,
+      }),
+      betAmount: 50,
+      payoutChips: 0,
+      playedAt: 11,
+    }),
+    // 12. American hard — user tier-2 only, no tier-3 winner.
+    bingoRow({
+      id: 'bg-12',
+      details: bingoDetails({
+        variant: 'american',
+        difficulty: 'hard',
+        finalCallCount: 75,
+        userTier2: true,
+        bonusesEarned: 75,
+      }),
+      betAmount: 50,
+      payoutChips: 75,
+      playedAt: 12,
+    }),
+    // 13. American hard — player BINGO at 30 calls (FAST).
+    bingoRow({
+      id: 'bg-13',
+      details: bingoDetails({
+        variant: 'american',
+        difficulty: 'hard',
+        finalCallCount: 30,
+        userTier1: true,
+        userTier2: true,
+        userTier3: true,
+        bonusesEarned: 100,
+        pot: 400,
+      }),
+      betAmount: 50,
+      payoutChips: 500,
+      playedAt: 13,
+    }),
+    // 14. American hard — player BINGO at 62 (NOT fast).
+    bingoRow({
+      id: 'bg-14',
+      details: bingoDetails({
+        variant: 'american',
+        difficulty: 'hard',
+        finalCallCount: 62,
+        userTier3: true,
+        pot: 400,
+      }),
+      betAmount: 50,
+      payoutChips: 400,
+      playedAt: 14,
+    }),
+    // 15. American hard — CPU tier-3.
+    bingoRow({
+      id: 'bg-15',
+      details: bingoDetails({
+        variant: 'american',
+        difficulty: 'hard',
+        finalCallCount: 55,
+        cpuTier3Winner: 7,
+        pot: 400,
+      }),
+      betAmount: 50,
+      payoutChips: 0,
+      playedAt: 15,
+    }),
+  ];
+  await db.rounds.bulkAdd(rows);
+  return rows;
+}
+
+describe('queries.getBingoAllTimeStats', () => {
+  beforeEach(async () => {
+    await resetDb();
+    localStorage.removeItem(SESSION_KEY);
+  });
+
+  it('returns zeros when no bingo rounds exist', async () => {
+    const s = await getBingoAllTimeStats();
+    expect(s).toEqual({
+      gamesPlayed: 0,
+      totalWagered: 0,
+      totalPaid: 0,
+      netHouseChips: 0,
+      netPlayerChips: 0,
+      actualRtp: null,
+      playerTier3Wins: 0,
+      cpuTier3Wins: 0,
+      playerBingoCapturePct: 0,
+      fastBingoPlayerWins: 0,
+      fastBingoHitRate: 0,
+      lineWins: 0,
+      doubleLineWins: 0,
+      totalBonusesPaid: 0,
+      totalPotsWonByPlayer: 0,
+    });
+  });
+
+  it('ignores rounds from other games', async () => {
+    await db.rounds.add({
+      id: 'rl-1',
+      userId: 'u-1',
+      game: 'roulette',
+      betAmount: 100,
+      payout: 0,
+      netChange: -100,
+      outcome: 'loss',
+      details: { spin: { number: 0, color: 'green' } },
+      balanceAfter: 900,
+      playedAt: 1_000,
+    });
+    const s = await getBingoAllTimeStats();
+    expect(s.gamesPlayed).toBe(0);
+    expect(s.netHouseChips).toBe(0);
+  });
+
+  it('ignores bingo rounds with malformed details (missing variant/difficulty)', async () => {
+    await db.rounds.add({
+      id: 'bad',
+      userId: 'u-1',
+      game: 'bingo',
+      betAmount: 50,
+      payout: 0,
+      netChange: -50,
+      outcome: 'loss',
+      details: { finalCallCount: 10 },
+      balanceAfter: 950,
+      playedAt: 1,
+    });
+    const s = await getBingoAllTimeStats();
+    expect(s.gamesPlayed).toBe(0);
+  });
+
+  it('aggregates wagers, payouts, tiers, fast hits, and bonuses from the fixture', async () => {
+    await seedBingoRows();
+    const s = await getBingoAllTimeStats();
+    expect(s.gamesPlayed).toBe(15);
+    // 15 rows × 50 each.
+    expect(s.totalWagered).toBe(750);
+    // 150+25+100+225+0+25+0+25+125+0+0+75+500+400+0 = 1650.
+    expect(s.totalPaid).toBe(1650);
+    expect(s.netHouseChips).toBe(750 - 1650); // -900
+    expect(s.netPlayerChips).toBe(900);
+    expect(s.actualRtp).toBeCloseTo(1650 / 750);
+    expect(s.playerTier3Wins).toBe(5);
+    expect(s.cpuTier3Wins).toBe(6);
+    expect(s.playerBingoCapturePct).toBeCloseTo(5 / 15);
+    expect(s.fastBingoPlayerWins).toBe(3); // bg-01 (40), bg-09 (38), bg-13 (30)
+    expect(s.fastBingoHitRate).toBeCloseTo(3 / 5);
+    // userTier1: bg-01, bg-02, bg-03, bg-04, bg-06, bg-08, bg-09, bg-13 = 8
+    expect(s.lineWins).toBe(8);
+    // userTier2: bg-01, bg-03, bg-12, bg-13 = 4
+    expect(s.doubleLineWins).toBe(4);
+    // bonusesEarned: 50+25+100+25+0+25+0+25+25+0+0+75+100+0+0 = 450
+    expect(s.totalBonusesPaid).toBe(450);
+    // totalPotsWonByPlayer: pot of player-tier3 rows: bg-01 100 + bg-04 200 +
+    // bg-09 100 + bg-13 400 + bg-14 400 = 1200
+    expect(s.totalPotsWonByPlayer).toBe(1200);
+  });
+
+  it('produces a positive netHouseChips when the house is ahead', async () => {
+    await db.rounds.bulkAdd([
+      bingoRow({
+        id: 'bg-h-1',
+        details: bingoDetails({
+          variant: 'british',
+          difficulty: 'easy',
+          finalCallCount: 50,
+          cpuTier3Winner: 1,
+          pot: 100,
+        }),
+        betAmount: 50,
+        payoutChips: 0,
+        playedAt: 1,
+      }),
+      bingoRow({
+        id: 'bg-h-2',
+        details: bingoDetails({
+          variant: 'british',
+          difficulty: 'easy',
+          finalCallCount: 60,
+          cpuTier3Winner: 0,
+          pot: 100,
+        }),
+        betAmount: 50,
+        payoutChips: 0,
+        playedAt: 2,
+      }),
+    ]);
+    const s = await getBingoAllTimeStats();
+    expect(s.netHouseChips).toBe(100);
+    expect(s.netPlayerChips).toBe(-100);
+  });
+});
+
+describe('queries.getBingoVariantDifficultyDistribution', () => {
+  beforeEach(async () => {
+    await resetDb();
+    localStorage.removeItem(SESSION_KEY);
+  });
+
+  it('returns 6 zero-count rows in canonical order when empty', async () => {
+    const dist = await getBingoVariantDifficultyDistribution();
+    expect(dist).toEqual([
+      { variant: 'british', difficulty: 'easy', count: 0 },
+      { variant: 'british', difficulty: 'medium', count: 0 },
+      { variant: 'british', difficulty: 'hard', count: 0 },
+      { variant: 'american', difficulty: 'easy', count: 0 },
+      { variant: 'american', difficulty: 'medium', count: 0 },
+      { variant: 'american', difficulty: 'hard', count: 0 },
+    ]);
+  });
+
+  it('counts each variant × difficulty combo from the fixture', async () => {
+    await seedBingoRows();
+    const dist = await getBingoVariantDifficultyDistribution();
+    const byKey = Object.fromEntries(dist.map((d) => [`${d.variant}|${d.difficulty}`, d.count]));
+    expect(byKey['british|easy']).toBe(3);
+    expect(byKey['british|medium']).toBe(3);
+    expect(byKey['british|hard']).toBe(2);
+    expect(byKey['american|easy']).toBe(2);
+    expect(byKey['american|medium']).toBe(1);
+    expect(byKey['american|hard']).toBe(4);
+  });
+});
+
+describe('queries.getBingoBallsToBingo', () => {
+  beforeEach(async () => {
+    await resetDb();
+    localStorage.removeItem(SESSION_KEY);
+  });
+
+  it('returns null for every difficulty when no player tier-3 wins exist', async () => {
+    const data = await getBingoBallsToBingo();
+    expect(data).toEqual([
+      { difficulty: 'easy', averageCalls: null },
+      { difficulty: 'medium', averageCalls: null },
+      { difficulty: 'hard', averageCalls: null },
+    ]);
+  });
+
+  it('averages finalCallCount across player tier-3 wins per difficulty', async () => {
+    await seedBingoRows();
+    const data = await getBingoBallsToBingo();
+    // easy: bg-01 (40) + bg-09 (38) = mean 39
+    // medium: bg-04 (55) = 55
+    // hard: bg-13 (30) + bg-14 (62) = mean 46
+    const byDiff = Object.fromEntries(data.map((d) => [d.difficulty, d.averageCalls]));
+    expect(byDiff['easy']).toBeCloseTo(39);
+    expect(byDiff['medium']).toBeCloseTo(55);
+    expect(byDiff['hard']).toBeCloseTo(46);
+  });
+
+  it('ignores CPU-won and bonus-only rounds when computing the mean', async () => {
+    await db.rounds.bulkAdd([
+      // CPU win — should be excluded.
+      bingoRow({
+        id: 'bx-1',
+        details: bingoDetails({
+          variant: 'british',
+          difficulty: 'medium',
+          finalCallCount: 30,
+          cpuTier3Winner: 1,
+          pot: 200,
+        }),
+        betAmount: 50,
+        payoutChips: 0,
+        playedAt: 1,
+      }),
+      // Player win at 60 — counted.
+      bingoRow({
+        id: 'bx-2',
+        details: bingoDetails({
+          variant: 'british',
+          difficulty: 'medium',
+          finalCallCount: 60,
+          userTier3: true,
+          pot: 200,
+        }),
+        betAmount: 50,
+        payoutChips: 200,
+        playedAt: 2,
+      }),
+    ]);
+    const data = await getBingoBallsToBingo();
+    const medium = data.find((d) => d.difficulty === 'medium');
+    expect(medium?.averageCalls).toBe(60);
+  });
+});

@@ -32,4 +32,13 @@ describe('CpuCardMini', () => {
     );
     expect(container.querySelector('[data-size="mini"]')).toBeTruthy();
   });
+
+  it('uses brand-token shell (felt-table-deep + brass)', () => {
+    const { container } = render(
+      <CpuCardMini cpu={makeCpu('cpu-shell')} cpuIdx={4} variant="british" />,
+    );
+    const wrapper = container.querySelector('[data-cpu-card]') as HTMLElement;
+    expect(wrapper.className).toContain('bg-felt-table-deep');
+    expect(wrapper.className).toContain('border-brass/40');
+  });
 });

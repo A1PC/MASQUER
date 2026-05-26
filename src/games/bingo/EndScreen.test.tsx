@@ -57,4 +57,58 @@ describe('EndScreen', () => {
     expect(screen.getByRole('button', { name: /CHANGE VARIANT/ })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /BACK TO LOBBY/ })).toBeInTheDocument();
   });
+
+  it('shows FAST BINGO badge with British copy when player wins within 40 calls', () => {
+    render(
+      <MemoryRouter>
+        <EndScreen
+          {...baseProps}
+          winner="user"
+          finalCallCount={32}
+          claimLog={[{ tier: 'tier3', source: 'user', chipDelta: 100 }]}
+        />
+      </MemoryRouter>,
+    );
+    const badge = screen.getByText(/FAST BINGO BONUS · 32 CALLS/i);
+    expect(badge).toBeInTheDocument();
+  });
+
+  it('hides FAST BINGO badge when finalCallCount > 40', () => {
+    render(
+      <MemoryRouter>
+        <EndScreen
+          {...baseProps}
+          winner="user"
+          finalCallCount={55}
+          claimLog={[{ tier: 'tier3', source: 'user', chipDelta: 100 }]}
+        />
+      </MemoryRouter>,
+    );
+    expect(screen.queryByText(/FAST BINGO BONUS/i)).toBeNull();
+  });
+
+  it('scrollable body caps at 60vh for long claim logs', () => {
+    const { container } = render(
+      <MemoryRouter>
+        <EndScreen {...baseProps} winner="cpu" cpuTier3Winner={0} />
+      </MemoryRouter>,
+    );
+    const card = container.querySelector('[data-end-screen]') as HTMLElement;
+    expect(card.className).toContain('max-h-[60vh]');
+    expect(card.className).toContain('overflow-y-auto');
+  });
+
+  it('user tier-3 win wears the jewel-magenta border signature', () => {
+    const { container } = render(
+      <MemoryRouter>
+        <EndScreen
+          {...baseProps}
+          winner="user"
+          claimLog={[{ tier: 'tier3', source: 'user', chipDelta: 100 }]}
+        />
+      </MemoryRouter>,
+    );
+    const card = container.querySelector('[data-end-screen]') as HTMLElement;
+    expect(card.className).toContain('border-jewel-magenta');
+  });
 });

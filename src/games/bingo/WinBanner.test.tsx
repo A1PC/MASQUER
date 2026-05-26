@@ -52,4 +52,12 @@ describe('WinBanner', () => {
     expect(b.getAttribute('data-source')).toBe('cpu');
     expect(b.getAttribute('data-tier')).toBe('tier3');
   });
+
+  it('user tier-3 wears the jewel-magenta signature border', () => {
+    const { container } = render(
+      <WinBanner source="user" tier="tier3" variant="british" bannerKey="t3" onDismiss={vi.fn()} />,
+    );
+    const b = container.querySelector('[data-win-banner]') as HTMLElement;
+    expect(b.className).toContain('border-jewel-magenta');
+  });
 });

@@ -57,14 +57,14 @@ export default function SetupPanel({
 
   return (
     <div
-      className="flex flex-col gap-4 rounded border border-gold/30 bg-felt-deep p-6"
+      className="flex flex-col gap-4 rounded-md border border-brass/60 bg-velvet-deep p-6 text-ivory"
       data-setup-panel
     >
-      <h2 className="font-display text-base tracking-wider text-gold-bright">
+      <h2 className="font-display text-base tracking-[0.18em] text-gold-bright">
         {VARIANT_HEADERS[variant]}
       </h2>
-      <p className="text-[10px] text-white/50">
-        {VARIANTS[variant].tier1Label} → {VARIANTS[variant].tier2Label} →{' '}
+      <p className="text-[10px] text-ivory/55">
+        {VARIANTS[variant].tier1Label} &rarr; {VARIANTS[variant].tier2Label} &rarr;{' '}
         {VARIANTS[variant].tier3Label}
       </p>
 
@@ -81,17 +81,19 @@ export default function SetupPanel({
                 role="radio"
                 aria-checked={selected}
                 onClick={() => onDifficultyChange(d)}
-                className={`rounded-md border p-3 text-center transition ${selected ? 'border-gold bg-gold/20' : 'border-white/20 hover:border-gold/60'}`}
+                className={`min-h-[44px] rounded-md border p-3 text-center transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold ${
+                  selected ? 'border-gold bg-gold/20' : 'border-brass/40 hover:border-brass'
+                }`}
               >
                 <div
-                  className={`font-display text-sm ${selected ? 'text-gold-bright' : 'text-white'}`}
+                  className={`font-display text-sm ${selected ? 'text-gold-bright' : 'text-ivory'}`}
                 >
                   {DIFFICULTY_LABELS[d]}
                 </div>
-                <div className="text-[9px] text-white/60 mt-1">
+                <div className="mt-1 text-[9px] text-ivory/60">
                   {dcfg.cpuCount} CPU{dcfg.cpuCount !== 1 ? 's' : ''}
                 </div>
-                <div className="text-[10px] text-gold-bright tabular-nums mt-1">
+                <div className="mt-1 text-[10px] tabular-nums text-gold-bright">
                   Pot {BUY_IN * dcfg.potMultiplier}
                 </div>
               </button>
@@ -111,10 +113,10 @@ export default function SetupPanel({
               aria-checked={speed === s}
               onClick={() => onSpeedChange(s)}
               className={[
-                'flex-1 rounded-md border px-3 py-2 text-xs',
+                'min-h-[44px] flex-1 rounded-md border px-3 py-2 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold',
                 speed === s
-                  ? 'border-gold bg-gold text-felt-deep'
-                  : 'border-white/30 bg-felt-deep text-white/70 hover:border-gold',
+                  ? 'border-gold bg-gold text-velvet-deep'
+                  : 'border-brass/40 bg-felt-table-deep text-ivory/70 hover:border-brass',
               ].join(' ')}
             >
               {SPEED_LABELS[s]}
@@ -139,12 +141,12 @@ export default function SetupPanel({
                 onClick={() => !disabled && onDaubModeChange(m)}
                 {...(disabled ? { title: 'This difficulty requires manual daub' } : {})}
                 className={[
-                  'flex-1 rounded-md border px-3 py-2 text-xs',
+                  'min-h-[44px] flex-1 rounded-md border px-3 py-2 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold',
                   disabled
-                    ? 'opacity-40 cursor-not-allowed border-white/20 text-white/30'
+                    ? 'cursor-not-allowed border-brass/30 text-ivory/30 opacity-40'
                     : selected
-                      ? 'border-gold bg-gold text-felt-deep'
-                      : 'border-white/30 bg-felt-deep text-white/70 hover:border-gold',
+                      ? 'border-gold bg-gold text-velvet-deep'
+                      : 'border-brass/40 bg-felt-table-deep text-ivory/70 hover:border-brass',
                 ].join(' ')}
               >
                 {m === 'auto' ? 'AUTO' : 'MANUAL'}
@@ -158,18 +160,18 @@ export default function SetupPanel({
       </section>
 
       <section className="flex items-center justify-between text-xs">
-        <span className="text-white/60">Buy-in</span>
+        <span className="text-ivory/60">Buy-in</span>
         <span className="font-display tabular-nums text-gold-bright">{BUY_IN} chips</span>
       </section>
       <section className="flex items-center justify-between text-xs">
-        <span className="text-white/60">Win up to</span>
+        <span className="text-ivory/60">Win up to</span>
         <span className="font-display tabular-nums text-gold-bright">
           {BUY_IN * cfg.potMultiplier} chips
         </span>
       </section>
       <section className="flex items-center justify-between text-xs">
-        <span className="text-white/60">Balance</span>
-        <span className="font-display tabular-nums text-white">
+        <span className="text-ivory/60">Balance</span>
+        <span className="font-display tabular-nums text-ivory">
           {balance.toLocaleString()} chips
         </span>
       </section>
@@ -178,12 +180,12 @@ export default function SetupPanel({
         type="button"
         onClick={onBuyAndStart}
         disabled={!canAfford}
-        className="mt-2 w-full rounded-md border-2 border-gold bg-casino-red py-3 font-display text-sm tracking-wider text-white disabled:cursor-not-allowed disabled:opacity-40"
+        className="mt-2 min-h-[44px] w-full rounded-md border-2 border-gold bg-velvet py-3 font-display text-sm tracking-[0.18em] text-ivory hover:bg-velvet-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold disabled:cursor-not-allowed disabled:opacity-40"
       >
         BUY &amp; PLAY ({BUY_IN})
       </button>
       {!canAfford && (
-        <p className="text-center text-[10px] text-casino-red">Not enough chips (need {BUY_IN})</p>
+        <p className="text-center text-[10px] text-state-loss">Not enough chips (need {BUY_IN})</p>
       )}
     </div>
   );

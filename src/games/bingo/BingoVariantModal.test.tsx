@@ -57,4 +57,27 @@ describe('BingoVariantModal', () => {
     fireEvent.keyDown(window, { key: 'Escape' });
     expect(onClose).toHaveBeenCalled();
   });
+
+  it('body is scrollable with a 60vh cap', () => {
+    const { container } = render(
+      <MemoryRouter>
+        <BingoVariantModal open={true} onClose={vi.fn()} />
+      </MemoryRouter>,
+    );
+    const body = container.querySelector('[data-bingo-variant-body]') as HTMLElement;
+    expect(body).not.toBeNull();
+    expect(body.className).toContain('overflow-y-auto');
+    expect(body.style.maxHeight).toBe('60vh');
+  });
+
+  it('uses brand-token chrome (velvet-deep + brass)', () => {
+    const { container } = render(
+      <MemoryRouter>
+        <BingoVariantModal open={true} onClose={vi.fn()} />
+      </MemoryRouter>,
+    );
+    const card = container.querySelector('[data-bingo-variant-modal] > div') as HTMLElement;
+    expect(card.className).toContain('bg-velvet-deep');
+    expect(card.className).toContain('border-brass');
+  });
 });
