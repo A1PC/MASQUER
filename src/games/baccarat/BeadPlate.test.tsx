@@ -19,9 +19,25 @@ describe('BeadPlate', () => {
     expect(container.querySelectorAll('[data-bead-winner="tie"]')).toHaveLength(1);
   });
 
-  it('marks pair decorations', () => {
+  it('marks pair decorations using scoreboard tokens', () => {
     const { container } = render(<BeadPlate cells={[cell('player', true, false)]} />);
-    expect(container.querySelector('.bg-casino-red.rounded-full.ring-1')).toBeInTheDocument();
+    // Player-pair dot uses the scoreboard-player blue token + ivory ring.
+    expect(
+      container.querySelector('.bg-scoreboard-player.rounded-full.ring-1.ring-ivory'),
+    ).toBeInTheDocument();
+  });
+
+  it('uses scoreboard tokens for each winner bead', () => {
+    const { container } = render(
+      <BeadPlate cells={[cell('player'), cell('banker'), cell('tie')]} />,
+    );
+    expect(container.querySelector('[data-bead-winner="player"]')).toHaveClass(
+      'bg-scoreboard-player',
+    );
+    expect(container.querySelector('[data-bead-winner="banker"]')).toHaveClass(
+      'bg-scoreboard-banker',
+    );
+    expect(container.querySelector('[data-bead-winner="tie"]')).toHaveClass('bg-scoreboard-tie');
   });
 
   it('truncates to the last (rows × visibleCols) cells', () => {

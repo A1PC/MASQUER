@@ -11,6 +11,11 @@ interface Props {
   onClearBig: () => void;
 }
 
+/**
+ * Combined Big / Small side-bet zone. Two halves share one brass-framed
+ * shell so the geometry reads as a single felt cell on the table — the
+ * mirrored side-bet pattern in real Punto Banco layouts.
+ */
 export default function BigSmallZone({
   smallAmount,
   bigAmount,
@@ -21,7 +26,7 @@ export default function BigSmallZone({
   onClearBig,
 }: Props): JSX.Element {
   return (
-    <div className="flex h-full w-full overflow-hidden rounded border-2 border-white/20 bg-black/30">
+    <div className="flex h-full w-full overflow-hidden rounded-md border-2 border-brass/40 bg-felt-table-deep">
       <Half
         side="left"
         label="SMALL"
@@ -31,7 +36,7 @@ export default function BigSmallZone({
         onClear={onClearSmall}
         disabled={disabled}
       />
-      <div className="w-px bg-white/15" />
+      <div className="w-px bg-brass/20" />
       <Half
         side="right"
         label="BIG"
@@ -73,20 +78,23 @@ function Half({
         e.preventDefault();
         onClear();
       }}
+      aria-label={`Bet zone: ${label}, pays ${payoutText}, current bet ${amount} chips`}
       className={[
         'relative flex flex-1 flex-col items-center justify-center p-2 transition',
-        disabled ? 'cursor-not-allowed opacity-50' : 'hover:bg-white/5',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-gold',
+        disabled ? 'cursor-not-allowed opacity-50' : 'hover:bg-ivory/[0.04]',
       ].join(' ')}
     >
-      <span className="font-display text-[11px] tracking-[0.18em] text-white">{label}</span>
-      <span className="mt-0.5 text-[10px] text-white/60">{payoutText}</span>
+      <span className="font-display text-[11px] tracking-[0.18em] text-ivory">{label}</span>
+      <span className="mt-0.5 text-[10px] text-ivory/65">{payoutText}</span>
       {amount > 0 && (
         <motion.span
           key={amount}
           initial={{ scale: 0.6, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ duration: 0.18, ease: 'easeOut' }}
-          className="mt-2 rounded-full border border-gold/70 bg-felt-deep px-3 py-1 font-display text-sm text-gold"
+          className="mt-2 rounded-full border border-brass bg-felt-table-deep px-3 py-1 font-display text-sm text-gold"
+          aria-label={`Current bet: ${amount} chips`}
         >
           {amount}
         </motion.span>

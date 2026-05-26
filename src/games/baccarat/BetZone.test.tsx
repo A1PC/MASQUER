@@ -30,7 +30,7 @@ describe('BetZone', () => {
   });
 
   it('hides the chip overlay when amount is 0', () => {
-    render_(
+    const { container } = render_(
       <BetZone
         label="PLAYER"
         payoutText="1 : 1"
@@ -39,11 +39,14 @@ describe('BetZone', () => {
         onClear={() => {}}
       />,
     );
-    expect(screen.queryByLabelText(/current bet/i)).toBeNull();
+    // The chip-overlay span has aria-label="Current bet: N chips"; the
+    // button's own aria-label always carries the zone summary. Query for
+    // the overlay's span directly by tag-class to avoid the button match.
+    expect(container.querySelector('span[aria-label^="Current bet"]')).toBeNull();
   });
 
   it('shows the chip overlay with amount when amount > 0', () => {
-    render_(
+    const { container } = render_(
       <BetZone
         label="PLAYER"
         payoutText="1 : 1"
@@ -52,7 +55,7 @@ describe('BetZone', () => {
         onClear={() => {}}
       />,
     );
-    expect(screen.getByLabelText(/current bet: 75 chips/i)).toBeInTheDocument();
+    expect(container.querySelector('span[aria-label="Current bet: 75 chips"]')).toBeInTheDocument();
     expect(screen.getByText('75')).toBeInTheDocument();
   });
 

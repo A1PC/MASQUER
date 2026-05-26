@@ -6,9 +6,14 @@ interface Props {
   columns: readonly (readonly BigRoadCell[])[];
 }
 
+/**
+ * Big-road ring colour: scoreboard tokens promoted in Phase 15 #8 so the
+ * canonical Banker-red / Player-blue convention is brand-tweakable
+ * without touching components.
+ */
 const RING: Record<BigRoadCell['winner'], string> = {
-  player: 'ring-casino-red text-casino-red',
-  banker: 'ring-blue-500 text-blue-500',
+  player: 'ring-scoreboard-player text-scoreboard-player',
+  banker: 'ring-scoreboard-banker text-scoreboard-banker',
 };
 
 export default function BigRoad({ columns }: Props): JSX.Element {
@@ -28,13 +33,13 @@ export default function BigRoad({ columns }: Props): JSX.Element {
         return Array.from({ length: BIG_ROAD_ROWS }).map((__, rowIdx) => {
           const cell = col[rowIdx];
           if (!cell) {
-            return <div key={`${colIdx}-${rowIdx}`} className="rounded-sm bg-white/[0.03]" />;
+            return <div key={`${colIdx}-${rowIdx}`} className="rounded-sm bg-ivory/[0.04]" />;
           }
           return (
             <div
               key={`${colIdx}-${rowIdx}`}
               data-big-road-winner={cell.winner}
-              className={`relative grid place-items-center rounded-full bg-felt-deep text-[10px] font-bold ring-2 ${RING[cell.winner]}`}
+              className={`relative grid place-items-center rounded-full bg-felt-table-deep text-[10px] font-bold ring-2 ${RING[cell.winner]}`}
             >
               {cell.ties > 0 && <span className="leading-none">{cell.ties}</span>}
             </div>
