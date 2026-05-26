@@ -113,12 +113,9 @@ describe('Sidebar', () => {
     expect(link).toHaveAttribute('href', '/play/craps');
   });
 
-  it('shows NEW badge on Baccarat (most recent ship)', () => {
+  it('no NEW badge on any nav item (all games shipped — polishing phase)', () => {
     renderAtPath('/lobby');
-    const badge = screen.getByText('NEW');
-    expect(badge).toBeInTheDocument();
-    // Badge sits in the Baccarat row.
-    expect(badge.closest('a')).toHaveAttribute('href', '/play/baccarat');
+    expect(screen.queryByText('NEW')).toBeNull();
   });
 
   it('marks the current route as the active nav item', () => {

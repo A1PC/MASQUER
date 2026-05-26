@@ -26,7 +26,7 @@ const GAMES: NavItemDef[] = [
   { to: '/play/blackjack', iconName: NAV_ICON.blackjack, label: 'Blackjack' },
   { to: '/play/roulette', iconName: NAV_ICON.roulette, label: 'Roulette' },
   { to: '/play/slots', iconName: NAV_ICON.slots, label: 'Slots' },
-  { to: '/play/baccarat', iconName: NAV_ICON.baccarat, label: 'Baccarat', badge: 'NEW' },
+  { to: '/play/baccarat', iconName: NAV_ICON.baccarat, label: 'Baccarat' },
   { to: '/play/bingo', iconName: NAV_ICON.bingo, label: 'Bingo' },
   { to: '/play/plinko', iconName: NAV_ICON.plinko, label: 'Plinko' },
   { to: '/play/poker', iconName: NAV_ICON.poker, label: 'Poker' },
