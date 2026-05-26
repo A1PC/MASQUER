@@ -1,3 +1,5 @@
+import { ROW_COUNT as GEOMETRY_ROW_COUNT, BIN_COUNT as GEOMETRY_BIN_COUNT } from './geometry';
+
 /** Inline mulberry32 seeded uint32 → () => [0, 1). Matches src/games/bingo/logic.ts. */
 function mulberry32(seed: number): () => number {
   let a = seed >>> 0;
@@ -29,12 +31,18 @@ export function _stringSeed(s: string): number {
 
 export type Risk = 'safe' | 'low' | 'medium' | 'high';
 
-export const ROW_COUNT = 20;
-export const BIN_COUNT = 21;
+/** Re-exported from `geometry.ts` so callers can import either module. */
+export const ROW_COUNT = GEOMETRY_ROW_COUNT;
+export const BIN_COUNT = GEOMETRY_BIN_COUNT;
+
+/** Bet / auto-session limits. Per-ball ceiling raised to 1M chips, auto-cap to
+ *  1000 balls per session in Phase 15 #11 (ADR-0047). */
 export const BET_MIN = 10;
-export const BET_MAX = 5000;
+export const BET_MAX = 1_000_000;
+export const MAX_BET = BET_MAX;
 export const AUTO_BALLS_MIN = 1;
-export const AUTO_BALLS_MAX = 100;
+export const AUTO_BALLS_MAX = 1_000;
+export const MAX_AUTO_BALLS = AUTO_BALLS_MAX;
 export const AUTO_INTERVAL_MS = { slow: 1000, normal: 500, fast: 250 } as const;
 export type AutoIntervalKey = keyof typeof AUTO_INTERVAL_MS;
 
@@ -54,33 +62,34 @@ export function dropBall(rng: () => number): { path: ('L' | 'R')[]; bin: number 
   return { path, bin };
 }
 
-/** Per-risk multiplier curves over the 21 bins. Symmetric across centre (bin 10).
- *  Tuned so RTP = sum(prob[bin] × multiplier[bin]) lands in [0.95, 1.0] for every
- *  risk level. Values are floats; payouts use `Math.floor(stake * multiplier)`.
- *  Centre bin (10) is always the minimum — 'loss territory' for the most likely outcome.
+/** Per-risk multiplier curves over the 27 bins (Phase 15 #11 retune).
+ *  Each curve is a 27-element symmetric array, monotonically non-increasing
+ *  from edge (bin 0) to centre (bin 13). Payouts use `Math.floor(stake * multiplier)`.
  *
- *  Curves are monotonically non-increasing from edge (bin 0) to centre (bin 10).
- *  Higher risk = steeper V-shape = higher variance at same expected value.
+ *  Tuned against `Binomial(26, 0.5)` so RTP = Σ(prob[k] × multiplier[k]) lands
+ *  in [0.95, 0.98] for every risk. See ADR-0047 for the retune rationale.
  *
- *  RTPs: safe ≈ 0.979, low ≈ 0.977, medium ≈ 0.976, high ≈ 0.953. */
+ *  Approx RTPs (verified in `MULTIPLIER_CURVES RTP` test):
+ *    safe   ≈ 0.978   (gentle V — lowest variance, edge 45×)
+ *    low    ≈ 0.966   (moderate V, edge 700×)
+ *    medium ≈ 0.958   (heavy V, edge 6,000×)
+ *    high   ≈ 0.954   (steepest V, edge 60,000×) */
 export const MULTIPLIER_CURVES: Record<Risk, readonly number[]> = {
-  // RTP ≈ 0.979 — gentle V-curve, lowest variance
   safe: [
-    16, 9, 4, 2, 1.4, 1.2, 1.1, 1.0, 0.98, 0.95, 0.88, 0.95, 0.98, 1.0, 1.1, 1.2, 1.4, 2, 4, 9, 16,
+    45, 18, 8, 4, 2.4, 1.6, 1.28, 1.13, 1.06, 1.01, 0.99, 0.97, 0.95, 0.94, 0.95, 0.97, 0.99, 1.01,
+    1.06, 1.13, 1.28, 1.6, 2.4, 4, 8, 18, 45,
   ],
-  // RTP ≈ 0.977 — moderate V-curve, larger jackpot edges
   low: [
-    110, 41, 10, 5, 3, 1.5, 1.0, 1.0, 0.95, 0.9, 0.85, 0.9, 0.95, 1.0, 1.0, 1.5, 3, 5, 10, 41, 110,
+    700, 220, 70, 22, 9, 4.0, 2.2, 1.4, 1.15, 1.03, 0.95, 0.92, 0.9, 0.89, 0.9, 0.92, 0.95, 1.03,
+    1.15, 1.4, 2.2, 4.0, 9, 22, 70, 220, 700,
   ],
-  // RTP ≈ 0.976 — steeper V-curve, casino-grade jackpots
   medium: [
-    420, 130, 26, 10, 4, 2, 1.1, 0.95, 0.9, 0.85, 0.75, 0.85, 0.9, 0.95, 1.1, 2, 4, 10, 26, 130,
-    420,
+    6000, 1800, 450, 100, 28, 9, 3.5, 1.8, 1.2, 1.02, 0.92, 0.86, 0.82, 0.8, 0.82, 0.86, 0.92, 1.02,
+    1.2, 1.8, 3.5, 9, 28, 100, 450, 1800, 6000,
   ],
-  // RTP ≈ 0.953 — extreme V-curve, 5000× jackpot at edges
   high: [
-    5000, 1000, 130, 26, 9, 3, 1.5, 0.7, 0.7, 0.55, 0.4, 0.55, 0.7, 0.7, 1.5, 3, 9, 26, 130, 1000,
-    5000,
+    60000, 12000, 2500, 500, 95, 18, 4.5, 1.7, 1.0, 0.86, 0.78, 0.74, 0.72, 0.71, 0.72, 0.74, 0.78,
+    0.86, 1.0, 1.7, 4.5, 18, 95, 500, 2500, 12000, 60000,
   ],
 };
 
