@@ -21,6 +21,7 @@ function renderLayoutAt(initial: string) {
           { path: 'sessions', element: <div>sessions content</div> },
           { path: 'roulette', element: <div>roulette content</div> },
           { path: 'slots', element: <div>slots content</div> },
+          { path: 'baccarat', element: <div>baccarat content</div> },
         ],
       },
       { path: '/admin/login', element: <div>admin login</div> },
@@ -59,6 +60,10 @@ describe('AdminLayout', () => {
       '/admin/roulette',
     );
     expect(screen.getByRole('link', { name: /^slots$/i })).toHaveAttribute('href', '/admin/slots');
+    expect(screen.getByRole('link', { name: /^baccarat$/i })).toHaveAttribute(
+      'href',
+      '/admin/baccarat',
+    );
   });
 
   it('marks the Roulette nav link active on /admin/roulette', () => {
@@ -73,6 +78,13 @@ describe('AdminLayout', () => {
     const link = screen.getByRole('link', { name: /^slots$/i });
     expect(link).toHaveAttribute('aria-current', 'page');
     expect(screen.getByText('slots content')).toBeInTheDocument();
+  });
+
+  it('marks the Baccarat nav link active on /admin/baccarat', () => {
+    renderLayoutAt('/admin/baccarat');
+    const link = screen.getByRole('link', { name: /^baccarat$/i });
+    expect(link).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByText('baccarat content')).toBeInTheDocument();
   });
 
   it('marks the active nav link with aria-current=page', () => {
