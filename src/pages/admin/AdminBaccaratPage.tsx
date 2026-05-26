@@ -146,8 +146,14 @@ export default function AdminBaccaratPage(): JSX.Element {
   const stats = useLiveQuery(() => getBaccaratAllTimeStats(), [], EMPTY_STATS);
   const distribution = useLiveQuery(() => getBaccaratWinnerDistribution(), [], EMPTY_DIST);
   const streaks = useLiveQuery(() => getBaccaratStreakStats(), [], EMPTY_STREAKS);
+  // `.where(...).reverse()` ties-break by primary key (lexicographic on
+  // betId strings), not by `playedAt` — so it did not give "newest first".
+  // Sort in memory; admin pages tolerate the full scan.
   const recentRounds = useLiveQuery(
-    () => db.rounds.where('game').equals('baccarat').reverse().limit(20).toArray(),
+    async () => {
+      const all = await db.rounds.where('game').equals('baccarat').toArray();
+      return all.sort((a, b) => b.playedAt - a.playedAt).slice(0, 20);
+    },
     [],
     EMPTY_ROUNDS,
   );
