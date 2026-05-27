@@ -1369,6 +1369,35 @@ describe('queries.getRouletteAllTimeStats', () => {
     expect(s.netHouseChips).toBe(-350);
     expect(s.netPlayerChips).toBe(350);
   });
+
+  // Phase 15 #14 PR B — optional `sinceMs` filter.
+  it('with sinceMs only counts rounds with playedAt > threshold', async () => {
+    const now = Date.now();
+    const dayAgo = now - 86_400_000;
+    await db.rounds.bulkAdd([
+      rouletteRow({
+        id: 'old-1',
+        userId: 'u-1',
+        number: 7,
+        betAmount: 100,
+        payout: 0,
+        playedAt: dayAgo - 1000,
+      }),
+      rouletteRow({
+        id: 'new-1',
+        userId: 'u-1',
+        number: 7,
+        betAmount: 50,
+        payout: 0,
+        playedAt: now - 1000,
+      }),
+    ]);
+    const all = await getRouletteAllTimeStats();
+    expect(all.ballsSpun).toBe(2);
+    const recent = await getRouletteAllTimeStats(dayAgo);
+    expect(recent.ballsSpun).toBe(1);
+    expect(recent.netHouseChips).toBe(50);
+  });
 });
 
 describe('queries.getRouletteNumberDistribution', () => {
@@ -1705,6 +1734,35 @@ describe('queries.getSlotsAllTimeStats', () => {
     const s = await getSlotsAllTimeStats();
     expect(s.netHouseChips).toBe(200);
     expect(s.netPlayerChips).toBe(-200);
+  });
+
+  // Phase 15 #14 PR B — optional `sinceMs` filter.
+  it('with sinceMs only counts spins with playedAt > threshold', async () => {
+    const now = Date.now();
+    const dayAgo = now - 86_400_000;
+    await db.rounds.bulkAdd([
+      slotsRow({
+        id: 's-old',
+        reels: ['cherry', 'lemon', 'bell'],
+        payout: null,
+        betAmount: 100,
+        payoutChips: 0,
+        winTier: 'none',
+        playedAt: dayAgo - 1000,
+      }),
+      slotsRow({
+        id: 's-new',
+        reels: ['cherry', 'lemon', 'bell'],
+        payout: null,
+        betAmount: 50,
+        payoutChips: 0,
+        winTier: 'none',
+        playedAt: now - 1000,
+      }),
+    ]);
+    const recent = await getSlotsAllTimeStats(dayAgo);
+    expect(recent.spinsRun).toBe(1);
+    expect(recent.totalWagered).toBe(50);
   });
 });
 
@@ -2485,6 +2543,43 @@ describe('queries.getBaccaratAllTimeStats', () => {
     expect(s.netHouseChips).toBe(200);
     expect(s.netPlayerChips).toBe(-200);
   });
+
+  // Phase 15 #14 PR B — optional `sinceMs` filter.
+  it('with sinceMs only counts rounds with playedAt > threshold', async () => {
+    const now = Date.now();
+    const dayAgo = now - 86_400_000;
+    const stockDetails = baccaratDetails({
+      winner: 'player',
+      playerTotal: 7,
+      bankerTotal: 5,
+      playerCards: 2,
+      bankerCards: 2,
+      margin: 2,
+      winnerNatural: false,
+      bothNatural: false,
+      playerPair: false,
+      bankerPair: false,
+    });
+    await db.rounds.bulkAdd([
+      baccaratRow({
+        id: 'bac-old',
+        details: stockDetails,
+        betAmount: 100,
+        payoutChips: 0,
+        playedAt: dayAgo - 1000,
+      }),
+      baccaratRow({
+        id: 'bac-new',
+        details: stockDetails,
+        betAmount: 50,
+        payoutChips: 0,
+        playedAt: now - 1000,
+      }),
+    ]);
+    const recent = await getBaccaratAllTimeStats(dayAgo);
+    expect(recent.roundsPlayed).toBe(1);
+    expect(recent.totalWagered).toBe(50);
+  });
 });
 
 describe('queries.getBaccaratWinnerDistribution', () => {
@@ -3062,6 +3157,37 @@ describe('queries.getBingoAllTimeStats', () => {
     expect(s.netHouseChips).toBe(100);
     expect(s.netPlayerChips).toBe(-100);
   });
+
+  // Phase 15 #14 PR B — optional `sinceMs` filter.
+  it('with sinceMs only counts games with playedAt > threshold', async () => {
+    const now = Date.now();
+    const dayAgo = now - 86_400_000;
+    const details = bingoDetails({
+      variant: 'british',
+      difficulty: 'easy',
+      finalCallCount: 30,
+      userTier3: false,
+    });
+    await db.rounds.bulkAdd([
+      bingoRow({
+        id: 'bg-old',
+        details,
+        betAmount: 100,
+        payoutChips: 0,
+        playedAt: dayAgo - 1000,
+      }),
+      bingoRow({
+        id: 'bg-new',
+        details,
+        betAmount: 50,
+        payoutChips: 0,
+        playedAt: now - 1000,
+      }),
+    ]);
+    const recent = await getBingoAllTimeStats(dayAgo);
+    expect(recent.gamesPlayed).toBe(1);
+    expect(recent.totalWagered).toBe(50);
+  });
 });
 
 describe('queries.getBingoVariantDifficultyDistribution', () => {
@@ -3489,6 +3615,36 @@ describe('queries.getPlinkoAllTimeStats', () => {
     expect(s.totalWagered).toBe(100);
     expect(s.totalPaid).toBe(50);
   });
+
+  // Phase 15 #14 PR B — optional `sinceMs` filter.
+  it('with sinceMs only counts drops with playedAt > threshold', async () => {
+    const now = Date.now();
+    const dayAgo = now - 86_400_000;
+    await db.rounds.bulkAdd([
+      plinkoRow({
+        id: 'pl-old',
+        risk: 'safe',
+        bin: 13,
+        multiplier: 0.94,
+        betAmount: 100,
+        payoutChips: 0,
+        playedAt: dayAgo - 1000,
+      }),
+      plinkoRow({
+        id: 'pl-new',
+        risk: 'high',
+        bin: 0,
+        multiplier: 60000,
+        betAmount: 50,
+        payoutChips: 0,
+        playedAt: now - 1000,
+      }),
+    ]);
+    const recent = await getPlinkoAllTimeStats(dayAgo);
+    expect(recent.ballsDropped).toBe(1);
+    expect(recent.totalWagered).toBe(50);
+    expect(recent.jackpotHits).toBe(1);
+  });
 });
 
 describe('queries.getPlinkoBinDistribution', () => {
@@ -3834,6 +3990,48 @@ describe('queries.getPokerAllTimeStats', () => {
     expect(s.sessions).toBe(1);
     expect(s.totalWagered).toBe(500);
     expect(s.totalPaid).toBe(600);
+  });
+
+  // Phase 15 #14 PR B — optional `sinceMs` filter (variant + sinceMs are
+  // independent — sinceMs is the SECOND positional arg).
+  it('with sinceMs only counts sessions with playedAt > threshold', async () => {
+    const now = Date.now();
+    const dayAgo = now - 86_400_000;
+    await db.rounds.bulkAdd([
+      pokerRow({
+        id: 'pk-old',
+        variant: 'holdem',
+        betAmount: 500,
+        payoutChips: 600,
+        handsPlayed: 5,
+        biggestPotWon: 400,
+        playedAt: dayAgo - 1000,
+      }),
+      pokerRow({
+        id: 'pk-new-holdem',
+        variant: 'holdem',
+        betAmount: 200,
+        payoutChips: 250,
+        handsPlayed: 3,
+        biggestPotWon: 120,
+        playedAt: now - 1000,
+      }),
+      pokerRow({
+        id: 'pk-new-omaha',
+        variant: 'omaha',
+        betAmount: 100,
+        payoutChips: 0,
+        handsPlayed: 2,
+        biggestPotWon: 0,
+        playedAt: now - 500,
+      }),
+    ]);
+    const recent = await getPokerAllTimeStats(undefined, dayAgo);
+    expect(recent.sessions).toBe(2);
+    expect(recent.totalWagered).toBe(300);
+    const recentHoldem = await getPokerAllTimeStats('holdem', dayAgo);
+    expect(recentHoldem.sessions).toBe(1);
+    expect(recentHoldem.totalWagered).toBe(200);
   });
 });
 
@@ -4253,6 +4451,36 @@ describe('queries.getCrapsAllTimeStats', () => {
     expect(s.sessions).toBe(2);
     expect(s.totalRolls).toBe(22);
     expect(s.netHouseChips).toBe(0); // 1,500 wagered · 1,500 paid
+  });
+
+  // Phase 15 #14 PR B — optional `sinceMs` filter.
+  it('with sinceMs only counts sessions with playedAt > threshold', async () => {
+    const now = Date.now();
+    const dayAgo = now - 86_400_000;
+    await db.rounds.bulkAdd([
+      crapsRow({
+        id: 'cr-old',
+        tier: 'low',
+        betAmount: 500,
+        payoutChips: 0,
+        rollsPlayed: 10,
+        biggestRollWin: 0,
+        playedAt: dayAgo - 1000,
+      }),
+      crapsRow({
+        id: 'cr-new',
+        tier: 'mid',
+        betAmount: 200,
+        payoutChips: 0,
+        rollsPlayed: 5,
+        biggestRollWin: 0,
+        playedAt: now - 1000,
+      }),
+    ]);
+    const recent = await getCrapsAllTimeStats(dayAgo);
+    expect(recent.sessions).toBe(1);
+    expect(recent.totalWagered).toBe(200);
+    expect(recent.totalRolls).toBe(5);
   });
 });
 
