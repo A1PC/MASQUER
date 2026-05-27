@@ -586,10 +586,7 @@ describe('admin queries', () => {
     // Threshold = midnight 2026-05-19 — should exclude the April draw.
     const since = new Date(2026, 4, 19, 0, 0, 0).getTime();
     const lifetime = await getLotteryAdminStats(new Date(2026, 4, 19, 22, 0, 0).getTime());
-    const recent = await getLotteryAdminStats(
-      new Date(2026, 4, 19, 22, 0, 0).getTime(),
-      since,
-    );
+    const recent = await getLotteryAdminStats(new Date(2026, 4, 19, 22, 0, 0).getTime(), since);
     expect(lifetime.totalRevenue).toBe(10); // 5 * 2 lines
     expect(recent.totalRevenue).toBe(5); // 5 * 1 line only
   });
@@ -597,12 +594,15 @@ describe('admin queries', () => {
   it('getNumberFrequency with sinceMs only counts draws after the threshold', async () => {
     const r = await register({ username: 'd', password: 'password123' });
     if (!r.ok) throw new Error();
+    // Use adjacent days so settleMissedDraws doesn't backfill empty draws —
+    // backfilled draws still contribute to the frequency count and would
+    // inflate the lifetime baseline.
     await buyTicket({
       userId: r.user.id,
       lines: [{ kind: 'manual', mainNumbers: [1, 2, 3, 4, 5, 6], bonusNumber: 1 }],
-      now: new Date(2026, 3, 15, 12, 0, 0).getTime(),
+      now: new Date(2026, 4, 18, 12, 0, 0).getTime(),
     });
-    await settleMissedDraws({ now: new Date(2026, 3, 15, 20, 30, 0).getTime() });
+    await settleMissedDraws({ now: new Date(2026, 4, 18, 20, 30, 0).getTime() });
     await buyTicket({
       userId: r.user.id,
       lines: [{ kind: 'manual', mainNumbers: [1, 2, 3, 4, 5, 6], bonusNumber: 1 }],
