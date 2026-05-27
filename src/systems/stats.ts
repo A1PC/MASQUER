@@ -1870,3 +1870,169 @@ export async function getRecentAdjustments(limit: number): Promise<RecentAdjustm
     reason: a.reason,
   }));
 }
+
+// ── Cross-game leaderboard (Phase 15 #14 PR C) ─────────────────────────────
+//
+// Four cross-game admin aggregations powering `/admin/leaderboard`. All four
+// accept an optional `sinceMs` UTC-epoch lower bound (strictly greater than)
+// so a future date-range filter (PR B) can be wired in without changing the
+// signatures. When `sinceMs` is undefined the aggregator considers every
+// recorded round.
+
+export interface LeaderboardWinnerRow {
+  username: string;
+  netChips: number;
+  rounds: number;
+}
+
+export interface LeaderboardVolumeRow {
+  username: string;
+  totalWagered: number;
+  rounds: number;
+}
+
+export interface LeaderboardSingleWinRow {
+  username: string;
+  game: Round['game'];
+  payout: number;
+  netChange: number;
+  playedAt: number;
+}
+
+export interface LeaderboardStreakRow {
+  username: string;
+  streakLength: number;
+  game: Round['game'];
+}
+
+async function loadFilteredRoundsForLeaderboard(sinceMs?: number): Promise<Round[]> {
+  const rows = await db.rounds.toArray();
+  if (sinceMs === undefined) return rows;
+  return rows.filter((r) => r.playedAt > sinceMs);
+}
+
+async function resolveUsernamesForLeaderboard(userIds: string[]): Promise<Map<string, string>> {
+  const users = await db.users.bulkGet(userIds);
+  const m = new Map<string, string>();
+  users.forEach((u, i) => {
+    const id = userIds[i];
+    if (u && id !== undefined) m.set(id, u.username);
+  });
+  return m;
+}
+
+export async function getLeaderboardTopWinners(
+  limit: number,
+  sinceMs?: number,
+): Promise<LeaderboardWinnerRow[]> {
+  if (limit <= 0) return [];
+  const rows = await loadFilteredRoundsForLeaderboard(sinceMs);
+  const byUser = new Map<string, { netChips: number; rounds: number }>();
+  for (const r of rows) {
+    const cur = byUser.get(r.userId) ?? { netChips: 0, rounds: 0 };
+    cur.netChips += r.netChange;
+    cur.rounds += 1;
+    byUser.set(r.userId, cur);
+  }
+  const usernames = await resolveUsernamesForLeaderboard([...byUser.keys()]);
+  return [...byUser.entries()]
+    .map(([userId, v]) => ({
+      username: usernames.get(userId) ?? '<deleted>',
+      netChips: v.netChips,
+      rounds: v.rounds,
+    }))
+    .sort((a, b) => b.netChips - a.netChips)
+    .slice(0, limit);
+}
+
+export async function getLeaderboardTopVolume(
+  limit: number,
+  sinceMs?: number,
+): Promise<LeaderboardVolumeRow[]> {
+  if (limit <= 0) return [];
+  const rows = await loadFilteredRoundsForLeaderboard(sinceMs);
+  const byUser = new Map<string, { totalWagered: number; rounds: number }>();
+  for (const r of rows) {
+    const cur = byUser.get(r.userId) ?? { totalWagered: 0, rounds: 0 };
+    cur.totalWagered += r.betAmount;
+    cur.rounds += 1;
+    byUser.set(r.userId, cur);
+  }
+  const usernames = await resolveUsernamesForLeaderboard([...byUser.keys()]);
+  return [...byUser.entries()]
+    .map(([userId, v]) => ({
+      username: usernames.get(userId) ?? '<deleted>',
+      totalWagered: v.totalWagered,
+      rounds: v.rounds,
+    }))
+    .sort((a, b) => b.totalWagered - a.totalWagered)
+    .slice(0, limit);
+}
+
+export async function getLeaderboardBiggestSingleWins(
+  limit: number,
+  sinceMs?: number,
+): Promise<LeaderboardSingleWinRow[]> {
+  if (limit <= 0) return [];
+  const rows = await loadFilteredRoundsForLeaderboard(sinceMs);
+  const wins = rows.filter((r) => r.netChange > 0);
+  wins.sort((a, b) => b.netChange - a.netChange);
+  const sliced = wins.slice(0, limit);
+  const usernames = await resolveUsernamesForLeaderboard([...new Set(sliced.map((r) => r.userId))]);
+  return sliced.map((r) => ({
+    username: usernames.get(r.userId) ?? '<deleted>',
+    game: r.game,
+    payout: r.payout,
+    netChange: r.netChange,
+    playedAt: r.playedAt,
+  }));
+}
+
+export async function getLeaderboardLongestStreaks(
+  limit: number,
+  sinceMs?: number,
+): Promise<LeaderboardStreakRow[]> {
+  if (limit <= 0) return [];
+  const rows = await loadFilteredRoundsForLeaderboard(sinceMs);
+  // Group by user, sort each user's rounds by playedAt asc, walk for longest
+  // run of positive netChange. The game recorded is the game that pushed
+  // the streak to its peak length.
+  const byUser = new Map<
+    string,
+    Array<{ playedAt: number; netChange: number; game: Round['game'] }>
+  >();
+  for (const r of rows) {
+    const arr = byUser.get(r.userId) ?? [];
+    arr.push({ playedAt: r.playedAt, netChange: r.netChange, game: r.game });
+    byUser.set(r.userId, arr);
+  }
+  const usernames = await resolveUsernamesForLeaderboard([...byUser.keys()]);
+  const streaks: LeaderboardStreakRow[] = [];
+  for (const [userId, arr] of byUser) {
+    arr.sort((a, b) => a.playedAt - b.playedAt);
+    let curStreak = 0;
+    let curGame: Round['game'] | '' = '';
+    let bestStreak = 0;
+    let bestGame: Round['game'] | '' = '';
+    for (const r of arr) {
+      if (r.netChange > 0) {
+        curStreak += 1;
+        curGame = r.game;
+        if (curStreak > bestStreak) {
+          bestStreak = curStreak;
+          bestGame = curGame;
+        }
+      } else {
+        curStreak = 0;
+      }
+    }
+    if (bestStreak > 0 && bestGame !== '') {
+      streaks.push({
+        username: usernames.get(userId) ?? '<deleted>',
+        streakLength: bestStreak,
+        game: bestGame,
+      });
+    }
+  }
+  return streaks.sort((a, b) => b.streakLength - a.streakLength).slice(0, limit);
+}
