@@ -330,8 +330,8 @@ export default function PlinkoPage(): JSX.Element | null {
         </OddsInfoBox>
       </div>
 
-      <main className="flex-1 overflow-auto p-6 pt-20">
-        <header className="mb-4 text-center">
+      <main className="flex-1 overflow-hidden p-4 pt-16">
+        <header className="mb-2 text-center">
           <h1 className="font-display text-2xl tracking-[0.18em] text-gold-bright">
             MASQUER &middot; Plinko
           </h1>
@@ -366,70 +366,67 @@ export default function PlinkoPage(): JSX.Element | null {
         )}
 
         {!showSetup && !showEndScreen && (
-          <div className="flex gap-4">
-            <div className="relative flex-1">
-              <motion.div
-                animate={
-                  celebrationActive && !reduceMotion ? { x: [0, -2, 2, -1, 1, 0] } : { x: 0 }
-                }
-                transition={{ duration: 0.4 }}
-                className="relative"
-              >
-                <Board>
-                  <CoinShower active={celebrationActive} />
-                  <AnimatePresence>
-                    {snapshot.context.inFlightBalls.map((ball) => (
-                      <FallingBall
-                        key={ball.ballId}
-                        path={ball.path}
-                        bin={ball.bin}
-                        onLanded={() => handleBallLanded(ball.ballId)}
-                        onPegHit={handlePegHit}
-                      />
-                    ))}
-                  </AnimatePresence>
-                </Board>
-                <BinRow risk={activeRisk} flashedBinIdx={flashedBinIdx} />
-              </motion.div>
+          <div className="relative">
+            <motion.div
+              animate={celebrationActive && !reduceMotion ? { x: [0, -2, 2, -1, 1, 0] } : { x: 0 }}
+              transition={{ duration: 0.4 }}
+              className="relative"
+            >
+              <Board>
+                <CoinShower active={celebrationActive} />
+                <AnimatePresence>
+                  {snapshot.context.inFlightBalls.map((ball) => (
+                    <FallingBall
+                      key={ball.ballId}
+                      path={ball.path}
+                      bin={ball.bin}
+                      onLanded={() => handleBallLanded(ball.ballId)}
+                      onPegHit={handlePegHit}
+                    />
+                  ))}
+                </AnimatePresence>
+              </Board>
+              <BinRow risk={activeRisk} flashedBinIdx={flashedBinIdx} />
+            </motion.div>
 
-              {snapshot.matches('playing-auto') && (
-                <div className="mt-4">
-                  <AutoDropControls
-                    ballsSpawned={snapshot.context.autoBallsSpawned}
-                    ballsRequested={snapshot.context.autoBallsRequested}
-                    onStop={() => send({ type: 'AUTO_STOP', reason: 'user-stop' })}
-                  />
-                </div>
-              )}
-
-              {snapshot.matches('idle') && snapshot.context.inFlightBalls.length === 0 && (
-                <div className="mt-4 flex justify-center gap-3">
-                  <button
-                    type="button"
-                    onClick={() => void handleManualDrop()}
-                    disabled={manualCooldown || balance < pendingBet}
-                    className={[
-                      'rounded-md border-2 border-brass bg-velvet px-4 py-2 font-display text-xs tracking-[0.18em] text-ivory',
-                      'disabled:cursor-not-allowed disabled:opacity-40',
-                      manualCooldown ? 'ring-1 ring-brass/40' : '',
-                    ].join(' ')}
-                    data-drop-button
-                  >
-                    DROP ({pendingBet.toLocaleString()})
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => send({ type: 'RESET' })}
-                    className="rounded-md border border-brass/40 bg-felt-table-deep px-4 py-2 font-display text-xs text-ivory hover:border-brass"
-                  >
-                    BACK TO SETUP
-                  </button>
-                </div>
-              )}
-            </div>
-            <div className="w-32">
+            <div className="absolute right-0 top-0 w-32">
               <HistoryStrip history={snapshot.context.history} />
             </div>
+
+            {snapshot.matches('playing-auto') && (
+              <div className="mt-3">
+                <AutoDropControls
+                  ballsSpawned={snapshot.context.autoBallsSpawned}
+                  ballsRequested={snapshot.context.autoBallsRequested}
+                  onStop={() => send({ type: 'AUTO_STOP', reason: 'user-stop' })}
+                />
+              </div>
+            )}
+
+            {snapshot.matches('idle') && snapshot.context.inFlightBalls.length === 0 && (
+              <div className="mt-3 flex justify-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => void handleManualDrop()}
+                  disabled={manualCooldown || balance < pendingBet}
+                  className={[
+                    'rounded-md border-2 border-brass bg-velvet px-4 py-2 font-display text-xs tracking-[0.18em] text-ivory',
+                    'disabled:cursor-not-allowed disabled:opacity-40',
+                    manualCooldown ? 'ring-1 ring-brass/40' : '',
+                  ].join(' ')}
+                  data-drop-button
+                >
+                  DROP ({pendingBet.toLocaleString()})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => send({ type: 'RESET' })}
+                  className="rounded-md border border-brass/40 bg-felt-table-deep px-4 py-2 font-display text-xs text-ivory hover:border-brass"
+                >
+                  BACK TO SETUP
+                </button>
+              </div>
+            )}
           </div>
         )}
 
