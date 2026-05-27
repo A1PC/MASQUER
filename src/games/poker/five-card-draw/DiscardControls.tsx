@@ -28,26 +28,37 @@ export default function DiscardControls({
   return (
     <div className="flex flex-col items-center gap-3" data-discard-controls>
       <div className="flex gap-2">
-        {holeCards.map((card, i) => (
-          <button
-            key={i}
-            type="button"
-            onClick={() => toggle(i)}
-            disabled={disabled}
-            aria-pressed={marked.includes(i)}
-            className={`transition ${marked.includes(i) ? 'translate-y-2 opacity-50 grayscale' : 'hover:-translate-y-1'}`}
-            data-card-index={i}
-            data-marked={marked.includes(i)}
-          >
-            <PlayingCard card={card} size="hole" />
-          </button>
-        ))}
+        {holeCards.map((card, i) => {
+          const isMarked = marked.includes(i);
+          return (
+            <button
+              key={i}
+              type="button"
+              onClick={() => toggle(i)}
+              disabled={disabled}
+              aria-pressed={isMarked}
+              className={[
+                'rounded-md transition',
+                isMarked
+                  ? 'translate-y-2 opacity-50 grayscale ring-2 ring-gold-bright'
+                  : 'hover:-translate-y-1',
+              ].join(' ')}
+              data-card-index={i}
+              data-marked={isMarked}
+            >
+              <PlayingCard card={card} size="hole" />
+            </button>
+          );
+        })}
       </div>
+      <span className="text-[11px] text-ivory/85" data-discard-caption>
+        Select up to 3 cards to replace
+      </span>
       <button
         type="button"
         onClick={() => onDraw(marked)}
         disabled={disabled}
-        className="rounded-md border-2 border-gold bg-casino-red px-5 py-2 font-display text-sm tracking-wider text-white disabled:opacity-40"
+        className="rounded-md border-2 border-brass bg-velvet px-4 py-2 font-display text-xs tracking-[0.18em] text-ivory hover:bg-velvet-deep disabled:cursor-not-allowed disabled:opacity-40"
         data-draw-button
       >
         {marked.length === 0 ? 'STAND PAT' : `DRAW ${marked.length}`}

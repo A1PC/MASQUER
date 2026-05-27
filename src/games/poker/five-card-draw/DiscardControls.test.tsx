@@ -102,4 +102,27 @@ describe('DiscardControls', () => {
     expect(container.querySelectorAll('[data-marked="true"]')).toHaveLength(3);
     expect(screen.getByRole('button', { name: /DRAW 3/ })).toBeInTheDocument();
   });
+
+  it('renders the brand-tokened caption "Select up to 3 cards to replace"', () => {
+    const { container } = render(<DiscardControls holeCards={hand} onDraw={vi.fn()} />);
+    const caption = container.querySelector('[data-discard-caption]') as HTMLElement;
+    expect(caption).not.toBeNull();
+    expect(caption.textContent).toBe('Select up to 3 cards to replace');
+    expect(caption.className).toContain('text-ivory');
+  });
+
+  it('DRAW button uses brand tokens (border-brass + bg-velvet + text-ivory)', () => {
+    const { container } = render(<DiscardControls holeCards={hand} onDraw={vi.fn()} />);
+    const draw = container.querySelector('[data-draw-button]') as HTMLElement;
+    expect(draw.className).toContain('border-brass');
+    expect(draw.className).toContain('bg-velvet');
+    expect(draw.className).toContain('text-ivory');
+  });
+
+  it('marked card gets the gold-bright selection ring', async () => {
+    const { container } = render(<DiscardControls holeCards={hand} onDraw={vi.fn()} />);
+    const btn = container.querySelector('[data-card-index="0"]') as HTMLElement;
+    await userEvent.click(btn);
+    expect(btn.className).toContain('ring-gold-bright');
+  });
 });
