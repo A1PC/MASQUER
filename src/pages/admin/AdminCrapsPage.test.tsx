@@ -56,6 +56,7 @@ async function seedRow(opts: {
 describe('AdminCrapsPage', () => {
   beforeEach(async () => {
     await resetDb();
+    localStorage.removeItem('admin.craps.range');
   });
 
   it('renders the four top stat-card labels even when there is no data', async () => {

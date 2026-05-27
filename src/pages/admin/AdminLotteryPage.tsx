@@ -1,7 +1,12 @@
 import type { JSX } from 'react';
+import { useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import StatCard from '@/pages/admin/StatCard';
 import NumberFrequencyBar from '@/components/charts/NumberFrequencyBar';
+import DateRangeFilter, {
+  rangeToSinceMs,
+  type RangePreset,
+} from '@/components/admin/DateRangeFilter';
 import {
   getLotteryAdminStats,
   getNumberFrequency,
@@ -33,13 +38,27 @@ const EMPTY_LINES: readonly LotteryLine[] = [];
  * bug fixed in #250; lottery doesn't have that bug.
  */
 export default function AdminLotteryPage(): JSX.Element {
-  const stats = useLiveQuery(() => getLotteryAdminStats(), [], EMPTY_STATS);
-  const mainFreq = useLiveQuery(() => getNumberFrequency('main'), [], EMPTY_FREQ);
-  const bonusFreq = useLiveQuery(() => getNumberFrequency('bonus'), [], EMPTY_FREQ);
+  // Phase 15 #14 PR B — shared date-range filter persisted across mounts.
+  // sinceMs flows into both lottery aggregators (StatCards + frequency
+  // charts) and the recent-draws table client-side filter.
+  const [range, setRange] = useState<RangePreset>('all');
+  const sinceMs = useMemo(() => rangeToSinceMs(range), [range]);
+
+  const stats = useLiveQuery(
+    () => getLotteryAdminStats(Date.now(), sinceMs),
+    [sinceMs],
+    EMPTY_STATS,
+  );
+  const mainFreq = useLiveQuery(() => getNumberFrequency('main', sinceMs), [sinceMs], EMPTY_FREQ);
+  const bonusFreq = useLiveQuery(() => getNumberFrequency('bonus', sinceMs), [sinceMs], EMPTY_FREQ);
   const recentDraws = useLiveQuery(
     () => db.lotteryDraws.orderBy('id').reverse().limit(50).toArray(),
     [],
     EMPTY_DRAWS,
+  );
+  const filteredRecentDraws = useMemo(
+    () => (sinceMs !== undefined ? recentDraws.filter((d) => d.drawAt > sinceMs) : recentDraws),
+    [recentDraws, sinceMs],
   );
   // Pull all settled lines for the listed draws so we can derive the biggest
   // tier hit per row. Boolean indexes aren't natively supported by IndexedDB,
@@ -54,6 +73,8 @@ export default function AdminLotteryPage(): JSX.Element {
   return (
     <div className="flex flex-col gap-6">
       <h1 className="font-display text-base tracking-[0.18em] text-gold-bright">LOTTERY</h1>
+
+      <DateRangeFilter value={range} onChange={setRange} storageKey="admin.lottery.range" />
 
       <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
         <StatCard
@@ -99,7 +120,7 @@ export default function AdminLotteryPage(): JSX.Element {
         <h2 className="mb-2 font-display text-xs tracking-[0.18em] text-ivory/60">
           RECENT DRAWS (LAST 50)
         </h2>
-        {recentDraws.length === 0 ? (
+        {filteredRecentDraws.length === 0 ? (
           <p className="text-xs text-ivory/40">No draws yet.</p>
         ) : (
           <table className="w-full text-left text-xs">
@@ -115,7 +136,7 @@ export default function AdminLotteryPage(): JSX.Element {
               </tr>
             </thead>
             <tbody>
-              {recentDraws.map((d) => {
+              {filteredRecentDraws.map((d) => {
                 const pl = d.totalRevenue - d.totalPayout;
                 const best = bestTierByDraw.get(d.id) ?? null;
                 return (

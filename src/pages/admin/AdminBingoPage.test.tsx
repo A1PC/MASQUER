@@ -19,6 +19,7 @@ function renderPage() {
 
 beforeEach(async () => {
   await resetDb();
+  localStorage.removeItem('admin.bingo.range');
   useBingoConfigStore.setState({
     overrides: { easy: null, medium: null, hard: null },
     hydrated: true,

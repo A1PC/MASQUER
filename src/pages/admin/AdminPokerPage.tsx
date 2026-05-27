@@ -3,6 +3,10 @@ import { useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import StatCard from '@/pages/admin/StatCard';
 import PokerSessionsByVariantBar from '@/components/charts/PokerSessionsByVariantBar';
+import DateRangeFilter, {
+  rangeToSinceMs,
+  type RangePreset,
+} from '@/components/admin/DateRangeFilter';
 import {
   getPokerAllTimeStats,
   getPokerBiggestPots,
@@ -75,11 +79,23 @@ export default function AdminPokerPage(): JSX.Element {
   // operator sees the full 3-variant picture at a glance regardless.
   const [tab, setTab] = useState<TabKey>('all');
 
+  // Phase 15 #14 PR B — shared date-range filter persisted across mounts.
+  // Combines with the existing variant tab to scope the StatCards / biggest-
+  // pots / recent-sessions panels.
+  const [range, setRange] = useState<RangePreset>('all');
+  const sinceMs = useMemo(() => rangeToSinceMs(range), [range]);
+
   // Phase 9 lesson — let useLiveQuery infer T from the querier's Promise<T>
   // return; do NOT pass an explicit generic. (Mirrors the other admin
   // pages.) Tab is in the deps so the filtered querier re-runs on change.
+  // For `getPokerAllTimeStats`, sinceMs is the SECOND positional arg after
+  // the variant filter.
   const variantArg: PokerVariant | undefined = tab === 'all' ? undefined : tab;
-  const stats = useLiveQuery(() => getPokerAllTimeStats(variantArg), [variantArg], EMPTY_STATS);
+  const stats = useLiveQuery(
+    () => getPokerAllTimeStats(variantArg, sinceMs),
+    [variantArg, sinceMs],
+    EMPTY_STATS,
+  );
   // Hero chart always shows all 3 variants — independent of the active tab.
   const sessionsByVariant = useLiveQuery(() => getPokerSessionsByVariant(30), [], EMPTY_DAYS);
   const biggestPots = useLiveQuery(
@@ -99,15 +115,20 @@ export default function AdminPokerPage(): JSX.Element {
     EMPTY_ROUNDS,
   );
 
-  // Filter the recent-sessions table client-side by the active tab. (The
-  // page already loads the full set for the chart, so this is free.)
+  // Filter the recent-sessions table client-side by BOTH the active tab and
+  // the active range. (The page already loads the full set for the chart, so
+  // both filters are free.)
   const filteredRecent = useMemo(() => {
-    if (tab === 'all') return recentRounds;
-    return recentRounds.filter((r) => {
-      const d = r.details as PersistedPokerDetails | undefined;
-      return d?.variant === tab;
-    });
-  }, [recentRounds, tab]);
+    let out = recentRounds;
+    if (sinceMs !== undefined) out = out.filter((r) => r.playedAt > sinceMs);
+    if (tab !== 'all') {
+      out = out.filter((r) => {
+        const d = r.details as PersistedPokerDetails | undefined;
+        return d?.variant === tab;
+      });
+    }
+    return out;
+  }, [recentRounds, tab, sinceMs]);
 
   const rtpDisplay = stats.actualRtp === null ? '—' : `${(stats.actualRtp * 100).toFixed(1)}%`;
 
@@ -156,6 +177,8 @@ export default function AdminPokerPage(): JSX.Element {
           );
         })}
       </div>
+
+      <DateRangeFilter value={range} onChange={setRange} storageKey="admin.poker.range" />
 
       {/* 4 StatCards */}
       <div className="grid grid-cols-1 gap-3 md:grid-cols-4">

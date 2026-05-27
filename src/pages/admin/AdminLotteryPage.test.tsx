@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import AdminLotteryPage from './AdminLotteryPage';
 import { resetDb } from '@/test/db-helpers';
@@ -8,6 +8,7 @@ import { db } from '@/db';
 describe('AdminLotteryPage', () => {
   beforeEach(async () => {
     await resetDb();
+    localStorage.removeItem('admin.lottery.range');
   });
 
   it('renders all 4 stat card labels', async () => {
@@ -143,5 +144,40 @@ describe('AdminLotteryPage', () => {
     await waitFor(() =>
       expect(container.querySelector('[data-tier-badge="none"]')).toBeInTheDocument(),
     );
+  });
+
+  // Phase 15 #14 PR B — shared DateRangeFilter integration.
+  it('renders the shared <DateRangeFilter> with the four preset tabs', async () => {
+    const { container } = render(
+      <MemoryRouter>
+        <AdminLotteryPage />
+      </MemoryRouter>,
+    );
+    await waitFor(() => {
+      expect(container.querySelector('[data-date-range-filter]')).not.toBeNull();
+    });
+    expect(container.querySelector('[data-range="7d"]')).not.toBeNull();
+    expect(container.querySelector('[data-range="30d"]')).not.toBeNull();
+    expect(container.querySelector('[data-range="90d"]')).not.toBeNull();
+    expect(container.querySelector('[data-range="all"]')).not.toBeNull();
+  });
+
+  it('persists the clicked preset to localStorage under admin.lottery.range', async () => {
+    localStorage.removeItem('admin.lottery.range');
+    const { container } = render(
+      <MemoryRouter>
+        <AdminLotteryPage />
+      </MemoryRouter>,
+    );
+    const btn = await waitFor(() => {
+      const b = container.querySelector('[data-range="7d"]');
+      expect(b).not.toBeNull();
+      return b as HTMLButtonElement;
+    });
+    fireEvent.click(btn);
+    await waitFor(() => {
+      expect(btn.getAttribute('aria-selected')).toBe('true');
+    });
+    expect(localStorage.getItem('admin.lottery.range')).toBe('7d');
   });
 });

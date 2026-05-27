@@ -74,6 +74,7 @@ async function seedRow(opts: {
 describe('AdminBaccaratPage', () => {
   beforeEach(async () => {
     await resetDb();
+    localStorage.removeItem('admin.baccarat.range');
   });
 
   it('renders the four top stat-card labels even when there is no data', async () => {
