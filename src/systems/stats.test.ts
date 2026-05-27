@@ -3965,3 +3965,443 @@ describe('queries.getPokerBiggestPots', () => {
     expect(await getPokerBiggestPots(10)).toEqual([]);
   });
 });
+
+// ─── Phase 15 #13 — Craps admin aggregations ──────────────────────────────
+
+import {
+  getCrapsAllTimeStats,
+  getCrapsBetTypeFrequency,
+  getCrapsBiggestSessionWins,
+  type CrapsTier,
+} from './stats';
+
+interface PersistedCrapsDetails {
+  readonly tier: CrapsTier;
+  readonly rollsPlayed: number;
+  readonly rebuys: number;
+  readonly biggestRollWin: number;
+  readonly sessionId: string;
+  readonly betTypeWagered?: Record<string, number>;
+}
+
+function crapsRow(opts: {
+  id: string;
+  tier: CrapsTier;
+  betAmount: number;
+  payoutChips: number;
+  rollsPlayed: number;
+  biggestRollWin: number;
+  playedAt: number;
+  rebuys?: number;
+  /** Omit to simulate a pre-PR-A session that lacks the additive field. */
+  betTypeWagered?: Record<string, number>;
+}) {
+  const netChange = opts.payoutChips - opts.betAmount;
+  const outcome: 'win' | 'loss' | 'push' = netChange > 0 ? 'win' : netChange < 0 ? 'loss' : 'push';
+  const details: PersistedCrapsDetails = {
+    tier: opts.tier,
+    rollsPlayed: opts.rollsPlayed,
+    rebuys: opts.rebuys ?? 0,
+    biggestRollWin: opts.biggestRollWin,
+    sessionId: `craps-${opts.id}`,
+    ...(opts.betTypeWagered !== undefined ? { betTypeWagered: opts.betTypeWagered } : {}),
+  };
+  return {
+    id: opts.id,
+    userId: 'u-1',
+    game: 'craps' as const,
+    betAmount: opts.betAmount,
+    payout: opts.payoutChips,
+    netChange,
+    outcome,
+    details: details as unknown,
+    balanceAfter: 1000,
+    playedAt: opts.playedAt,
+  };
+}
+
+/** ~12-row craps fixture covering all 3 tiers × win/loss/push, mixing
+ *  with/without the additive `betTypeWagered` field so the empty-field
+ *  fallback gets exercised:
+ *
+ *    low:  4 sessions · wagered 2,000 · paid 2,400 · rolls 40 (house -400)
+ *    mid:  4 sessions · wagered 4,000 · paid 3,600 · rolls 60 (house +400)
+ *    high: 4 sessions · wagered 8,000 · paid 7,200 · rolls 30 (house +800)
+ *
+ *  Total: 12 sessions · 130 rolls · wagered 14,000 · paid 13,200 ·
+ *  house net +800. Biggest roll win = 950 (mid c-m-3). 8 of the 12 rows
+ *  carry betTypeWagered; the other 4 simulate pre-PR-A legacy sessions. */
+async function seedCrapsRows() {
+  await resetDb();
+  await db.rounds.bulkAdd([
+    // LOW — 4 sessions (with bet-type log on 3 of 4)
+    crapsRow({
+      id: 'c-l-1',
+      tier: 'low',
+      betAmount: 500,
+      payoutChips: 800,
+      rollsPlayed: 12,
+      biggestRollWin: 300,
+      playedAt: 1_000,
+      betTypeWagered: { pass: 200, field: 100, 'place-6': 100 },
+    }),
+    crapsRow({
+      id: 'c-l-2',
+      tier: 'low',
+      betAmount: 500,
+      payoutChips: 300,
+      rollsPlayed: 8,
+      biggestRollWin: 100,
+      playedAt: 2_000,
+      betTypeWagered: { pass: 200, field: 50 },
+    }),
+    crapsRow({
+      id: 'c-l-3',
+      tier: 'low',
+      betAmount: 500,
+      payoutChips: 500,
+      rollsPlayed: 10,
+      biggestRollWin: 150,
+      playedAt: 3_000,
+      betTypeWagered: { pass: 100, 'hard-6': 50 },
+    }),
+    crapsRow({
+      // Pre-PR-A: no betTypeWagered.
+      id: 'c-l-4',
+      tier: 'low',
+      betAmount: 500,
+      payoutChips: 800,
+      rollsPlayed: 10,
+      biggestRollWin: 250,
+      playedAt: 4_000,
+    }),
+    // MID — 4 sessions (with bet-type log on 3 of 4)
+    crapsRow({
+      id: 'c-m-1',
+      tier: 'mid',
+      betAmount: 1_000,
+      payoutChips: 1_500,
+      rollsPlayed: 18,
+      biggestRollWin: 600,
+      playedAt: 5_000,
+      betTypeWagered: { pass: 400, field: 200, 'place-8': 150 },
+    }),
+    crapsRow({
+      id: 'c-m-2',
+      tier: 'mid',
+      betAmount: 1_000,
+      payoutChips: 300,
+      rollsPlayed: 14,
+      biggestRollWin: 200,
+      playedAt: 6_000,
+      betTypeWagered: { pass: 400, 'any-7': 100 },
+    }),
+    crapsRow({
+      id: 'c-m-3',
+      tier: 'mid',
+      betAmount: 1_000,
+      payoutChips: 1_000,
+      rollsPlayed: 16,
+      biggestRollWin: 950,
+      playedAt: 7_000,
+      betTypeWagered: { 'dont-pass': 300, field: 200 },
+    }),
+    crapsRow({
+      // Pre-PR-A: no betTypeWagered.
+      id: 'c-m-4',
+      tier: 'mid',
+      betAmount: 1_000,
+      payoutChips: 800,
+      rollsPlayed: 12,
+      biggestRollWin: 400,
+      playedAt: 8_000,
+    }),
+    // HIGH — 4 sessions (with bet-type log on 2 of 4)
+    crapsRow({
+      id: 'c-h-1',
+      tier: 'high',
+      betAmount: 2_000,
+      payoutChips: 3_500,
+      rollsPlayed: 8,
+      biggestRollWin: 800,
+      playedAt: 9_000,
+      betTypeWagered: { pass: 800, 'odds-pass': 400, field: 200 },
+    }),
+    crapsRow({
+      id: 'c-h-2',
+      tier: 'high',
+      betAmount: 2_000,
+      payoutChips: 500,
+      rollsPlayed: 6,
+      biggestRollWin: 300,
+      playedAt: 10_000,
+      betTypeWagered: { pass: 600, 'any-craps': 200 },
+    }),
+    crapsRow({
+      // Pre-PR-A: no betTypeWagered.
+      id: 'c-h-3',
+      tier: 'high',
+      betAmount: 2_000,
+      payoutChips: 1_500,
+      rollsPlayed: 8,
+      biggestRollWin: 500,
+      playedAt: 11_000,
+    }),
+    crapsRow({
+      // Pre-PR-A: no betTypeWagered.
+      id: 'c-h-4',
+      tier: 'high',
+      betAmount: 2_000,
+      payoutChips: 1_700,
+      rollsPlayed: 8,
+      biggestRollWin: 600,
+      playedAt: 12_000,
+    }),
+  ]);
+}
+
+describe('queries.getCrapsAllTimeStats', () => {
+  beforeEach(async () => {
+    await resetDb();
+  });
+
+  it('returns zeroes when no craps rounds exist', async () => {
+    const s = await getCrapsAllTimeStats();
+    expect(s.sessions).toBe(0);
+    expect(s.totalRolls).toBe(0);
+    expect(s.totalWagered).toBe(0);
+    expect(s.totalPaid).toBe(0);
+    expect(s.netHouseChips).toBe(0);
+    expect(s.netPlayerChips).toBe(0);
+    expect(Object.is(s.netPlayerChips, 0)).toBe(true);
+    expect(s.actualRtp).toBeNull();
+    expect(s.biggestRollWin).toBe(0);
+  });
+
+  it('aggregates 12 craps sessions across all 3 tiers', async () => {
+    await seedCrapsRows();
+    const s = await getCrapsAllTimeStats();
+    expect(s.sessions).toBe(12);
+    // 40 + 60 + 30 = 130 (8+10+12+18+14+16+12+8+6+8+8 = wait let me recount)
+    // low: 12+8+10+10 = 40 · mid: 18+14+16+12 = 60 · high: 8+6+8+8 = 30
+    expect(s.totalRolls).toBe(130);
+    // low: 4×500 = 2,000 · mid: 4×1,000 = 4,000 · high: 4×2,000 = 8,000
+    expect(s.totalWagered).toBe(14_000);
+    // low: 800+300+500+800 = 2,400 · mid: 1,500+300+1,000+800 = 3,600 ·
+    // high: 3,500+500+1,500+1,700 = 7,200
+    expect(s.totalPaid).toBe(13_200);
+    expect(s.netHouseChips).toBe(800);
+    expect(s.netPlayerChips).toBe(-800);
+    expect(s.actualRtp).toBeCloseTo(13_200 / 14_000, 5);
+    // Biggest single-roll win = 950 (c-m-3).
+    expect(s.biggestRollWin).toBe(950);
+  });
+
+  it('skips rows whose details are missing the craps shape', async () => {
+    await db.rounds.bulkAdd([
+      crapsRow({
+        id: 'c-ok',
+        tier: 'low',
+        betAmount: 500,
+        payoutChips: 600,
+        rollsPlayed: 5,
+        biggestRollWin: 200,
+        playedAt: 100,
+      }),
+      {
+        id: 'c-bad',
+        userId: 'u-1',
+        game: 'craps' as const,
+        betAmount: 100,
+        payout: 0,
+        netChange: -100,
+        outcome: 'loss' as const,
+        details: { wrong: true },
+        balanceAfter: 1000,
+        playedAt: 200,
+      },
+    ]);
+    const s = await getCrapsAllTimeStats();
+    expect(s.sessions).toBe(1);
+    expect(s.totalWagered).toBe(500);
+    expect(s.totalPaid).toBe(600);
+  });
+
+  it('aggregates correctly even when no row carries the betTypeWagered field', async () => {
+    // All four rows are pre-PR-A — headline aggregations still tally.
+    await db.rounds.bulkAdd([
+      crapsRow({
+        id: 'leg-1',
+        tier: 'low',
+        betAmount: 500,
+        payoutChips: 800,
+        rollsPlayed: 10,
+        biggestRollWin: 300,
+        playedAt: 1,
+      }),
+      crapsRow({
+        id: 'leg-2',
+        tier: 'mid',
+        betAmount: 1_000,
+        payoutChips: 700,
+        rollsPlayed: 12,
+        biggestRollWin: 200,
+        playedAt: 2,
+      }),
+    ]);
+    const s = await getCrapsAllTimeStats();
+    expect(s.sessions).toBe(2);
+    expect(s.totalRolls).toBe(22);
+    expect(s.netHouseChips).toBe(0); // 1,500 wagered · 1,500 paid
+  });
+});
+
+describe('queries.getCrapsBetTypeFrequency', () => {
+  beforeEach(async () => {
+    await resetDb();
+  });
+
+  it('returns an empty array when no rounds exist', async () => {
+    expect(await getCrapsBetTypeFrequency()).toEqual([]);
+  });
+
+  it('returns an empty array when every row lacks betTypeWagered (pre-PR-A fallback)', async () => {
+    await db.rounds.bulkAdd([
+      crapsRow({
+        id: 'leg-1',
+        tier: 'low',
+        betAmount: 500,
+        payoutChips: 800,
+        rollsPlayed: 10,
+        biggestRollWin: 300,
+        playedAt: 1,
+      }),
+      crapsRow({
+        id: 'leg-2',
+        tier: 'mid',
+        betAmount: 1_000,
+        payoutChips: 700,
+        rollsPlayed: 12,
+        biggestRollWin: 200,
+        playedAt: 2,
+      }),
+    ]);
+    expect(await getCrapsBetTypeFrequency()).toEqual([]);
+  });
+
+  it('merges betTypeWagered across all sessions, sorted desc by total', async () => {
+    await seedCrapsRows();
+    const out = await getCrapsBetTypeFrequency();
+    // pass = 200+200+100+400+400+800+600 = 2,700
+    // field = 100+50+200+200+200 = 750
+    // odds-pass = 400
+    // dont-pass = 300
+    // place-8 = 150
+    // place-6 = 100
+    // any-7 = 100
+    // any-craps = 200
+    // hard-6 = 50
+    const byType = new Map(out.map((r) => [r.betType, r.totalWagered]));
+    expect(byType.get('pass')).toBe(2_700);
+    expect(byType.get('field')).toBe(750);
+    expect(byType.get('odds-pass')).toBe(400);
+    expect(byType.get('dont-pass')).toBe(300);
+    expect(byType.get('any-craps')).toBe(200);
+    expect(byType.get('place-8')).toBe(150);
+    expect(byType.get('any-7')).toBe(100);
+    expect(byType.get('place-6')).toBe(100);
+    expect(byType.get('hard-6')).toBe(50);
+    // First entry must be the highest total.
+    expect(out[0]!.betType).toBe('pass');
+    expect(out[0]!.totalWagered).toBe(2_700);
+  });
+
+  it('ignores non-positive / non-numeric bet-type entries inside the record', async () => {
+    await db.rounds.bulkAdd([
+      crapsRow({
+        id: 'c-bad-vals',
+        tier: 'low',
+        betAmount: 500,
+        payoutChips: 500,
+        rollsPlayed: 5,
+        biggestRollWin: 100,
+        playedAt: 1,
+        // 0, negative, and NaN entries should all be dropped; only `pass: 100`
+        // survives.
+        betTypeWagered: {
+          pass: 100,
+          field: 0,
+          'place-6': -50,
+          'any-7': Number.NaN,
+        },
+      }),
+    ]);
+    const out = await getCrapsBetTypeFrequency();
+    expect(out).toHaveLength(1);
+    expect(out[0]).toEqual({ betType: 'pass', totalWagered: 100 });
+  });
+});
+
+describe('queries.getCrapsBiggestSessionWins', () => {
+  beforeEach(async () => {
+    await resetDb();
+  });
+
+  it('returns an empty array when no rounds exist', async () => {
+    expect(await getCrapsBiggestSessionWins(10)).toEqual([]);
+  });
+
+  it('returns an empty array for non-positive limits', async () => {
+    await seedCrapsRows();
+    expect(await getCrapsBiggestSessionWins(0)).toEqual([]);
+    expect(await getCrapsBiggestSessionWins(-1)).toEqual([]);
+  });
+
+  it('returns the top-N sessions sorted by net desc across all tiers', async () => {
+    await seedCrapsRows();
+    const top3 = await getCrapsBiggestSessionWins(3);
+    expect(top3).toHaveLength(3);
+    // Biggest seeded net wins: c-h-1 (+1,500) · c-m-1 (+500) · c-l-1 (+300)
+    expect(top3[0]!.net).toBe(1_500);
+    expect(top3[0]!.tier).toBe('high');
+    expect(top3[1]!.net).toBe(500);
+    expect(top3[1]!.tier).toBe('mid');
+    expect(top3[2]!.net).toBe(300);
+    expect(top3[2]!.tier).toBe('low');
+  });
+
+  it('filters out non-positive nets (losses + push sessions)', async () => {
+    await db.rounds.bulkAdd([
+      crapsRow({
+        id: 'c-win',
+        tier: 'low',
+        betAmount: 500,
+        payoutChips: 800,
+        rollsPlayed: 5,
+        biggestRollWin: 200,
+        playedAt: 1,
+      }),
+      crapsRow({
+        id: 'c-push',
+        tier: 'low',
+        betAmount: 500,
+        payoutChips: 500,
+        rollsPlayed: 5,
+        biggestRollWin: 0,
+        playedAt: 2,
+      }),
+      crapsRow({
+        id: 'c-loss',
+        tier: 'low',
+        betAmount: 500,
+        payoutChips: 0,
+        rollsPlayed: 5,
+        biggestRollWin: 0,
+        playedAt: 3,
+      }),
+    ]);
+    const out = await getCrapsBiggestSessionWins(10);
+    expect(out).toHaveLength(1);
+    expect(out[0]!.net).toBe(300);
+  });
+});

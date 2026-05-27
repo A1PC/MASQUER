@@ -1575,3 +1575,183 @@ export async function getPokerBiggestPots(
   });
   return all.slice(0, limit);
 }
+
+// ─── Phase 15 #13 — Craps admin aggregations ──────────────────────────────
+
+export type CrapsTier = 'low' | 'mid' | 'high';
+
+/**
+ * Shape of `rounds.details` for a craps row — flattened at persist time in
+ * `src/games/craps/CrapsPage.tsx`'s `doSettle`. Mirrored in
+ * AdminCrapsPage.tsx and the stats test fixtures; if you change this,
+ * update all three. (Same FLAT-shape lesson as baccarat #249 / plinko /
+ * poker.)
+ *
+ * `betTypeWagered` is an additive field shipped in Phase 15 #13 PR A —
+ * pre-PR-A sessions lack it, so every consumer must treat it as optional
+ * and degrade gracefully when undefined.
+ */
+interface PersistedCrapsDetails {
+  readonly tier: CrapsTier;
+  readonly rollsPlayed: number;
+  readonly rebuys: number;
+  readonly biggestRollWin: number;
+  readonly sessionId: string;
+  /** Additive PR-A field — `Record<betId, totalChipsWagered>`. May be undefined. */
+  readonly betTypeWagered?: Record<string, number>;
+}
+
+/** Type guard for craps round details. Skips half-written / legacy rows so
+ *  the aggregators stay defensive against schema drift. */
+function isCrapsDetails(d: unknown): d is PersistedCrapsDetails {
+  if (typeof d !== 'object' || d === null) return false;
+  const obj = d as Record<string, unknown>;
+  const tier = obj.tier;
+  const rollsPlayed = obj.rollsPlayed;
+  const rebuys = obj.rebuys;
+  const biggestRollWin = obj.biggestRollWin;
+  const sessionId = obj.sessionId;
+  if (tier !== 'low' && tier !== 'mid' && tier !== 'high') return false;
+  if (typeof rollsPlayed !== 'number' || !Number.isInteger(rollsPlayed)) return false;
+  if (typeof rebuys !== 'number' || !Number.isInteger(rebuys)) return false;
+  if (typeof biggestRollWin !== 'number') return false;
+  if (typeof sessionId !== 'string') return false;
+  // `betTypeWagered` is optional — if present, must be a plain object whose
+  // values are finite numbers. Non-conforming rows have their bet-type log
+  // ignored but the row still counts toward the headline aggregations.
+  return true;
+}
+
+/** Narrower predicate for the bet-type frequency aggregator: returns the
+ *  `betTypeWagered` record when present + well-formed, otherwise null. */
+function readCrapsBetTypeWagered(d: PersistedCrapsDetails): Record<string, number> | null {
+  const raw = d.betTypeWagered;
+  if (raw === undefined || raw === null) return null;
+  if (typeof raw !== 'object') return null;
+  const out: Record<string, number> = {};
+  let any = false;
+  for (const [key, value] of Object.entries(raw)) {
+    if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) continue;
+    out[key] = value;
+    any = true;
+  }
+  return any ? out : null;
+}
+
+export interface CrapsAllTimeStats {
+  /** Settled craps sessions (one row per session — ADR-0041). */
+  sessions: number;
+  /** Sum of `details.rollsPlayed` across all sessions. */
+  totalRolls: number;
+  /** Sum of bought-in chips (initial buy-in + rebuys, persisted as `betAmount`). */
+  totalWagered: number;
+  /** Sum of final bankrolls (persisted as `payout`). */
+  totalPaid: number;
+  /** `totalWagered - totalPaid` (positive = house won). */
+  netHouseChips: number;
+  /** Mirror of `netHouseChips` (sign-flipped, zero normalised). */
+  netPlayerChips: number;
+  /** `totalPaid / totalWagered` (null when no wagering). */
+  actualRtp: number | null;
+  /** Maximum `biggestRollWin` value across all sessions. */
+  biggestRollWin: number;
+}
+
+export interface CrapsBetTypeWagered {
+  /** Canonical bet id from `src/games/craps/bets.ts` (e.g. `pass`, `field`). */
+  betType: string;
+  /** Total chips wagered on this bet type across all sessions. */
+  totalWagered: number;
+}
+
+export interface CrapsBiggestSession {
+  playedAt: number;
+  tier: CrapsTier;
+  net: number;
+}
+
+/** Aggregates all craps sessions into the headline operator metrics. */
+export async function getCrapsAllTimeStats(): Promise<CrapsAllTimeStats> {
+  const rows = await db.rounds.where('game').equals('craps').toArray();
+  let sessions = 0;
+  let totalRolls = 0;
+  let totalWagered = 0;
+  let totalPaid = 0;
+  let biggestRollWin = 0;
+  for (const r of rows) {
+    if (!isCrapsDetails(r.details)) continue;
+    sessions += 1;
+    totalRolls += r.details.rollsPlayed;
+    totalWagered += r.betAmount;
+    totalPaid += r.payout;
+    if (r.details.biggestRollWin > biggestRollWin) {
+      biggestRollWin = r.details.biggestRollWin;
+    }
+  }
+  const netHouseChips = totalWagered - totalPaid;
+  return {
+    sessions,
+    totalRolls,
+    totalWagered,
+    totalPaid,
+    netHouseChips,
+    // Add zero to normalise `-0` (e.g. `-(0)`) to `+0` for strict assertions.
+    netPlayerChips: -netHouseChips + 0,
+    actualRtp: totalWagered > 0 ? totalPaid / totalWagered : null,
+    biggestRollWin,
+  };
+}
+
+/** Walks every craps round, merges `details.betTypeWagered` into a single
+ *  per-bet-type total. Sessions missing the field (pre-PR-A) are silently
+ *  skipped. Returns an array sorted descending by `totalWagered` so the
+ *  chart's stacking order reflects bet popularity at a glance. If NO row
+ *  carries the field, the returned array is empty — the chart wrapper
+ *  surfaces a friendly empty-state UI in that case. */
+export async function getCrapsBetTypeFrequency(): Promise<CrapsBetTypeWagered[]> {
+  const rows = await db.rounds.where('game').equals('craps').toArray();
+  const totals = new Map<string, number>();
+  for (const r of rows) {
+    if (!isCrapsDetails(r.details)) continue;
+    const wagered = readCrapsBetTypeWagered(r.details);
+    if (wagered === null) continue;
+    for (const [betType, amount] of Object.entries(wagered)) {
+      totals.set(betType, (totals.get(betType) ?? 0) + amount);
+    }
+  }
+  const out: CrapsBetTypeWagered[] = [];
+  for (const [betType, totalWagered] of totals) {
+    out.push({ betType, totalWagered });
+  }
+  out.sort((a, b) => {
+    if (b.totalWagered !== a.totalWagered) return b.totalWagered - a.totalWagered;
+    // Tie-break alphabetically for stable display.
+    return a.betType.localeCompare(b.betType);
+  });
+  return out;
+}
+
+/** Top-N biggest session NET wins (final bankroll − total bought-in) across
+ *  all craps sessions. Rounds with non-positive net are filtered out — the
+ *  panel reads "biggest WINS", not "biggest sessions overall". Stable
+ *  tie-break by most-recent first. */
+export async function getCrapsBiggestSessionWins(limit: number): Promise<CrapsBiggestSession[]> {
+  if (limit <= 0) return [];
+  const rows = await db.rounds.where('game').equals('craps').toArray();
+  const all: CrapsBiggestSession[] = [];
+  for (const r of rows) {
+    if (!isCrapsDetails(r.details)) continue;
+    const net = r.payout - r.betAmount;
+    if (net <= 0) continue;
+    all.push({
+      playedAt: r.playedAt,
+      tier: r.details.tier,
+      net,
+    });
+  }
+  all.sort((a, b) => {
+    if (b.net !== a.net) return b.net - a.net;
+    return b.playedAt - a.playedAt;
+  });
+  return all.slice(0, limit);
+}
