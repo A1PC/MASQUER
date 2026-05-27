@@ -4405,3 +4405,157 @@ describe('queries.getCrapsBiggestSessionWins', () => {
     expect(out[0]!.net).toBe(300);
   });
 });
+
+// ─── Phase 15 #14 — Admin Overview augmentation ───────────────────────────
+
+import { getDailyActivity, getRecentAdjustments, getTopGamesBySessions } from './stats';
+import type { Round } from '@/db';
+
+function overviewRound(
+  partial: Pick<Round, 'id' | 'game' | 'betAmount' | 'payout' | 'playedAt'> & {
+    userId?: string;
+  },
+): Round {
+  const net = partial.payout - partial.betAmount;
+  return {
+    id: partial.id,
+    userId: partial.userId ?? 'u-overview',
+    game: partial.game,
+    betAmount: partial.betAmount,
+    payout: partial.payout,
+    netChange: net,
+    outcome: net > 0 ? 'win' : net < 0 ? 'loss' : 'push',
+    details: {},
+    balanceAfter: 1000,
+    playedAt: partial.playedAt,
+  };
+}
+
+describe('getTopGamesBySessions (Phase 15 #14)', () => {
+  beforeEach(async () => {
+    await resetDb();
+  });
+
+  it('returns empty when no rounds exist', async () => {
+    expect(await getTopGamesBySessions(5)).toEqual([]);
+  });
+
+  it('returns empty when limit <= 0', async () => {
+    await db.rounds.add(
+      overviewRound({ id: 'a', game: 'slots', betAmount: 10, payout: 0, playedAt: 1 }),
+    );
+    expect(await getTopGamesBySessions(0)).toEqual([]);
+  });
+
+  it('sorts games by session count descending and slices to limit', async () => {
+    await db.rounds.bulkAdd([
+      overviewRound({ id: 's1', game: 'slots', betAmount: 100, payout: 50, playedAt: 1 }),
+      overviewRound({ id: 's2', game: 'slots', betAmount: 100, payout: 50, playedAt: 2 }),
+      overviewRound({ id: 's3', game: 'slots', betAmount: 100, payout: 50, playedAt: 3 }),
+      overviewRound({ id: 'r1', game: 'roulette', betAmount: 100, payout: 200, playedAt: 4 }),
+      overviewRound({ id: 'r2', game: 'roulette', betAmount: 100, payout: 0, playedAt: 5 }),
+      overviewRound({ id: 'p1', game: 'plinko', betAmount: 100, payout: 0, playedAt: 6 }),
+      overviewRound({ id: 'b1', game: 'blackjack', betAmount: 100, payout: 0, playedAt: 7 }),
+    ]);
+    const out = await getTopGamesBySessions(3);
+    expect(out).toHaveLength(3);
+    expect(out[0]!.game).toBe('slots');
+    expect(out[0]!.sessions).toBe(3);
+    // slots house net = (100-50)*3 = +150
+    expect(out[0]!.houseNet).toBe(150);
+    expect(out[1]!.game).toBe('roulette');
+    expect(out[1]!.sessions).toBe(2);
+    // roulette house net = (100-200) + (100-0) = 0
+    expect(out[1]!.houseNet).toBe(0);
+    // plinko + blackjack both have 1 session → alphabetical tiebreak picks blackjack
+    expect(out[2]!.game).toBe('blackjack');
+    expect(out[2]!.sessions).toBe(1);
+  });
+});
+
+describe('getDailyActivity (Phase 15 #14)', () => {
+  beforeEach(async () => {
+    await resetDb();
+  });
+
+  it('returns empty for days <= 0', async () => {
+    expect(await getDailyActivity(0)).toEqual([]);
+  });
+
+  it('returns N entries with zero-fill when no rounds exist', async () => {
+    const out = await getDailyActivity(7);
+    expect(out).toHaveLength(7);
+    expect(out.every((p) => p.sessions === 0)).toBe(true);
+    // chronological order
+    for (let i = 1; i < out.length; i++) {
+      expect(out[i]!.date.localeCompare(out[i - 1]!.date)).toBeGreaterThan(0);
+    }
+  });
+
+  it('counts rounds into their UTC day bucket', async () => {
+    const now = Date.now();
+    const dayMs = 86_400_000;
+    // 3 rounds today, 1 round 2 days ago
+    await db.rounds.bulkAdd([
+      overviewRound({ id: 't1', game: 'slots', betAmount: 1, payout: 0, playedAt: now - 1000 }),
+      overviewRound({ id: 't2', game: 'slots', betAmount: 1, payout: 0, playedAt: now - 2000 }),
+      overviewRound({ id: 't3', game: 'slots', betAmount: 1, payout: 0, playedAt: now - 3000 }),
+      overviewRound({
+        id: 't4',
+        game: 'slots',
+        betAmount: 1,
+        payout: 0,
+        playedAt: now - 2 * dayMs,
+      }),
+    ]);
+    const out = await getDailyActivity(7);
+    expect(out).toHaveLength(7);
+    const total = out.reduce((s, p) => s + p.sessions, 0);
+    expect(total).toBe(4);
+    // Last entry corresponds to "today" — should have the 3 modern rounds.
+    expect(out[out.length - 1]!.sessions).toBe(3);
+  });
+});
+
+describe('getRecentAdjustments (Phase 15 #14)', () => {
+  beforeEach(async () => {
+    await resetDb();
+    localStorage.removeItem(SESSION_KEY);
+  });
+
+  it('returns empty when no adjustments exist', async () => {
+    expect(await getRecentAdjustments(5)).toEqual([]);
+  });
+
+  it('returns most-recent adjustments first with username resolution + limit', async () => {
+    const a = await register({ username: 'alice', password: 'password123' });
+    const b = await register({ username: 'bob', password: 'password123' });
+    if (!a.ok || !b.ok) throw new Error('register failed');
+    await db.adjustments.bulkAdd([
+      { id: 'adj-1', userId: a.user.id, amount: 100, reason: 'topup', adjustedAt: 1000 },
+      { id: 'adj-2', userId: b.user.id, amount: -50, reason: 'clawback', adjustedAt: 2000 },
+      { id: 'adj-3', userId: a.user.id, amount: 25, reason: 'apology', adjustedAt: 3000 },
+      { id: 'adj-4', userId: b.user.id, amount: 10, reason: 'manual', adjustedAt: 4000 },
+    ]);
+    const out = await getRecentAdjustments(2);
+    expect(out).toHaveLength(2);
+    expect(out[0]!.id).toBe('adj-4');
+    expect(out[0]!.targetUser).toBe('bob');
+    expect(out[0]!.amount).toBe(10);
+    expect(out[1]!.id).toBe('adj-3');
+    expect(out[1]!.targetUser).toBe('alice');
+  });
+
+  it('falls back to <deleted> when target user no longer exists', async () => {
+    await db.adjustments.add({
+      id: 'adj-ghost',
+      userId: 'missing-user',
+      amount: 100,
+      reason: 'orphan',
+      adjustedAt: 500,
+    });
+    const out = await getRecentAdjustments(5);
+    expect(out).toHaveLength(1);
+    expect(out[0]!.targetUser).toBe('<deleted>');
+  });
+});
