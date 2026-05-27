@@ -454,6 +454,20 @@ Design spec: `docs/superpowers/specs/2026-05-21-phase-13c-omaha-design.md`. Impl
 - **Integration:** sidebar (♠️ Poker → `/play/poker`), lobby cabinet (opens modal), `/stats/poker` per-game tab, `/leaderboard/poker` per-game tab, `Round.game` enum includes `'poker'`.
 - **ADR:** ADR-0041.
 
+### Phase 15 #12.v1 polish amendments (2026-05-27)
+
+Phase 15 sub-project #12.v1 ships the standard MASQUER polish recipe for Texas Hold'em plus shared chrome that #12.v2 Five-Card Draw and #12.v3 Omaha inherit for free. Pure gameplay logic (`holdemLogic.ts`, `machine.ts`, `_shared/handEvaluator.ts`, `_shared/sidePots.ts`, `_shared/deck.ts`, `_shared/ai/{archetypes,decide}.ts`) is byte-stable; the changes are presentational + additive.
+
+- **Unified card visuals:** every poker import of `_shared/PlayingCard` now renders through a thin adapter that converts poker's rank (Ace=14) to the brand `@/components/brand/PlayingCard` (Ace=1). All three variants inherit the unified MASQUER porcelain card visual without per-import changes.
+- **Venetian masquerade names:** new `_shared/maskNames.ts` (`Bauta`, `Colombina`, `Volto`, `Moretta`, `Arlecchino`, `Pantalone`, `Pulcinella`, `Brighella`, `Pierrot`, `Dottore`, `Capitano`, `Zanni`) hides the AI archetype from the UI. `decide()` still receives the real archetype internally — only the displayed name changes. Deterministic per session via `assignMaskName(rng, tableSize)`.
+- **MASQUER chrome shell:** `MASQUER · Hold'em` title + LobbyButton + variant-aware `PokerOddsHeader` + `RulesButton` opening a variant-aware `PokerRulesModal`. Root drops `min-h-screen` for `flex h-full flex-col`.
+- **Dramatic showdown stagger:** `ShowdownReveal` reveals seats left-to-right at 250 ms intervals; the winning seat receives a 600 ms gold-glow ring + `win.{tier}` (or `loss`) stinger. Auto-next-hand timer now gates on `ShowdownReveal.onRevealComplete` so the next deal never starts mid-reveal. Reduced-motion users get an instant batched reveal + single sound.
+- **Sound:** `chip.place` on every committed bet / call / raise / rebuy / blind post; `card.deal` on hole-card deal + each board card (flop = 3 staggered, turn / river = 1 each) + each showdown flip; `win.{tier}` / `loss` stinger on hand completion. All gated on `useEffectiveReducedMotion`.
+- **Brand-token pass:** PokerTable / Seat / CommunityBoard / BettingControls / SessionBar / SetupPanel / PokerLobbyPage / PokerVariantModal all repainted with `bg-felt-table`, `bg-velvet-deep`, `border-brass`, `text-ivory`, `text-gold-bright`. Brass slider thumb on raise control.
+- **`/admin/poker`** ships separately in PR B with 4 StatCards + variant tabs (`All` / `Hold'em` / `Five-Card Draw` / `Omaha`) + hero stacked-bar chart + biggest-pots panel + recent sessions table. Additive aggregations only — no schema migration.
+
+Design spec: `docs/superpowers/specs/2026-05-27-phase-15-12-v1-holdem-design.md`. Implementation plan: `docs/superpowers/plans/2026-05-27-phase-15-12-v1-holdem-plan.md`.
+
 ---
 
 ## 10.9 Craps

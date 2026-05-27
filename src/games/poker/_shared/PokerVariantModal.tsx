@@ -2,6 +2,7 @@ import type { JSX } from 'react';
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { motion, useReducedMotion } from 'framer-motion';
+import MaskMark from '@/components/brand/MaskMark';
 
 interface Props {
   open: boolean;
@@ -50,56 +51,59 @@ export default function PokerVariantModal({ open, onClose }: Props): JSX.Element
         transition={
           reduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 320, damping: 22 }
         }
-        className="bg-felt-deep border-2 border-gold rounded-lg p-6 max-w-2xl w-full"
+        className="w-full max-w-2xl rounded-lg border-2 border-brass bg-velvet-deep p-6"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="font-display text-lg tracking-wider text-gold-bright mb-2 text-center">
-          PICK YOUR POKER VARIANT
-        </h2>
-        <p className="text-xs text-white/60 mb-4 text-center">Choose a variant to begin.</p>
+        <header className="mb-4 flex flex-col items-center gap-2">
+          <MaskMark variant="simple" size={32} title="MASQUER mask" />
+          <h2 className="font-display text-lg tracking-[0.18em] text-gold-bright">
+            PICK YOUR POKER VARIANT
+          </h2>
+          <p className="text-xs text-ivory/55">Choose a variant to begin.</p>
+        </header>
         <div className="grid grid-cols-3 gap-4">
-          {/* Texas Hold'em — active */}
+          {/* Texas Hold'em */}
           <button
             type="button"
             onClick={goHoldem}
-            className="rounded-lg border-2 border-white/20 bg-felt-deep/70 p-6 text-center hover:border-gold transition"
+            className="rounded-md border border-brass/60 bg-velvet p-6 text-center transition hover:border-brass hover:bg-velvet-deep"
             data-variant-choice="holdem"
           >
-            <div className="text-4xl mb-2">♠️</div>
-            <div className="font-display text-base text-gold-bright tracking-wider">
+            <div className="mb-2 text-4xl text-gold-bright">♠</div>
+            <div className="font-display text-base tracking-[0.18em] text-gold-bright">
               TEXAS HOLD&apos;EM
             </div>
-            <p className="text-[11px] text-white/60 mt-2">
+            <p className="mt-2 text-[11px] text-ivory/70">
               No-Limit Hold&apos;em. 2-6 players, tiered stakes.
             </p>
           </button>
 
-          {/* Five-Card Draw — active */}
+          {/* Five-Card Draw */}
           <button
             type="button"
             onClick={goFiveCardDraw}
-            className="rounded-lg border-2 border-white/20 bg-felt-deep/70 p-6 text-center hover:border-gold transition"
+            className="rounded-md border border-brass/60 bg-velvet p-6 text-center transition hover:border-brass hover:bg-velvet-deep"
             data-variant-choice="five-card-draw"
           >
-            <div className="text-4xl mb-2">🂡</div>
-            <div className="font-display text-base text-gold-bright tracking-wider">
+            <div className="mb-2 text-4xl text-gold-bright">♥</div>
+            <div className="font-display text-base tracking-[0.18em] text-gold-bright">
               FIVE-CARD DRAW
             </div>
-            <p className="text-[11px] text-white/60 mt-2">
+            <p className="mt-2 text-[11px] text-ivory/70">
               Classic draw poker. Single draw, cap 3.
             </p>
           </button>
 
-          {/* Omaha — active */}
+          {/* Omaha */}
           <button
             type="button"
             onClick={goOmaha}
-            className="rounded-lg border-2 border-white/20 bg-felt-deep/70 p-6 text-center hover:border-gold transition"
+            className="rounded-md border border-brass/60 bg-velvet p-6 text-center transition hover:border-brass hover:bg-velvet-deep"
             data-variant-choice="omaha"
           >
-            <div className="text-4xl mb-2">🃏</div>
-            <div className="font-display text-base text-gold-bright tracking-wider">OMAHA</div>
-            <p className="text-[11px] text-white/60 mt-2">
+            <div className="mb-2 text-4xl text-gold-bright">♦</div>
+            <div className="font-display text-base tracking-[0.18em] text-gold-bright">OMAHA</div>
+            <p className="mt-2 text-[11px] text-ivory/70">
               No-Limit Omaha. 4 hole cards, use exactly 2+3.
             </p>
           </button>
