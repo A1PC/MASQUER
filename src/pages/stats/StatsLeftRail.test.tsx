@@ -12,6 +12,17 @@ function renderAt(initial: string, basePath: '/stats' | '/leaderboard' = '/stats
 }
 
 describe('StatsLeftRail', () => {
+  it('renders the STATS heading and rail container', () => {
+    const { container } = renderAt('/stats');
+    expect(screen.getByText('STATS')).toBeInTheDocument();
+    expect(container.querySelector('[data-stats-rail]')).not.toBeNull();
+  });
+
+  it('renders the LEADERBOARD heading when basePath="/leaderboard"', () => {
+    renderAt('/leaderboard', '/leaderboard');
+    expect(screen.getByText('LEADERBOARD')).toBeInTheDocument();
+  });
+
   it('renders Overview + 10 game tabs', () => {
     renderAt('/stats');
     expect(screen.getByRole('link', { name: /overview/i })).toBeInTheDocument();

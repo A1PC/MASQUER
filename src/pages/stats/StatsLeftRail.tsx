@@ -42,9 +42,16 @@ const SLUG: Record<string, string> = {
 };
 
 export default function StatsLeftRail({ basePath }: Props): JSX.Element {
+  const heading = basePath === '/stats' ? 'STATS' : 'LEADERBOARD';
   return (
-    <aside className="w-40 shrink-0 border-r border-gold/40 bg-felt-deep py-4">
-      <nav className="flex flex-col" data-stats-rail>
+    <aside
+      className="w-40 shrink-0 overflow-y-auto border-r border-brass/60 bg-velvet-deep py-4"
+      data-stats-rail
+    >
+      <div className="px-4 pb-4 font-display text-xs tracking-[0.2em] text-gold-bright">
+        {heading}
+      </div>
+      <nav className="flex flex-col">
         {TABS.map((t) => {
           const slug = SLUG[t.label] ?? '';
           const to = slug === '' ? basePath : `${basePath}/${slug}`;
@@ -52,17 +59,18 @@ export default function StatsLeftRail({ basePath }: Props): JSX.Element {
             <NavLink
               key={t.label}
               to={to}
-              end={t.end ?? false}
+              {...(t.end ? { end: true } : {})}
               className={({ isActive }) =>
                 [
-                  'border-l-[3px] px-4 py-2 text-xs',
+                  'flex items-center gap-2 border-l-[3px] px-4 py-2 text-xs transition',
                   isActive
-                    ? 'border-gold bg-gold/10 text-gold-bright'
-                    : 'border-transparent text-white/60 hover:bg-white/5',
+                    ? 'border-brass bg-velvet font-display tracking-[0.12em] text-gold-bright'
+                    : 'border-transparent text-ivory/55 hover:bg-velvet/50',
                 ].join(' ')
               }
             >
-              {t.icon} {t.label}
+              <span aria-hidden>{t.icon}</span>
+              <span>{t.label}</span>
             </NavLink>
           );
         })}
