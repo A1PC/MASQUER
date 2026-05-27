@@ -3,17 +3,20 @@
  *
  * Approach:
  *  - fake-indexeddb + wallet hydrated with 10_000 chips
- *  - useReducedMotion mocked → true (zeroes AI 600-1200ms delay to 0ms)
+ *  - useEffectiveReducedMotion mocked → true (zeroes AI 600-1200ms delay to 0ms
+ *    AND collapses the showdown stagger to instant so the auto-next-hand timer
+ *    fires immediately after each completed hand)
  *  - 2-player table (1 AI): player is SB + acts first preflop
  *  - Player FOLDS preflop → AI wins uncontested → hand_complete → idle
  *  - Between hands LEAVE TABLE is enabled
  *
  * Assertions:
- *  1. SIT DOWN debits wallet + table renders (data-session-bar)
- *  2. Player can fold → machine completes hand → LEAVE TABLE enabled
- *  3. LEAVE TABLE → rounds row: game='poker', details.variant='holdem',
- *     betAmount=totalBoughtIn, payout=finalStack
- *  4. SESSION OVER screen appears
+ *  1. MASQUER · Hold'em title + LobbyButton + odds header render
+ *  2. SIT DOWN debits wallet + table renders (data-session-bar)
+ *  3. Player can fold → machine completes hand → LEAVE TABLE enabled
+ *  4. LEAVE TABLE → rounds row: game='poker', details.variant='holdem'
+ *  5. SESSION OVER screen appears
+ *  6. Mask names (not archetypes) are displayed on AI seats
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import 'fake-indexeddb/auto';
@@ -25,13 +28,16 @@ import { db } from '@/db';
 import { resetDb } from '@/test/db-helpers';
 import { useSessionStore } from '@/store/sessionStore';
 import { useWalletStore } from '@/store/walletStore';
+import { MASK_NAME_POOL } from '../_shared/maskNames';
 
-// Zero AI thinking delay
-vi.mock('framer-motion', async (importOriginal) => {
-  // eslint-disable-next-line @typescript-eslint/consistent-type-imports
-  const actual = await importOriginal<typeof import('framer-motion')>();
-  return { ...actual, useReducedMotion: () => true };
-});
+// Zero AI thinking delay AND collapse showdown stagger to instant.
+vi.mock('@/motion/useEffectiveReducedMotion', () => ({
+  useEffectiveReducedMotion: () => true,
+}));
+// Stub useSound — no-op play.
+vi.mock('@/systems/sound/useSound', () => ({
+  useSound: () => ({ play: vi.fn() }),
+}));
 
 const INITIAL_BALANCE = 10_000;
 
@@ -108,7 +114,39 @@ async function waitForLeaveEnabled() {
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
-describe('HoldemPage', () => {
+describe('HoldemPage — chrome', () => {
+  it("renders MASQUER · Hold'em title", () => {
+    renderPage();
+    // The heading shows "MASQUER · Hold'em". Match on the role to disambiguate
+    // from "TEXAS HOLD'EM" inside the SetupPanel body.
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/MASQUER/);
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/Hold'em/);
+  });
+
+  it('renders LobbyButton (back to lobby)', () => {
+    renderPage();
+    expect(screen.getByRole('link', { name: /BACK TO LOBBY/i })).toBeInTheDocument();
+  });
+
+  it('renders the variant odds header', () => {
+    renderPage();
+    expect(screen.getByText(/No-Limit Hold'em/)).toBeInTheDocument();
+  });
+
+  it('renders the rules button', () => {
+    renderPage();
+    expect(screen.getByRole('button', { name: /Show game rules/i })).toBeInTheDocument();
+  });
+
+  it('page root uses h-full (NOT min-h-screen)', () => {
+    const { container } = renderPage();
+    const root = container.firstElementChild as HTMLElement;
+    expect(root.className).toContain('h-full');
+    expect(root.className).not.toContain('min-h-screen');
+  });
+});
+
+describe('HoldemPage — setup', () => {
   it('renders SetupPanel initially', () => {
     renderPage();
     expect(screen.getByText(/TEXAS HOLD/)).toBeInTheDocument();
@@ -121,7 +159,9 @@ describe('HoldemPage', () => {
     renderPage();
     expect(screen.getByRole('button', { name: /SIT DOWN/ })).toBeDisabled();
   });
+});
 
+describe('HoldemPage — gameplay', () => {
   it('SIT DOWN debits wallet and renders the table', async () => {
     renderPage();
     await sitDown2Players();
@@ -139,19 +179,36 @@ describe('HoldemPage', () => {
     await waitForTable();
   });
 
+  it('AI seats show mask names (not archetype labels)', async () => {
+    renderPage();
+    await sitDown2Players();
+    await waitForTable();
+
+    // At least one mask name appears on the AI seat. We don't know which one
+    // because the assignment is RNG-seeded by the session id, so just check
+    // for any of the 12 mask names.
+    const seatName = await waitFor(() => {
+      for (const mask of MASK_NAME_POOL) {
+        if (screen.queryByText(mask)) return mask;
+      }
+      throw new Error('no mask name found in DOM');
+    });
+    expect(MASK_NAME_POOL).toContain(seatName);
+
+    // Archetype labels MUST NOT appear in the DOM.
+    expect(screen.queryByText('ROCK')).toBeNull();
+    expect(screen.queryByText('SHARK')).toBeNull();
+    expect(screen.queryByText('MANIAC')).toBeNull();
+    expect(screen.queryByText('STATION')).toBeNull();
+  });
+
   it('FOLD completes the hand and LEAVE TABLE becomes enabled', async () => {
     renderPage();
     await sitDown2Players();
     await waitForTable();
 
-    // Wait for it to be our turn (FOLD is enabled)
     await waitForPlayerTurn();
-
-    // Player folds → AI wins uncontested → hand_complete → idle
     await userEvent.click(screen.getByRole('button', { name: /FOLD/ }));
-
-    // LEAVE TABLE should become enabled within the next ~1.5s
-    // (machine transitions to idle quickly; 1200ms auto-next-hand timer starts)
     await waitForLeaveEnabled();
   }, 20_000);
 
@@ -160,26 +217,20 @@ describe('HoldemPage', () => {
     await sitDown2Players();
     await waitForTable();
 
-    // Fold once to complete a hand
     await waitForPlayerTurn();
     await userEvent.click(screen.getByRole('button', { name: /FOLD/ }));
-
-    // Wait for LEAVE to be enabled
     await waitForLeaveEnabled();
 
-    // Capture totalBoughtIn before leaving
     await userEvent.click(screen.getByRole('button', { name: /LEAVE TABLE/ }));
 
-    // Wait for rounds row
     await waitFor(
       async () => {
         const rows = await db.rounds.toArray();
         expect(rows.length).toBeGreaterThanOrEqual(1);
         const row = rows[0]!;
-
         expect(row.game).toBe('poker');
-        expect(row.betAmount).toBeGreaterThan(0); // stake = totalBoughtIn
-        expect(row.payout).toBeGreaterThanOrEqual(0); // payout = finalStack
+        expect(row.betAmount).toBeGreaterThan(0);
+        expect(row.payout).toBeGreaterThanOrEqual(0);
         expect(row.netChange).toBe(row.payout - row.betAmount);
 
         const details = row.details as Record<string, unknown>;

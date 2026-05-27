@@ -22,15 +22,15 @@ export default function SessionBar({
 
   return (
     <div
-      className="flex flex-col gap-3 rounded-lg border border-gold/20 bg-felt-deep/90 p-3"
+      className="flex flex-col gap-3 rounded-md border border-brass/60 bg-velvet-deep p-3"
       data-session-bar
     >
       <div className="flex flex-col gap-1">
-        <span className="font-display text-[10px] tracking-wider text-white/50">SESSION</span>
+        <span className="font-display text-[10px] tracking-[0.18em] text-ivory/55">SESSION</span>
 
         {/* Net P&L */}
         <div className="flex items-center justify-between">
-          <span className="text-[11px] text-white/60">Net</span>
+          <span className="text-[11px] text-ivory/70">Net</span>
           <span className={`font-mono text-sm tabular-nums font-bold ${netColor}`} data-net>
             {netPrefix}
             {net.toLocaleString()}
@@ -39,35 +39,34 @@ export default function SessionBar({
 
         {/* Stack */}
         <div className="flex items-center justify-between">
-          <span className="text-[11px] text-white/60">Stack</span>
-          <span className="font-mono text-sm tabular-nums text-gold" data-stack>
+          <span className="text-[11px] text-ivory/70">Stack</span>
+          <span className="font-mono text-sm tabular-nums text-gold-bright" data-stack>
             {stack.toLocaleString()}
           </span>
         </div>
 
         {/* Bought in */}
         <div className="flex items-center justify-between">
-          <span className="text-[11px] text-white/60">Bought in</span>
-          <span className="font-mono text-sm tabular-nums text-white/70" data-bought-in>
+          <span className="text-[11px] text-ivory/70">Bought in</span>
+          <span className="font-mono text-sm tabular-nums text-ivory/85" data-bought-in>
             {totalBoughtIn.toLocaleString()}
           </span>
         </div>
 
         {/* Hands played */}
         <div className="flex items-center justify-between">
-          <span className="text-[11px] text-white/60">Hands</span>
-          <span className="font-mono text-sm tabular-nums text-white/70" data-hands>
+          <span className="text-[11px] text-ivory/70">Hands</span>
+          <span className="font-mono text-sm tabular-nums text-ivory/85" data-hands>
             {handsPlayed}
           </span>
         </div>
       </div>
 
       {/* Leave button */}
-      <div className="relative group">
+      <div className="group relative">
         <button
-          className="w-full rounded border border-casino-red/50 py-2 font-display text-xs
-            tracking-widest text-casino-red hover:bg-casino-red/10
-            disabled:cursor-not-allowed disabled:opacity-40"
+          className="w-full rounded border border-brass/40 py-2 font-display text-xs tracking-[0.18em]
+            text-ivory hover:bg-velvet disabled:cursor-not-allowed disabled:opacity-40"
           disabled={inHand}
           onClick={onLeave}
           data-leave-table
@@ -76,9 +75,8 @@ export default function SessionBar({
         </button>
         {inHand && (
           <div
-            className="absolute -top-8 left-0 right-0 hidden group-hover:block
-              rounded bg-felt-deep border border-gold/20 px-2 py-1 text-center
-              text-[10px] text-white/60"
+            className="absolute -top-8 left-0 right-0 hidden rounded border border-brass/40 bg-velvet-deep
+              px-2 py-1 text-center text-[10px] text-ivory/70 group-hover:block"
             role="tooltip"
           >
             Leave between hands
