@@ -3158,3 +3158,407 @@ describe('queries.getBingoBallsToBingo', () => {
     expect(medium?.averageCalls).toBe(60);
   });
 });
+
+// ─── Phase 15 #11 — Plinko aggregations ───────────────────────────────
+
+import {
+  getPlinkoAllTimeStats,
+  getPlinkoBinDistribution,
+  getPlinkoRiskDistribution,
+  type PlinkoRisk,
+} from './stats';
+
+interface PersistedPlinkoDetails {
+  readonly risk: PlinkoRisk;
+  readonly bin: number;
+  readonly multiplier: number;
+}
+
+function plinkoRow(opts: {
+  id: string;
+  risk: PlinkoRisk;
+  bin: number;
+  multiplier: number;
+  betAmount: number;
+  payoutChips: number;
+  playedAt: number;
+}) {
+  const netChange = opts.payoutChips - opts.betAmount;
+  const outcome: 'win' | 'loss' | 'push' = netChange > 0 ? 'win' : netChange < 0 ? 'loss' : 'push';
+  const details: PersistedPlinkoDetails = {
+    risk: opts.risk,
+    bin: opts.bin,
+    multiplier: opts.multiplier,
+  };
+  return {
+    id: opts.id,
+    userId: 'u-1',
+    game: 'plinko' as const,
+    betAmount: opts.betAmount,
+    payout: opts.payoutChips,
+    netChange,
+    outcome,
+    details: details as unknown,
+    balanceAfter: 1000,
+    playedAt: opts.playedAt,
+  };
+}
+
+/** ~20-row plinko fixture covering all four risks × mixed bins (edges,
+ *  centre, shoulder). Wagered + paid totals chosen so per-risk RTP values
+ *  fall out as round numbers for the pinned-stats test:
+ *
+ *    safe:   wagered 400, paid 380 → 95.0%   (4 drops; 1 edge, centres, shoulders)
+ *    low:    wagered 400, paid 360 → 90.0%   (4 drops; 1 edge hit)
+ *    medium: wagered 600, paid 480 → 80.0%   (6 drops; 2 edges → 1 high-mult)
+ *    high:   wagered 600, paid 480 → 80.0%   (6 drops; 2 edges = both jackpot)
+ *
+ *  Total: 20 drops · wagered 2,000 · paid 1,700 · house net +300 · RTP 85.0%.
+ *  Edge bins hit: 6 (safe 1 + low 1 + medium 2 + high 2). Jackpot hits: 2
+ *  (high-risk edge bins). Centre bin 13 hits: 3. */
+async function seedPlinkoRows() {
+  await resetDb();
+  await db.rounds.bulkAdd([
+    // SAFE — 4 drops · wagered 400 · paid 380 → 95.0%
+    plinkoRow({
+      id: 'p-s-1',
+      risk: 'safe',
+      bin: 0,
+      multiplier: 45,
+      betAmount: 100,
+      payoutChips: 200,
+      playedAt: 1_001,
+    }),
+    plinkoRow({
+      id: 'p-s-2',
+      risk: 'safe',
+      bin: 13,
+      multiplier: 0.94,
+      betAmount: 100,
+      payoutChips: 90,
+      playedAt: 1_002,
+    }),
+    plinkoRow({
+      id: 'p-s-3',
+      risk: 'safe',
+      bin: 12,
+      multiplier: 0.95,
+      betAmount: 100,
+      payoutChips: 50,
+      playedAt: 1_003,
+    }),
+    plinkoRow({
+      id: 'p-s-4',
+      risk: 'safe',
+      bin: 14,
+      multiplier: 0.95,
+      betAmount: 100,
+      payoutChips: 40,
+      playedAt: 1_004,
+    }),
+    // LOW — 4 drops · wagered 400 · paid 360 → 90.0%
+    plinkoRow({
+      id: 'p-l-1',
+      risk: 'low',
+      bin: 26,
+      multiplier: 700,
+      betAmount: 100,
+      payoutChips: 280,
+      playedAt: 2_001,
+    }),
+    plinkoRow({
+      id: 'p-l-2',
+      risk: 'low',
+      bin: 13,
+      multiplier: 0.89,
+      betAmount: 100,
+      payoutChips: 50,
+      playedAt: 2_002,
+    }),
+    plinkoRow({
+      id: 'p-l-3',
+      risk: 'low',
+      bin: 11,
+      multiplier: 0.92,
+      betAmount: 100,
+      payoutChips: 20,
+      playedAt: 2_003,
+    }),
+    plinkoRow({
+      id: 'p-l-4',
+      risk: 'low',
+      bin: 15,
+      multiplier: 0.92,
+      betAmount: 100,
+      payoutChips: 10,
+      playedAt: 2_004,
+    }),
+    // MEDIUM — 6 drops · wagered 600 · paid 480 → 80.0%
+    plinkoRow({
+      id: 'p-m-1',
+      risk: 'medium',
+      bin: 0,
+      multiplier: 6000,
+      betAmount: 100,
+      payoutChips: 100,
+      playedAt: 3_001,
+    }),
+    plinkoRow({
+      id: 'p-m-2',
+      risk: 'medium',
+      bin: 26,
+      multiplier: 6000,
+      betAmount: 100,
+      payoutChips: 250,
+      playedAt: 3_002,
+    }),
+    plinkoRow({
+      id: 'p-m-3',
+      risk: 'medium',
+      bin: 12,
+      multiplier: 0.86,
+      betAmount: 100,
+      payoutChips: 50,
+      playedAt: 3_003,
+    }),
+    plinkoRow({
+      id: 'p-m-4',
+      risk: 'medium',
+      bin: 14,
+      multiplier: 0.86,
+      betAmount: 100,
+      payoutChips: 30,
+      playedAt: 3_004,
+    }),
+    plinkoRow({
+      id: 'p-m-5',
+      risk: 'medium',
+      bin: 10,
+      multiplier: 0.92,
+      betAmount: 100,
+      payoutChips: 25,
+      playedAt: 3_005,
+    }),
+    plinkoRow({
+      id: 'p-m-6',
+      risk: 'medium',
+      bin: 16,
+      multiplier: 0.92,
+      betAmount: 100,
+      payoutChips: 25,
+      playedAt: 3_006,
+    }),
+    // HIGH — 6 drops · wagered 600 · paid 480 → 80.0%
+    plinkoRow({
+      id: 'p-h-1',
+      risk: 'high',
+      bin: 0,
+      multiplier: 60000,
+      betAmount: 100,
+      payoutChips: 220,
+      playedAt: 4_001,
+    }),
+    plinkoRow({
+      id: 'p-h-2',
+      risk: 'high',
+      bin: 26,
+      multiplier: 60000,
+      betAmount: 100,
+      payoutChips: 150,
+      playedAt: 4_002,
+    }),
+    plinkoRow({
+      id: 'p-h-3',
+      risk: 'high',
+      bin: 13,
+      multiplier: 0.71,
+      betAmount: 100,
+      payoutChips: 50,
+      playedAt: 4_003,
+    }),
+    plinkoRow({
+      id: 'p-h-4',
+      risk: 'high',
+      bin: 12,
+      multiplier: 0.72,
+      betAmount: 100,
+      payoutChips: 30,
+      playedAt: 4_004,
+    }),
+    plinkoRow({
+      id: 'p-h-5',
+      risk: 'high',
+      bin: 11,
+      multiplier: 0.74,
+      betAmount: 100,
+      payoutChips: 20,
+      playedAt: 4_005,
+    }),
+    plinkoRow({
+      id: 'p-h-6',
+      risk: 'high',
+      bin: 15,
+      multiplier: 0.74,
+      betAmount: 100,
+      payoutChips: 10,
+      playedAt: 4_006,
+    }),
+  ]);
+}
+
+describe('queries.getPlinkoAllTimeStats', () => {
+  beforeEach(async () => {
+    await resetDb();
+  });
+
+  it('returns zeroes when no plinko rounds exist', async () => {
+    const s = await getPlinkoAllTimeStats();
+    expect(s.ballsDropped).toBe(0);
+    expect(s.totalWagered).toBe(0);
+    expect(s.totalPaid).toBe(0);
+    expect(s.netHouseChips).toBe(0);
+    expect(s.netPlayerChips).toBe(0);
+    expect(Object.is(s.netPlayerChips, 0)).toBe(true);
+    expect(s.actualRtp).toBeNull();
+    expect(s.jackpotHits).toBe(0);
+    expect(s.edgeBinHits).toBe(0);
+    expect(s.centreBinHits).toBe(0);
+    for (const risk of ['safe', 'low', 'medium', 'high'] as const) {
+      expect(s.perRisk[risk]).toEqual({ drops: 0, wagered: 0, paid: 0, rtp: null });
+    }
+  });
+
+  it('aggregates 20 plinko rounds across all four risks × mixed bins', async () => {
+    await seedPlinkoRows();
+    const s = await getPlinkoAllTimeStats();
+    // 20 drops total · 100-chip stake each → 2,000 wagered · 1,700 paid.
+    expect(s.ballsDropped).toBe(20);
+    expect(s.totalWagered).toBe(2000);
+    expect(s.totalPaid).toBe(1700);
+    expect(s.netHouseChips).toBe(300);
+    expect(s.netPlayerChips).toBe(-300);
+    expect(s.actualRtp).toBeCloseTo(0.85, 5);
+    // Per-risk pinned RTPs.
+    expect(s.perRisk.safe.drops).toBe(4);
+    expect(s.perRisk.safe.wagered).toBe(400);
+    expect(s.perRisk.safe.paid).toBe(380);
+    expect(s.perRisk.safe.rtp).toBeCloseTo(0.95, 5);
+    expect(s.perRisk.low.drops).toBe(4);
+    expect(s.perRisk.low.rtp).toBeCloseTo(0.9, 5);
+    expect(s.perRisk.medium.drops).toBe(6);
+    expect(s.perRisk.medium.rtp).toBeCloseTo(0.8, 5);
+    expect(s.perRisk.high.drops).toBe(6);
+    expect(s.perRisk.high.rtp).toBeCloseTo(0.8, 5);
+    // Edge / jackpot / centre headline counts.
+    // Edge bins (0 + 26) hit by: safe×1, low×1, medium×2, high×2 = 6.
+    expect(s.edgeBinHits).toBe(6);
+    // Jackpot = edge bin AT HIGH risk = 2 (p-h-1 + p-h-2).
+    expect(s.jackpotHits).toBe(2);
+    // Centre bin (13) hit by: safe×1 (p-s-2) + low×1 (p-l-2) + high×1 (p-h-3) = 3.
+    expect(s.centreBinHits).toBe(3);
+  });
+
+  it('skips rows whose details are missing the plinko shape', async () => {
+    await db.rounds.bulkAdd([
+      // Valid plinko row.
+      plinkoRow({
+        id: 'p-ok',
+        risk: 'safe',
+        bin: 13,
+        multiplier: 0.94,
+        betAmount: 100,
+        payoutChips: 50,
+        playedAt: 1,
+      }),
+      // Wrong shape (legacy / half-written).
+      {
+        id: 'p-bad',
+        userId: 'u-1',
+        game: 'plinko' as const,
+        betAmount: 100,
+        payout: 0,
+        netChange: -100,
+        outcome: 'loss' as const,
+        details: { wrong: true },
+        balanceAfter: 1000,
+        playedAt: 2,
+      },
+    ]);
+    const s = await getPlinkoAllTimeStats();
+    expect(s.ballsDropped).toBe(1);
+    expect(s.totalWagered).toBe(100);
+    expect(s.totalPaid).toBe(50);
+  });
+});
+
+describe('queries.getPlinkoBinDistribution', () => {
+  beforeEach(async () => {
+    await resetDb();
+  });
+
+  it('returns 27 zero-count entries when no rounds exist', async () => {
+    const d = await getPlinkoBinDistribution();
+    expect(d).toHaveLength(27);
+    expect(d.every((e) => e.count === 0)).toBe(true);
+    expect(d.map((e) => e.bin)).toEqual(Array.from({ length: 27 }, (_, i) => i));
+  });
+
+  it('counts hits per bin across all risks', async () => {
+    await seedPlinkoRows();
+    const d = await getPlinkoBinDistribution();
+    expect(d).toHaveLength(27);
+    const byBin = Object.fromEntries(d.map((e) => [e.bin, e.count]));
+    // Hand-counted from seedPlinkoRows():
+    // bin 0:  safe×1 + medium×1 + high×1 = 3
+    // bin 10: medium×1 = 1
+    // bin 11: low×1 + high×1 = 2
+    // bin 12: safe×1 + medium×1 + high×1 = 3
+    // bin 13: safe×1 + low×1 + high×1 = 3
+    // bin 14: safe×1 + medium×1 = 2
+    // bin 15: low×1 + high×1 = 2
+    // bin 16: medium×1 = 1
+    // bin 26: low×1 + medium×1 + high×1 = 3
+    expect(byBin[0]).toBe(3);
+    expect(byBin[10]).toBe(1);
+    expect(byBin[11]).toBe(2);
+    expect(byBin[12]).toBe(3);
+    expect(byBin[13]).toBe(3);
+    expect(byBin[14]).toBe(2);
+    expect(byBin[15]).toBe(2);
+    expect(byBin[16]).toBe(1);
+    expect(byBin[26]).toBe(3);
+    // Bins with no hits should still appear with count 0.
+    expect(byBin[5]).toBe(0);
+    expect(byBin[20]).toBe(0);
+    // Totals reconcile with ballsDropped (20).
+    const sum = d.reduce((acc, e) => acc + e.count, 0);
+    expect(sum).toBe(20);
+  });
+});
+
+describe('queries.getPlinkoRiskDistribution', () => {
+  beforeEach(async () => {
+    await resetDb();
+  });
+
+  it('returns 4 zero-count risks in canonical order when no rounds exist', async () => {
+    const d = await getPlinkoRiskDistribution();
+    expect(d).toEqual([
+      { risk: 'safe', count: 0 },
+      { risk: 'low', count: 0 },
+      { risk: 'medium', count: 0 },
+      { risk: 'high', count: 0 },
+    ]);
+  });
+
+  it('counts drops per risk from the seeded fixture', async () => {
+    await seedPlinkoRows();
+    const d = await getPlinkoRiskDistribution();
+    expect(d).toEqual([
+      { risk: 'safe', count: 4 },
+      { risk: 'low', count: 4 },
+      { risk: 'medium', count: 6 },
+      { risk: 'high', count: 6 },
+    ]);
+  });
+});

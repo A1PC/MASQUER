@@ -3,6 +3,8 @@ import type { Round } from '@/db';
 import type { RouletteRoundDetails } from '@/games/roulette/types';
 import type { SlotsRoundDetails, Symbol as SlotsSymbol } from '@/games/slots/types';
 import type { Winner as BaccaratWinner } from '@/games/baccarat/types';
+import type { Risk as PlinkoRisk } from '@/games/plinko/logic';
+import { BIN_COUNT as PLINKO_BIN_COUNT } from '@/games/plinko/geometry';
 import { SLOTS_PAYTABLE } from '@/games/slots/config';
 import { WALLET_CONFIG } from '@/systems/wallet';
 
@@ -1205,4 +1207,194 @@ export async function getBingoBallsToBingo(): Promise<BingoBallsToBingo[]> {
       averageCalls: count > 0 ? total / count : null,
     };
   });
+}
+
+// ─── Phase 15 #11 — Plinko all-time admin stats ───────────────────────
+
+/** Re-export the game-side Risk union under a namespaced name so the admin
+ *  page, chart wrapper, and tests can import it from stats without reaching
+ *  into the games sandbox at type-import time. (Internal-only — game UI keeps
+ *  importing the alias from `@/games/plinko/logic` directly.) */
+export type { PlinkoRisk };
+
+/**
+ * Shape of `rounds.details` for a plinko row — flattened at persist time
+ * in PlinkoPage (see the `settle` call site). Mirrored in
+ * `AdminPlinkoPage.tsx` and the stats test fixtures; if you change this,
+ * update all three. (See the baccarat #249 nested-vs-flat regression for
+ * the why.)
+ *
+ * `sessionId` is also persisted but not consumed by any aggregator yet, so
+ * we leave it out of the type to keep the surface honest.
+ */
+interface PersistedPlinkoDetails {
+  readonly risk: PlinkoRisk;
+  readonly bin: number; // 0..(BIN_COUNT - 1) = 0..26
+  readonly multiplier: number;
+}
+
+/** Type guard for plinko round details. Skips half-written / legacy rows so
+ *  the aggregators stay defensive against schema drift. */
+function isPlinkoDetails(d: unknown): d is PersistedPlinkoDetails {
+  if (typeof d !== 'object' || d === null) return false;
+  const obj = d as Record<string, unknown>;
+  const risk = obj.risk;
+  const bin = obj.bin;
+  const multiplier = obj.multiplier;
+  return (
+    (risk === 'safe' || risk === 'low' || risk === 'medium' || risk === 'high') &&
+    typeof bin === 'number' &&
+    Number.isInteger(bin) &&
+    bin >= 0 &&
+    bin < PLINKO_BIN_COUNT &&
+    typeof multiplier === 'number'
+  );
+}
+
+const PLINKO_RISKS_ORDER: readonly PlinkoRisk[] = ['safe', 'low', 'medium', 'high'];
+
+/** Bin indices that count as "edge" (the leftmost / rightmost bucket).
+ *  With BIN_COUNT = 27 these are 0 and 26. */
+const PLINKO_EDGE_BINS = new Set<number>([0, PLINKO_BIN_COUNT - 1]);
+/** Centre bin index. With BIN_COUNT = 27 this is 13 — the worst-payout
+ *  bucket. */
+const PLINKO_CENTRE_BIN = Math.floor(PLINKO_BIN_COUNT / 2);
+
+export interface PlinkoAllTimeStats {
+  /** Settled plinko rounds (excludes legacy / half-written rows). */
+  ballsDropped: number;
+  /** Sum of betAmount across all valid drops. */
+  totalWagered: number;
+  /** Sum of payout across all valid drops. */
+  totalPaid: number;
+  /** `totalWagered - totalPaid` (positive = house won). */
+  netHouseChips: number;
+  /** Mirror of `netHouseChips` (sign-flipped, zero normalised). */
+  netPlayerChips: number;
+  /** `totalPaid / totalWagered` (null when no wagering). */
+  actualRtp: number | null;
+  /** Per-risk breakdown — drops / wagered / paid / rtp. */
+  perRisk: Record<
+    PlinkoRisk,
+    {
+      drops: number;
+      wagered: number;
+      paid: number;
+      rtp: number | null;
+    }
+  >;
+  /** Headline event: landed in an edge bin at High risk (the 60,000× tier). */
+  jackpotHits: number;
+  /** Landed in an edge bin at any risk. */
+  edgeBinHits: number;
+  /** Landed in the centre bin (worst payout). */
+  centreBinHits: number;
+}
+
+export interface PlinkoBinDistribution {
+  /** Bin index (0..BIN_COUNT - 1 = 0..26). */
+  bin: number;
+  /** Number of balls that landed in this bin across all risks. */
+  count: number;
+}
+
+export interface PlinkoRiskDistribution {
+  risk: PlinkoRisk;
+  count: number;
+}
+
+export async function getPlinkoAllTimeStats(): Promise<PlinkoAllTimeStats> {
+  const rows = await db.rounds.where('game').equals('plinko').toArray();
+  let ballsDropped = 0;
+  let totalWagered = 0;
+  let totalPaid = 0;
+  let jackpotHits = 0;
+  let edgeBinHits = 0;
+  let centreBinHits = 0;
+  const perRisk: Record<PlinkoRisk, { drops: number; wagered: number; paid: number }> = {
+    safe: { drops: 0, wagered: 0, paid: 0 },
+    low: { drops: 0, wagered: 0, paid: 0 },
+    medium: { drops: 0, wagered: 0, paid: 0 },
+    high: { drops: 0, wagered: 0, paid: 0 },
+  };
+  for (const r of rows) {
+    if (!isPlinkoDetails(r.details)) continue;
+    const d = r.details;
+    ballsDropped += 1;
+    totalWagered += r.betAmount;
+    totalPaid += r.payout;
+    const bucket = perRisk[d.risk];
+    bucket.drops += 1;
+    bucket.wagered += r.betAmount;
+    bucket.paid += r.payout;
+    if (PLINKO_EDGE_BINS.has(d.bin)) {
+      edgeBinHits += 1;
+      if (d.risk === 'high') jackpotHits += 1;
+    }
+    if (d.bin === PLINKO_CENTRE_BIN) centreBinHits += 1;
+  }
+  const netHouseChips = totalWagered - totalPaid;
+  // Build the `perRisk` shape the page consumes (with derived RTP per risk).
+  const perRiskOut: PlinkoAllTimeStats['perRisk'] = {
+    safe: {
+      drops: perRisk.safe.drops,
+      wagered: perRisk.safe.wagered,
+      paid: perRisk.safe.paid,
+      rtp: perRisk.safe.wagered > 0 ? perRisk.safe.paid / perRisk.safe.wagered : null,
+    },
+    low: {
+      drops: perRisk.low.drops,
+      wagered: perRisk.low.wagered,
+      paid: perRisk.low.paid,
+      rtp: perRisk.low.wagered > 0 ? perRisk.low.paid / perRisk.low.wagered : null,
+    },
+    medium: {
+      drops: perRisk.medium.drops,
+      wagered: perRisk.medium.wagered,
+      paid: perRisk.medium.paid,
+      rtp: perRisk.medium.wagered > 0 ? perRisk.medium.paid / perRisk.medium.wagered : null,
+    },
+    high: {
+      drops: perRisk.high.drops,
+      wagered: perRisk.high.wagered,
+      paid: perRisk.high.paid,
+      rtp: perRisk.high.wagered > 0 ? perRisk.high.paid / perRisk.high.wagered : null,
+    },
+  };
+  return {
+    ballsDropped,
+    totalWagered,
+    totalPaid,
+    netHouseChips,
+    // Add zero to normalise `-0` (e.g. `-(0)`) to `+0` for strict equality assertions.
+    netPlayerChips: -netHouseChips + 0,
+    actualRtp: totalWagered > 0 ? totalPaid / totalWagered : null,
+    perRisk: perRiskOut,
+    jackpotHits,
+    edgeBinHits,
+    centreBinHits,
+  };
+}
+
+export async function getPlinkoBinDistribution(): Promise<PlinkoBinDistribution[]> {
+  const rows = await db.rounds.where('game').equals('plinko').toArray();
+  const counts = new Array<number>(PLINKO_BIN_COUNT).fill(0);
+  for (const r of rows) {
+    if (!isPlinkoDetails(r.details)) continue;
+    counts[r.details.bin]! += 1;
+  }
+  return Array.from({ length: PLINKO_BIN_COUNT }, (_, bin) => ({
+    bin,
+    count: counts[bin]!,
+  }));
+}
+
+export async function getPlinkoRiskDistribution(): Promise<PlinkoRiskDistribution[]> {
+  const rows = await db.rounds.where('game').equals('plinko').toArray();
+  const counts: Record<PlinkoRisk, number> = { safe: 0, low: 0, medium: 0, high: 0 };
+  for (const r of rows) {
+    if (!isPlinkoDetails(r.details)) continue;
+    counts[r.details.risk] += 1;
+  }
+  return PLINKO_RISKS_ORDER.map((risk) => ({ risk, count: counts[risk] }));
 }
