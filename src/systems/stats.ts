@@ -1755,3 +1755,118 @@ export async function getCrapsBiggestSessionWins(limit: number): Promise<CrapsBi
   });
   return all.slice(0, limit);
 }
+
+// ─── Phase 15 #14 — Admin Overview augmentation ───────────────────────────
+
+export interface TopGameRow {
+  game:
+    | 'blackjack'
+    | 'roulette'
+    | 'slots'
+    | 'baccarat'
+    | 'bingo'
+    | 'lottery'
+    | 'plinko'
+    | 'poker'
+    | 'craps'
+    | 'coin-flip';
+  sessions: number;
+  houseNet: number;
+}
+
+export interface DailyActivityPoint {
+  /** YYYY-MM-DD (UTC). */
+  date: string;
+  sessions: number;
+}
+
+export interface RecentAdjustmentRow {
+  id: string;
+  adjustedAt: number;
+  /** Resolved username; `<deleted>` when the target user row has been removed. */
+  targetUser: string;
+  /** Signed integer chips (positive = credit, negative = debit). */
+  amount: number;
+  reason: string;
+}
+
+/**
+ * Top N games by total session count. A "session" here = one `rounds` row.
+ * Poker + Craps persist session-level rows (ADR-0041), so for them this
+ * equals literal sessions; for other games it equals discrete rounds.
+ * House net = sum(betAmount - payout) — positive when the house is ahead
+ * (casino-operator perspective; matches the Net house StatCard tone).
+ */
+export async function getTopGamesBySessions(limit: number): Promise<TopGameRow[]> {
+  if (limit <= 0) return [];
+  const rows = await db.rounds.toArray();
+  const byGame = new Map<TopGameRow['game'], { sessions: number; houseNet: number }>();
+  for (const r of rows) {
+    const game = r.game;
+    const cur = byGame.get(game) ?? { sessions: 0, houseNet: 0 };
+    cur.sessions += 1;
+    cur.houseNet += r.betAmount - r.payout;
+    byGame.set(game, cur);
+  }
+  return [...byGame.entries()]
+    .map(([game, v]) => ({ game, sessions: v.sessions, houseNet: v.houseNet }))
+    .sort((a, b) => {
+      if (b.sessions !== a.sessions) return b.sessions - a.sessions;
+      return a.game.localeCompare(b.game);
+    })
+    .slice(0, limit);
+}
+
+/**
+ * Sessions per UTC calendar day for the last `days` days, ending **today**
+ * inclusive (sparkline series). Pre-seeds every day in the range with 0 so
+ * the line renders gaps as zeros instead of collapsing the x-axis. Returns
+ * chronological (ascending) order.
+ */
+export async function getDailyActivity(days: number): Promise<DailyActivityPoint[]> {
+  if (days <= 0) return [];
+  const dayMs = 86_400_000;
+  const now = Date.now();
+  // Align to UTC midnight of the latest day in the window (= today UTC).
+  const todayUtcStart = Math.floor(now / dayMs) * dayMs;
+  const earliestUtcStart = todayUtcStart - (days - 1) * dayMs;
+  const rows = await db.rounds.where('playedAt').aboveOrEqual(earliestUtcStart).toArray();
+  const buckets = new Map<string, number>();
+  for (let i = 0; i < days; i++) {
+    const date = new Date(earliestUtcStart + i * dayMs).toISOString().slice(0, 10);
+    buckets.set(date, 0);
+  }
+  for (const r of rows) {
+    const date = new Date(r.playedAt).toISOString().slice(0, 10);
+    if (buckets.has(date)) buckets.set(date, (buckets.get(date) ?? 0) + 1);
+  }
+  return [...buckets.entries()]
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([date, sessions]) => ({ date, sessions }));
+}
+
+/**
+ * Last N adjustments (chip credits/debits applied by an admin), most recent
+ * first, with target-user resolution. `Adjustment` has no `adminId` field —
+ * see spec §4.2 — so this row intentionally omits admin attribution.
+ */
+export async function getRecentAdjustments(limit: number): Promise<RecentAdjustmentRow[]> {
+  if (limit <= 0) return [];
+  const adjustments = await db.adjustments.toArray();
+  adjustments.sort((a, b) => b.adjustedAt - a.adjustedAt);
+  const sliced = adjustments.slice(0, limit);
+  const userIds = [...new Set(sliced.map((a) => a.userId))];
+  const users = await db.users.bulkGet(userIds);
+  const usernameById = new Map<string, string>();
+  users.forEach((u, i) => {
+    const id = userIds[i];
+    if (u && id !== undefined) usernameById.set(id, u.username);
+  });
+  return sliced.map((a) => ({
+    id: a.id,
+    adjustedAt: a.adjustedAt,
+    targetUser: usernameById.get(a.userId) ?? '<deleted>',
+    amount: a.amount,
+    reason: a.reason,
+  }));
+}
