@@ -10,12 +10,13 @@ describe('BinRow', () => {
     expect(container.querySelectorAll('[data-bin]')).toHaveLength(BIN_COUNT);
   });
 
-  it('uses multipliers from MULTIPLIER_CURVES for selected risk', () => {
+  it('renders compact multiplier labels (k-notation for >=1000) per risk', () => {
     const { container } = render(<BinRow risk="high" />);
     const bins = container.querySelectorAll('[data-bin]');
-    expect(bins[0]!.textContent).toContain(`${MULTIPLIER_CURVES.high[0]}x`);
-    expect(bins[13]!.textContent).toContain(`${MULTIPLIER_CURVES.high[13]}x`);
-    expect(bins[BIN_COUNT - 1]!.textContent).toContain(`${MULTIPLIER_CURVES.high[BIN_COUNT - 1]}x`);
+    // High edge is 60000 -> "60k×"; centre is the small loss value e.g. "0.71×"
+    expect(bins[0]!.textContent).toBe(`60k×`);
+    expect(bins[13]!.textContent).toBe(`${MULTIPLIER_CURVES.high[13]}×`);
+    expect(bins[BIN_COUNT - 1]!.textContent).toBe(`60k×`);
   });
 
   it('edge bins (0 + 26) are marked data-bin-edge="true"; interior bins false', () => {
