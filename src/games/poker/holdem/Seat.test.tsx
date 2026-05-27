@@ -190,4 +190,53 @@ describe('Seat', () => {
     expect(el.className).toContain('border-brass');
     expect(el.className).toContain('bg-velvet-deep');
   });
+
+  it('does not leak hand-category badge during play (no handRank prop)', () => {
+    const { container } = render(
+      <Seat
+        seat={makeSeat({
+          seatId: 1,
+          occupant: { archetype: 'rock', name: 'Bauta' },
+          holeCards: [
+            { rank: 14, suit: 'h' },
+            { rank: 13, suit: 's' },
+          ],
+        })}
+        isButton={false}
+        isSb={false}
+        isBb={false}
+        isActing={false}
+      />,
+    );
+    expect(container.querySelector('[data-seat-hand-category]')).toBeNull();
+  });
+
+  it('revealHoleCards + handRank renders the hand-category badge', () => {
+    const { container } = render(
+      <Seat
+        seat={makeSeat({
+          seatId: 1,
+          occupant: { archetype: 'rock', name: 'Bauta' },
+          holeCards: [
+            { rank: 14, suit: 'h' },
+            { rank: 13, suit: 's' },
+          ],
+        })}
+        isButton={false}
+        isSb={false}
+        isBb={false}
+        isActing={false}
+        revealHoleCards
+        handRank={{
+          category: 'pair',
+          categoryValue: 1,
+          tiebreakers: [14, 13, 12, 11, 10],
+          best5: [],
+        }}
+      />,
+    );
+    const badge = container.querySelector('[data-seat-hand-category="pair"]');
+    expect(badge).not.toBeNull();
+    expect(badge?.textContent).toBe('Pair');
+  });
 });

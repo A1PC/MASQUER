@@ -5,6 +5,8 @@ import CommunityBoard from './CommunityBoard';
 import BettingControls from './BettingControls';
 import SessionBar from './SessionBar';
 import ShowdownReveal, { type WinTier } from './ShowdownReveal';
+import { evaluateBest5 } from '../_shared/handEvaluator';
+import type { HandRank } from '../_shared/types';
 
 interface Props {
   ctx: PokerContext;
@@ -80,6 +82,11 @@ export default function PokerTable({
   const toCall = Math.max(0, currentBet - playerSeat.committedThisStreet);
 
   const isShowdown = stateValue === 'hand_complete' || stateValue === 'showdown';
+  // Post-hand window — covers true showdowns, fold-outs, and the leave-grace
+  // period that lingers in `idle` with a populated handResult. Used to reveal
+  // every AI's hole cards (so the player can see what they were up against)
+  // without leaking any info while a hand is in progress.
+  const isPostHand = isShowdown || (stateValue === 'idle' && handResult !== null);
   const highlightBoardIndices = boardHighlightIndices(handResult, board);
 
   const inHand =
@@ -95,13 +102,11 @@ export default function PokerTable({
         {/* AI seats row */}
         <div className="flex flex-wrap justify-center gap-3" data-ai-seats>
           {aiSeats.map((seat) => {
-            // At showdown, show revealed cards face-up if they're in revealedHands
-            const isRevealed =
-              isShowdown &&
-              handResult !== null &&
-              handResult.revealedHands.some((rh) => rh.seatId === seat.seatId);
+            // At showdown the machine populates `revealedHands` with the cards
+            // already known to the showdown logic. Prefer that source when
+            // present (it's the canonical reveal data).
             const revealedEntry =
-              isRevealed && handResult
+              isShowdown && handResult
                 ? handResult.revealedHands.find((rh) => rh.seatId === seat.seatId)
                 : null;
             const seatWithRevealedCards = revealedEntry
@@ -109,6 +114,21 @@ export default function PokerTable({
               : seat;
 
             const isWinner = handResult?.winners.some((w) => w.seatId === seat.seatId) ?? false;
+
+            // Post-hand: reveal every AI's hole cards (machine-revealed OR not)
+            // so the player can see what every opponent had — including the
+            // ones that folded. During play this stays false, so opponents'
+            // cards remain face-down and no hand-type info leaks.
+            const revealHoleCards = isPostHand && seat.holeCards.length === 2;
+
+            // Compute hand category for the AI when the board is complete.
+            // Pre-river fold-outs leave the board incomplete → no category
+            // shown (cards alone). Showdown-revealed entries that already
+            // carry a handRank (machine-computed) take precedence.
+            const handRank: HandRank | undefined = revealHoleCards
+              ? (revealedEntry?.handRank ??
+                (board.length === 5 ? evaluateBest5([...seat.holeCards, ...board]) : undefined))
+              : undefined;
 
             return (
               <Seat
@@ -118,7 +138,9 @@ export default function PokerTable({
                 isSb={seat.seatId === sbSeat}
                 isBb={seat.seatId === bbSeat}
                 isActing={inBettingState && toActSeat === seat.seatId}
-                {...(isRevealed ? { highlightCards: isWinner } : {})}
+                revealHoleCards={revealHoleCards}
+                {...(revealedEntry ? { highlightCards: isWinner } : {})}
+                {...(handRank ? { handRank } : {})}
                 position="top"
               />
             );
