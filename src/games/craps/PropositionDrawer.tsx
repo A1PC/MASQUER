@@ -28,6 +28,12 @@ interface Props {
   onRemove: (betId: string) => void;
 }
 
+/**
+ * Collapsible velvet-deep panel that houses the high-house-edge proposition
+ * spots (hardways, any-7/any-craps, the single-number props, horn, C&E). Brass
+ * hairline border, gold-bright section header. Closed by default to keep the
+ * main table area uncluttered until the player opts in.
+ */
 export default function PropositionDrawer({
   phase,
   point,
@@ -38,10 +44,10 @@ export default function PropositionDrawer({
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="rounded border border-purple-500/30 bg-purple-900/20">
+    <div className="rounded border border-brass/40 bg-velvet-deep">
       <button
         type="button"
-        className="flex w-full items-center justify-between px-3 py-2 font-display text-[10px] uppercase tracking-wider text-purple-300 hover:bg-purple-900/30"
+        className="flex w-full items-center justify-between px-3 py-2 font-display text-[10px] uppercase tracking-[0.18em] text-gold-bright hover:bg-velvet-deep/60"
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
         data-prop-drawer-toggle
