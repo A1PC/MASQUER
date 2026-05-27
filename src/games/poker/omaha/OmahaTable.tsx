@@ -4,11 +4,18 @@ import OmahaSeat from './OmahaSeat';
 import CommunityBoard from '../holdem/CommunityBoard';
 import BettingControls from '../holdem/BettingControls';
 import SessionBar from '../holdem/SessionBar';
-import ShowdownReveal from '../holdem/ShowdownReveal';
+import ShowdownReveal, { type WinTier } from '../holdem/ShowdownReveal';
+import type { SeatState } from '../holdem/machine';
+import { evaluateFrom } from '../_shared/handEvaluator';
+import type { HandRank } from '../_shared/types';
 
 interface Props {
   ctx: OmahaContext;
   stateValue: string;
+  /** Player-side win tier for the current hand. Drives the showdown stinger. */
+  winTier: WinTier;
+  /** Forwarded to ShowdownReveal — fires when the reveal animation finishes. */
+  onRevealComplete: () => void;
   onFold: () => void;
   onCheck: () => void;
   onCall: () => void;
@@ -52,13 +59,11 @@ function boardHighlightIndices(
   return board.map((c, i) => (best5Cards.has(`${c.rank}${c.suit}`) ? i : -1)).filter((i) => i >= 0);
 }
 
-// ShowdownReveal maps over revealedHands.holeCards generically — 4-card hands work fine.
-// The omaha HandResult and OmahaSeatState share the same structural shape as holdem's,
-// so no cast is needed; TypeScript accepts them directly.
-
 export default function OmahaTable({
   ctx,
   stateValue,
+  winTier,
+  onRevealComplete,
   onFold,
   onCheck,
   onCall,
@@ -79,6 +84,11 @@ export default function OmahaTable({
   const toCall = Math.max(0, currentBet - playerSeat.committedThisStreet);
 
   const isShowdown = stateValue === 'hand_complete' || stateValue === 'showdown';
+  // Post-hand window — covers true showdowns, fold-outs, and the leave-grace
+  // period that lingers in `idle` with a populated handResult. Used to reveal
+  // every AI's 4 hole cards (so the player can see what they were up against)
+  // without leaking any info while a hand is in progress.
+  const isPostHand = isShowdown || (stateValue === 'idle' && handResult !== null);
   const highlightBoardIndices = boardHighlightIndices(handResult, board);
 
   const inHand =
@@ -87,20 +97,22 @@ export default function OmahaTable({
     stateValue === 'advance_street' ||
     stateValue === 'showdown';
 
+  // Cast OmahaSeatState[] → SeatState[] for ShowdownReveal (structurally compatible).
+  // ShowdownReveal is generic over revealedHands.holeCards.length — 4-card hands render fine.
+  const holdemSeats = seats as unknown as SeatState[];
+
   return (
-    <div className="flex min-h-screen bg-felt-deep text-white">
-      {/* Main table area */}
-      <div className="flex flex-1 flex-col gap-4 p-4">
+    <div className="flex flex-1 gap-4 text-ivory">
+      {/* Main table area — oval-felt brass-edged backdrop */}
+      <div className="flex flex-1 flex-col gap-4 rounded-[3rem] border border-brass/60 bg-felt-table-deep p-6">
         {/* AI seats row */}
         <div className="flex flex-wrap justify-center gap-3" data-ai-seats>
           {aiSeats.map((seat) => {
-            // At showdown, show revealed cards face-up if they're in revealedHands
-            const isRevealed =
-              isShowdown &&
-              handResult !== null &&
-              handResult.revealedHands.some((rh) => rh.seatId === seat.seatId);
+            // At showdown the machine populates `revealedHands` with the cards
+            // already known to the showdown logic. Prefer that source when
+            // present (it's the canonical reveal data).
             const revealedEntry =
-              isRevealed && handResult
+              isShowdown && handResult
                 ? handResult.revealedHands.find((rh) => rh.seatId === seat.seatId)
                 : null;
             const seatWithRevealedCards = revealedEntry
@@ -108,6 +120,24 @@ export default function OmahaTable({
               : seat;
 
             const isWinner = handResult?.winners.some((w) => w.seatId === seat.seatId) ?? false;
+
+            // Post-hand: reveal every AI's 4 hole cards (machine-revealed OR not)
+            // so the player can see what every opponent had — including the
+            // ones that folded. During play this stays false, so opponents'
+            // cards remain face-down and no hand-type info leaks.
+            const revealHoleCards = isPostHand && seat.holeCards.length === 4;
+
+            // Omaha rule: must use exactly 2 of 4 hole cards + exactly 3 of 5
+            // board cards. evaluateFrom(holeCards, board, 'omaha') enforces this;
+            // do NOT use evaluateBest5([...holeCards, ...board]) — that would
+            // allow 0/1/3/4 hole cards which is illegal in Omaha. Pre-river
+            // fold-outs leave the board incomplete → skip the category.
+            // Showdown-revealed entries that already carry a handRank
+            // (machine-computed) take precedence.
+            const handRank: HandRank | undefined = revealHoleCards
+              ? (revealedEntry?.handRank ??
+                (board.length === 5 ? evaluateFrom(seat.holeCards, board, 'omaha') : undefined))
+              : undefined;
 
             return (
               <OmahaSeat
@@ -117,7 +147,9 @@ export default function OmahaTable({
                 isSb={seat.seatId === sbSeat}
                 isBb={seat.seatId === bbSeat}
                 isActing={inBettingState && toActSeat === seat.seatId}
-                {...(isRevealed ? { highlightCards: isWinner } : {})}
+                revealHoleCards={revealHoleCards}
+                {...(revealedEntry ? { highlightCards: isWinner } : {})}
+                {...(handRank ? { handRank } : {})}
                 position="top"
               />
             );
@@ -141,13 +173,18 @@ export default function OmahaTable({
         {isShowdown && handResult && (
           <div className="flex justify-center">
             <div className="w-full max-w-lg">
-              <ShowdownReveal handResult={handResult} seats={seats} />
+              <ShowdownReveal
+                handResult={handResult}
+                seats={holdemSeats}
+                winTier={winTier}
+                onRevealComplete={onRevealComplete}
+              />
             </div>
           </div>
         )}
 
         {/* Player seat + betting controls */}
-        <div className="flex justify-center gap-4" data-player-area>
+        <div className="flex flex-wrap items-end justify-center gap-4" data-player-area>
           <OmahaSeat
             seat={playerSeat}
             isButton={playerSeat.seatId === buttonSeat}
@@ -173,7 +210,7 @@ export default function OmahaTable({
       </div>
 
       {/* Session bar — right rail */}
-      <aside className="w-44 shrink-0 border-l border-gold/20 p-3">
+      <aside className="w-44 shrink-0">
         <SessionBar
           stack={playerSeat.stack}
           totalBoughtIn={ctx.totalBoughtIn}
