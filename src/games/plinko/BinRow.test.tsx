@@ -29,7 +29,7 @@ describe('BinRow', () => {
 
   it('each bin is positioned at binCentreX(idx)% via inline style', () => {
     const { container } = render(<BinRow risk="medium" />);
-    const bins = container.querySelectorAll('[data-bin]');
+    const bins = container.querySelectorAll<HTMLElement>('[data-bin]');
     bins.forEach((el, idx) => {
       expect(el.style.left).toBe(`${binCentreX(idx)}%`);
     });
