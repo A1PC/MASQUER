@@ -11,6 +11,7 @@ const NAV_ITEMS = [
   { to: '/admin/bingo', label: 'Bingo', end: false },
   { to: '/admin/roulette', label: 'Roulette', end: false },
   { to: '/admin/slots', label: 'Slots', end: false },
+  { to: '/admin/poker', label: 'Poker', end: false },
   { to: '/admin/plinko', label: 'Plinko', end: false },
   { to: '/admin/baccarat', label: 'Baccarat', end: false },
 ] as const;

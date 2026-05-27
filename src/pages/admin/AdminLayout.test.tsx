@@ -21,6 +21,7 @@ function renderLayoutAt(initial: string) {
           { path: 'sessions', element: <div>sessions content</div> },
           { path: 'roulette', element: <div>roulette content</div> },
           { path: 'slots', element: <div>slots content</div> },
+          { path: 'poker', element: <div>poker content</div> },
           { path: 'plinko', element: <div>plinko content</div> },
           { path: 'baccarat', element: <div>baccarat content</div> },
         ],
@@ -61,6 +62,7 @@ describe('AdminLayout', () => {
       '/admin/roulette',
     );
     expect(screen.getByRole('link', { name: /^slots$/i })).toHaveAttribute('href', '/admin/slots');
+    expect(screen.getByRole('link', { name: /^poker$/i })).toHaveAttribute('href', '/admin/poker');
     expect(screen.getByRole('link', { name: /^plinko$/i })).toHaveAttribute(
       'href',
       '/admin/plinko',
@@ -97,6 +99,23 @@ describe('AdminLayout', () => {
     const link = screen.getByRole('link', { name: /^plinko$/i });
     expect(link).toHaveAttribute('aria-current', 'page');
     expect(screen.getByText('plinko content')).toBeInTheDocument();
+  });
+
+  it('marks the Poker nav link active on /admin/poker', () => {
+    renderLayoutAt('/admin/poker');
+    const link = screen.getByRole('link', { name: /^poker$/i });
+    expect(link).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByText('poker content')).toBeInTheDocument();
+  });
+
+  it('places the Poker nav entry between Slots and Plinko', () => {
+    renderLayoutAt('/admin');
+    const slots = screen.getByRole('link', { name: /^slots$/i });
+    const poker = screen.getByRole('link', { name: /^poker$/i });
+    const plinko = screen.getByRole('link', { name: /^plinko$/i });
+    // DOCUMENT_POSITION_FOLLOWING (4) = b comes after a in the DOM.
+    expect(slots.compareDocumentPosition(poker) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(poker.compareDocumentPosition(plinko) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it('marks the active nav link with aria-current=page', () => {
