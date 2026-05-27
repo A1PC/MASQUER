@@ -32,8 +32,10 @@ export default function ChipTray({
   disabled = false,
 }: Props): JSX.Element {
   return (
-    <div className="flex flex-wrap items-center gap-3 rounded-lg border border-gold/20 bg-felt-deep/80 px-4 py-2">
-      <span className="mr-1 text-[11px] uppercase tracking-wider text-white/50">Chip:</span>
+    <div className="flex flex-wrap items-center gap-3 rounded-lg border border-brass/60 bg-velvet-deep px-4 py-2">
+      <span className="mr-1 font-display text-[11px] uppercase tracking-[0.18em] text-ivory/55">
+        Chip:
+      </span>
       {chips.map((denom) => {
         const palette = CHIP_COLORS[denom] ?? { bg: '#555', ring: '#fff', text: '#fff' };
         const isSelected = denom === selected;
@@ -61,9 +63,9 @@ export default function ChipTray({
           </button>
         );
       })}
-      <div className="ml-auto flex items-center gap-1 text-[11px] text-white/50">
+      <div className="ml-auto flex items-center gap-1 text-[11px] text-ivory/55">
         <span>Bankroll:</span>
-        <span className="font-mono tabular-nums text-gold" data-bankroll>
+        <span className="font-mono tabular-nums text-gold-bright" data-bankroll>
           {bankroll.toLocaleString()}
         </span>
       </div>

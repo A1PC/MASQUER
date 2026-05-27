@@ -1,5 +1,6 @@
 import type { JSX } from 'react';
-import { motion, useReducedMotion } from 'framer-motion';
+import { motion } from 'framer-motion';
+import { useEffectiveReducedMotion } from '@/motion/useEffectiveReducedMotion';
 import type { Roll } from './dice';
 
 // Pip positions for each face value (row,col in a 3x3 grid; 0-indexed)
@@ -46,7 +47,7 @@ function DieFace({ face, 'data-die': dataDie }: DieFaceProps): JSX.Element {
   const pips = PIP_LAYOUTS[face] ?? PIP_LAYOUTS[1]!;
   return (
     <div
-      className="relative h-14 w-14 rounded-lg bg-white shadow-lg"
+      className="relative h-14 w-14 rounded-lg border-2 border-brass bg-gradient-to-br from-ivory via-ivory to-[#e2d4b6] shadow-lg"
       data-die={dataDie}
       data-face={face}
       style={{ boxShadow: '0 3px 10px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.8)' }}
@@ -59,9 +60,7 @@ function DieFace({ face, 'data-die': dataDie }: DieFaceProps): JSX.Element {
           const hasPip = pips.some(([r, c]) => r === row && c === col);
           return (
             <div key={i} className="flex items-center justify-center">
-              {hasPip && (
-                <div className="h-2.5 w-2.5 rounded-full" style={{ background: '#b3122a' }} />
-              )}
+              {hasPip && <div className="h-2.5 w-2.5 rounded-full bg-gold-bright" />}
             </div>
           );
         })}
@@ -75,7 +74,7 @@ interface DiceProps {
 }
 
 export default function Dice({ roll }: DiceProps): JSX.Element {
-  const reduce = useReducedMotion();
+  const reduce = useEffectiveReducedMotion();
 
   const d1 = roll?.d1 ?? 1;
   const d2 = roll?.d2 ?? 1;

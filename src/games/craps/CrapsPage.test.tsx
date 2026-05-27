@@ -3,10 +3,13 @@
  *
  * Strategy:
  *  - fake-indexeddb + wallet hydrated with 5_000 chips
- *  - useReducedMotion mocked → true (instant animations)
- *  - rollDice stubbed to a fixed sequence: [4,2]→6 (come-out sets point 6), then [3,3]→6 (point made → win)
- *  - Player sits down (Low tier) → places pass-line bet → rolls to set point → rolls point → win
- *  - LEAVE TABLE → assert one rounds row: game='craps', stake=buyIn, payout=finalBankroll
+ *  - useEffectiveReducedMotion mocked → true (instant animations)
+ *  - useSound mocked → no-op play
+ *  - rollDice stubbed to a deterministic sequence so we can exercise:
+ *      come-out point set → point made (POINT MADE banner)
+ *      come-out point set → seven-out (SEVEN OUT banner)
+ *  - Player sits down (Low tier) → places pass-line bet → drives rolls →
+ *    LEAVE TABLE → CONFIRM LEAVE → assert one rounds row.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import 'fake-indexeddb/auto';
@@ -19,22 +22,31 @@ import { resetDb } from '@/test/db-helpers';
 import { useSessionStore } from '@/store/sessionStore';
 import { useWalletStore } from '@/store/walletStore';
 
-// Zero animation delay
+// Zero animation delay across both Framer's hook and the project hook.
+vi.mock('@/motion/useEffectiveReducedMotion', () => ({
+  useEffectiveReducedMotion: () => true,
+}));
 vi.mock('framer-motion', async (importOriginal) => {
   // eslint-disable-next-line @typescript-eslint/consistent-type-imports
   const actual = await importOriginal<typeof import('framer-motion')>();
   return { ...actual, useReducedMotion: () => true };
 });
+// Stub useSound — no-op play; spies let individual tests assert if needed.
+vi.mock('@/systems/sound/useSound', () => ({
+  useSound: () => ({ play: vi.fn() }),
+}));
 
-// Stub rollDice to a fixed sequence so the point lands deterministically
-// Sequence: [4,2]→6 (come-out → sets point 6), [3,3]→6 (point phase → point made, win)
-const rollSequence = [
+// Default deterministic sequence:
+//   [4,2]→6 (come-out → sets point 6)
+//   [3,3]→6 (point made → win)
+//   [3,4]→7 fallback for any edge case
+const DEFAULT_SEQUENCE = [
   { d1: 4, d2: 2, total: 6, isHard: false },
   { d1: 3, d2: 3, total: 6, isHard: true },
-  // fallback: any-7 to settle any edge case
   { d1: 3, d2: 4, total: 7, isHard: false },
   { d1: 3, d2: 4, total: 7, isHard: false },
 ];
+let rollSequence = [...DEFAULT_SEQUENCE];
 let rollIdx = 0;
 
 vi.mock('./dice', async (importOriginal) => {
@@ -55,6 +67,7 @@ const BUY_IN = 200; // Low tier min buy-in
 
 beforeEach(async () => {
   rollIdx = 0;
+  rollSequence = [...DEFAULT_SEQUENCE];
   await resetDb();
   useSessionStore.setState({
     currentUser: {
@@ -85,8 +98,41 @@ function renderPage() {
   );
 }
 
+/** Drive the LEAVE flow through the new confirm modal. */
+async function leaveAndConfirm() {
+  await userEvent.click(screen.getByRole('button', { name: /LEAVE TABLE/i }));
+  await waitFor(
+    () => {
+      expect(screen.getByText('LEAVE TABLE?')).toBeInTheDocument();
+    },
+    { timeout: 3_000 },
+  );
+  await userEvent.click(screen.getByRole('button', { name: /CONFIRM LEAVE/i }));
+}
+
 describe('CrapsPage', () => {
-  it('renders SetupPanel initially with CRAPS title and SIT DOWN button', () => {
+  it('renders the MASQUER · Craps chrome with title + LobbyButton + odds header', () => {
+    renderPage();
+    expect(screen.getByRole('heading', { level: 1, name: /MASQUER · Craps/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /BACK TO LOBBY/i })).toBeInTheDocument();
+    expect(document.querySelector('[data-craps-odds]')).toBeTruthy();
+  });
+
+  it('page root uses h-full (NOT min-h-screen)', () => {
+    const { container } = renderPage();
+    const root = container.firstChild as HTMLElement;
+    expect(root.className).toContain('h-full');
+    expect(root.className).not.toContain('min-h-screen');
+  });
+
+  it('opens + closes the rules modal via RulesButton', async () => {
+    renderPage();
+    await userEvent.click(screen.getByRole('button', { name: /RULES/i }));
+    await waitFor(() => expect(screen.getByText('OBJECT')).toBeInTheDocument());
+    expect(screen.getByText(/PASS LINE/)).toBeInTheDocument();
+  });
+
+  it('SetupPanel renders CRAPS title and SIT DOWN button', () => {
     renderPage();
     expect(screen.getByText('CRAPS')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /SIT DOWN/i })).toBeInTheDocument();
@@ -113,7 +159,6 @@ describe('CrapsPage', () => {
 
     await waitFor(
       () => {
-        expect(screen.getByTestId !== undefined); // RTL available
         expect(screen.getByRole('button', { name: /LEAVE TABLE/i })).toBeInTheDocument();
         expect(screen.getByRole('button', { name: /ROLL/i })).toBeInTheDocument();
       },
@@ -121,50 +166,111 @@ describe('CrapsPage', () => {
     );
   });
 
-  it('full session: sit → pass-line → roll point → roll again → win → LEAVE → rounds row', async () => {
+  it('full session: sit → pass-line → roll point → roll again → win → CONFIRM LEAVE → rounds row', async () => {
     renderPage();
 
-    // Sit down on Low table
+    // Sit down on Low table.
     await userEvent.click(screen.getByRole('button', { name: /SIT DOWN/i }));
     await waitFor(() => expect(screen.getByRole('button', { name: /ROLL/i })).toBeInTheDocument(), {
       timeout: 3_000,
     });
 
-    // Place a pass-line bet (the Pass Line spot is clickable on come-out)
+    // Place a pass-line bet (the Pass Line spot is clickable on come-out).
     const passSpot = document.querySelector('[data-bet-spot="pass"]');
     expect(passSpot).toBeTruthy();
     if (passSpot) await userEvent.click(passSpot);
 
-    // Roll 1: [4,2]→6 → sets point to 6 (bankroll reduced by pass-line bet of 10)
+    // Roll 1: [4,2]→6 → sets point to 6 (pass bet remains as 'standing').
     await userEvent.click(screen.getByRole('button', { name: /ROLL/i }));
 
-    // Roll 2: [3,3]→6 → point made! Pass line wins (1:1). bankroll goes up.
+    // Roll 2: [3,3]→6 → point made! Pass line wins (1:1) → bankroll up.
     await userEvent.click(screen.getByRole('button', { name: /ROLL/i }));
 
-    // Leave table
-    await userEvent.click(screen.getByRole('button', { name: /LEAVE TABLE/i }));
+    // POINT MADE banner should appear briefly.
+    await waitFor(
+      () => {
+        const banner = document.querySelector('[data-outcome-banner-kind]');
+        expect(banner?.getAttribute('data-outcome-banner-kind')).toBe('point-made');
+      },
+      { timeout: 3_000 },
+    );
 
-    // Wait for session_over screen
+    // Leave via the new confirm modal.
+    await leaveAndConfirm();
+
+    // SESSION OVER screen renders.
     await waitFor(() => expect(screen.getByText(/SESSION OVER/i)).toBeInTheDocument(), {
       timeout: 5_000,
     });
 
-    // Assert rounds row in DB
+    // Rounds row assertions.
     await waitFor(
       async () => {
         const rows = await db.rounds.toArray();
         expect(rows).toHaveLength(1);
         const row = rows[0]!;
         expect(row.game).toBe('craps');
-        expect(row.betAmount).toBe(BUY_IN); // stake = totalBoughtIn
-        expect(row.payout).toBeGreaterThan(0); // payout = finalBankroll
+        expect(row.betAmount).toBe(BUY_IN);
+        expect(row.payout).toBeGreaterThan(0);
         expect(row.netChange).toBe(row.payout - row.betAmount);
         const details = row.details as Record<string, unknown>;
         expect(details.tier).toBe('low');
         expect(details.rollsPlayed).toBe(2);
+        // Additive PR-A field — present after at least one PLACE_BET.
+        const wagered = details.betTypeWagered as Record<string, number>;
+        expect(wagered).toBeTypeOf('object');
+        expect(wagered.pass).toBe(10); // selected chip = 10 (Low default)
       },
       { timeout: 5_000 },
     );
+  }, 30_000);
+
+  it('SEVEN-OUT banner fires when point phase ends on a 7', async () => {
+    // Override the dice sequence: come-out 6 (sets point), then 7 (seven-out).
+    rollSequence = [
+      { d1: 4, d2: 2, total: 6, isHard: false },
+      { d1: 3, d2: 4, total: 7, isHard: false },
+      { d1: 3, d2: 4, total: 7, isHard: false },
+    ];
+    renderPage();
+    await userEvent.click(screen.getByRole('button', { name: /SIT DOWN/i }));
+    await waitFor(() => expect(screen.getByRole('button', { name: /ROLL/i })).toBeInTheDocument(), {
+      timeout: 3_000,
+    });
+
+    // Place a pass-line bet so the seven-out resolves a real loss.
+    const passSpot = document.querySelector('[data-bet-spot="pass"]');
+    if (passSpot) await userEvent.click(passSpot);
+
+    await userEvent.click(screen.getByRole('button', { name: /ROLL/i })); // sets point 6
+    await userEvent.click(screen.getByRole('button', { name: /ROLL/i })); // seven-out
+
+    await waitFor(
+      () => {
+        const banner = document.querySelector('[data-outcome-banner-kind]');
+        expect(banner?.getAttribute('data-outcome-banner-kind')).toBe('seven-out');
+      },
+      { timeout: 3_000 },
+    );
+  }, 30_000);
+
+  it('LEAVE TABLE click opens the confirm modal; CANCEL keeps the session', async () => {
+    renderPage();
+    await userEvent.click(screen.getByRole('button', { name: /SIT DOWN/i }));
+    await waitFor(
+      () => expect(screen.getByRole('button', { name: /LEAVE TABLE/i })).toBeInTheDocument(),
+      { timeout: 3_000 },
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: /LEAVE TABLE/i }));
+    await waitFor(() => expect(screen.getByText('LEAVE TABLE?')).toBeInTheDocument());
+
+    await userEvent.click(screen.getByRole('button', { name: /CANCEL/i }));
+    await waitFor(() => {
+      expect(screen.queryByText('LEAVE TABLE?')).toBeNull();
+    });
+    // Still seated.
+    expect(screen.getByRole('button', { name: /ROLL/i })).toBeInTheDocument();
   }, 30_000);
 
   it('PLAY AGAIN after SESSION OVER returns to SetupPanel', async () => {
@@ -175,7 +281,7 @@ describe('CrapsPage', () => {
       { timeout: 3_000 },
     );
 
-    await userEvent.click(screen.getByRole('button', { name: /LEAVE TABLE/i }));
+    await leaveAndConfirm();
     await waitFor(() => expect(screen.getByText(/SESSION OVER/i)).toBeInTheDocument(), {
       timeout: 5_000,
     });
@@ -218,10 +324,8 @@ describe('PointPuck component', () => {
       timeout: 3_000,
     });
 
-    // Initially puck is OFF
     expect(document.querySelector('[data-puck="off"]')).toBeTruthy();
 
-    // Roll [4,2]→6 sets point
     await userEvent.click(screen.getByRole('button', { name: /ROLL/i }));
     await waitFor(
       () => {
@@ -240,11 +344,9 @@ describe('BetSpot component', () => {
       timeout: 3_000,
     });
 
-    // Pass line is enabled on come-out
     const passSpot = document.querySelector('[data-bet-spot="pass"]');
     expect(passSpot?.getAttribute('data-disabled')).toBe('false');
 
-    // Roll [4,2]→6 → now in point phase → pass line disabled
     await userEvent.click(screen.getByRole('button', { name: /ROLL/i }));
     await waitFor(
       () => {
@@ -254,4 +356,28 @@ describe('BetSpot component', () => {
       { timeout: 3_000 },
     );
   });
+
+  it('BetSpot gets a flashTone after a roll resolves', async () => {
+    renderPage();
+    await userEvent.click(screen.getByRole('button', { name: /SIT DOWN/i }));
+    await waitFor(() => expect(screen.getByRole('button', { name: /ROLL/i })).toBeInTheDocument(), {
+      timeout: 3_000,
+    });
+
+    // Place a pass-line bet, then roll [4,2]→6. The pass line bet stands
+    // (no flash). Then roll [3,3]→6 → point made; pass wins → flash 'win'.
+    const passSpot = document.querySelector('[data-bet-spot="pass"]');
+    if (passSpot) await userEvent.click(passSpot);
+
+    await userEvent.click(screen.getByRole('button', { name: /ROLL/i })); // point set
+    await userEvent.click(screen.getByRole('button', { name: /ROLL/i })); // point made — win
+
+    await waitFor(
+      () => {
+        const passAfter = document.querySelector('[data-bet-spot="pass"]');
+        expect(passAfter?.getAttribute('data-flash-tone')).toBe('win');
+      },
+      { timeout: 3_000 },
+    );
+  }, 30_000);
 });
