@@ -1,16 +1,23 @@
 import type { JSX } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useMachine } from '@xstate/react';
-import { useReducedMotion } from 'framer-motion';
 import { useCurrentUser } from '@/store/sessionStore';
 import { useBalance } from '@/store/walletStore';
 import { useGameRound } from '@/games/_shared/useGameRound';
+import LobbyButton from '@/games/_shared/LobbyButton';
+import RulesButton from '@/games/_shared/RulesButton';
+import { useSound } from '@/systems/sound/useSound';
+import { useEffectiveReducedMotion } from '@/motion/useEffectiveReducedMotion';
 import type { BetHandle } from '@/systems/wallet';
 import type { Archetype } from '../_shared/ai/archetypes';
 import { decideOmaha } from '../_shared/ai/decideOmaha';
+import { assignMaskName } from '../_shared/maskNames';
+import PokerOddsHeader from '../_shared/PokerOddsHeader';
+import PokerRulesModal from '../_shared/PokerRulesModal';
 import { omahaMachine, type MachineInput, type OmahaContext } from './machine';
 import SetupPanel from '../holdem/SetupPanel';
 import OmahaTable from './OmahaTable';
+import type { WinTier } from '../holdem/ShowdownReveal';
 
 // ── Seeded mulberry32 (same algo as deck.ts, but per-session) ────────────────
 
@@ -38,13 +45,6 @@ function pickArchetype(rng: () => number): Archetype {
   return archetypes[Math.floor(rng() * archetypes.length)]!;
 }
 
-const ARCHETYPE_NAMES: Record<Archetype, string> = {
-  rock: 'Rock',
-  station: 'Station',
-  maniac: 'Maniac',
-  shark: 'Shark',
-};
-
 function buildMachineInput(
   sessionId: string,
   buyIn: number,
@@ -52,9 +52,12 @@ function buildMachineInput(
   stakes: { sb: number; bb: number },
   rng: () => number,
 ): MachineInput {
+  // Mask names mask the archetype from the player — `decideOmaha()` still
+  // gets the real archetype internally; the UI only ever sees the mask name.
+  const maskNames = assignMaskName(rng, tableSize);
   const aiArchetypes = Array.from({ length: tableSize - 1 }, (_, i) => {
     const archetype = pickArchetype(rng);
-    const name = `${ARCHETYPE_NAMES[archetype]} ${i + 1}`;
+    const name = maskNames[i]!;
     const stack = stakes.bb * 80;
     return { archetype, name, stack };
   });
@@ -62,7 +65,18 @@ function buildMachineInput(
 }
 
 function makeSessionId(): string {
-  return `omaha-${Date.now()}-${Math.floor(mulberry32(stringSeed(String(Date.now())))() * 1_000_000)}`;
+  const seedBuf = new Uint32Array(1);
+  crypto.getRandomValues(seedBuf);
+  return `omaha-${Date.now()}-${seedBuf[0]!}`;
+}
+
+/** Win-tier classification per spec §4.4 (mirrors HoldemPage). */
+function pickWinTier(wonAmount: number, committed: number): WinTier {
+  if (wonAmount <= 0) return 'loss';
+  const ratio = wonAmount / Math.max(1, committed);
+  if (ratio >= 20) return 'jackpot';
+  if (ratio >= 2) return 'medium';
+  return 'small';
 }
 
 interface SitDownConfig {
@@ -88,13 +102,31 @@ interface OmahaSessionProps {
 function OmahaSession({ session, onSessionOver, onReset }: OmahaSessionProps): JSX.Element {
   const { placeBet, settle } = useGameRound('poker');
   const balance = useBalance();
-  const reduce = useReducedMotion();
+  const reduce = useEffectiveReducedMotion();
+  const { play } = useSound();
   const rngRef = useRef(session.rng);
   const handleRef = useRef(session.handle);
   const settledRef = useRef(false);
 
   const [snapshot, send] = useMachine(omahaMachine, { input: session.input });
   const startedRef = useRef(false);
+
+  // Reveal-complete gate for auto-next-hand. Reset on every new hand_complete.
+  const [revealComplete, setRevealComplete] = useState(false);
+  const lastHandNumberRef = useRef<number>(snapshot.context.handNumber);
+  const playerStartStackRef = useRef<number>(session.input.buyIn);
+
+  // Between-hands grace period — gives the player 15s to read the table and
+  // leave before the next hand auto-deals. Banner with the outcome shows for
+  // the first 3s then fades, leaving the leave-vs-deal-now controls.
+  const LEAVE_GRACE_MS = 15_000;
+  const OUTCOME_BANNER_MS = 3_000;
+  const [graceRemainingMs, setGraceRemainingMs] = useState<number | null>(null);
+  const [outcomeBannerVisible, setOutcomeBannerVisible] = useState(false);
+
+  // Prior-state tracking for sound transitions.
+  const prevStateValueRef = useRef<string>('idle');
+  const prevStreetRef = useRef<string>('preflop');
 
   // ── Initial START_HAND ─────────────────────────────────────────────────────
   useEffect(() => {
@@ -104,26 +136,87 @@ function OmahaSession({ session, onSessionOver, onReset }: OmahaSessionProps): J
     send({ type: 'START_HAND' });
   }, [snapshot, send]);
 
-  // ── Auto-next-hand after idle (post hand_complete) ────────────────────────
+  // ── Reset reveal-complete gate at the start of every new hand ─────────────
+  useEffect(() => {
+    if (snapshot.context.handNumber !== lastHandNumberRef.current) {
+      lastHandNumberRef.current = snapshot.context.handNumber;
+      setRevealComplete(false);
+      setGraceRemainingMs(null);
+      setOutcomeBannerVisible(false);
+      // Capture player's stack at hand start to compute win-tier on completion.
+      const playerSeat = snapshot.context.seats.find((s) => s.seatId === 0);
+      if (playerSeat) {
+        playerStartStackRef.current = playerSeat.stack + playerSeat.committedThisHand;
+      }
+    }
+  }, [snapshot.context.handNumber, snapshot.context.seats]);
+
+  // ── 3s outcome banner ────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!outcomeBannerVisible) return;
+    const t = setTimeout(() => setOutcomeBannerVisible(false), OUTCOME_BANNER_MS);
+    return () => clearTimeout(t);
+  }, [outcomeBannerVisible, OUTCOME_BANNER_MS]);
+
+  // ── Fallback grace-period trigger ───────────────────────────────────────
+  // ShowdownReveal mounts only while the machine state is `'showdown'` or
+  // `'hand_complete'`. The latter is an `always` transition straight to
+  // `'idle'`, so uncontested wins may never mount the reveal component →
+  // its `onRevealComplete` never fires → grace never starts. This effect
+  // independently kicks the grace period once the machine settles into
+  // `idle` post-hand. If ShowdownReveal does mount and call back first,
+  // the `revealComplete` guard makes this a no-op.
+  useEffect(() => {
+    if (revealComplete) return;
+    if (!startedRef.current) return;
+    if (!snapshot.matches('idle')) return;
+    if (snapshot.context.handsPlayed === 0) return;
+    if (!snapshot.context.handResult) return;
+    const t = setTimeout(() => {
+      setRevealComplete(true);
+      setGraceRemainingMs(LEAVE_GRACE_MS);
+      setOutcomeBannerVisible(true);
+    }, 100);
+    return () => clearTimeout(t);
+  }, [snapshot, revealComplete, LEAVE_GRACE_MS]);
+
+  // ── Between-hands countdown tick ─────────────────────────────────────────
+  useEffect(() => {
+    if (graceRemainingMs === null) return;
+    if (graceRemainingMs <= 0) return;
+    const t = setTimeout(() => {
+      setGraceRemainingMs((ms) => (ms === null ? null : Math.max(0, ms - 1000)));
+    }, 1000);
+    return () => clearTimeout(t);
+  }, [graceRemainingMs]);
+
+  // ── Auto-next-hand after idle (post hand_complete) — gated on revealComplete
+  //     AND the 15s leave-grace countdown reaching 0
   useEffect(() => {
     if (!startedRef.current) return;
     if (!snapshot.matches('idle')) return;
     if (snapshot.context.handsPlayed === 0) return;
+    if (!revealComplete) return;
+    if (graceRemainingMs === null || graceRemainingMs > 0) return;
 
-    const t = setTimeout(() => {
-      for (const seat of snapshot.context.seats) {
-        if (seat.seatId !== 0 && seat.status === 'busted') {
-          const rng = rngRef.current;
-          const archetype = pickArchetype(rng);
-          const name = `${ARCHETYPE_NAMES[archetype]} ${seat.seatId}`;
-          const stack = snapshot.context.stakes.bb * 80;
-          send({ type: 'RESEAT_AI', seatId: seat.seatId, archetype, name, stack });
-        }
+    for (const seat of snapshot.context.seats) {
+      if (seat.seatId !== 0 && seat.status === 'busted') {
+        const rng = rngRef.current;
+        const archetype = pickArchetype(rng);
+        // Assign a fresh single mask name for the reseat.
+        const [name] = assignMaskName(rng, 2);
+        const stack = snapshot.context.stakes.bb * 80;
+        send({ type: 'RESEAT_AI', seatId: seat.seatId, archetype, name: name ?? 'Bauta', stack });
       }
-      send({ type: 'START_HAND' });
-    }, 1_200);
+    }
+    send({ type: 'START_HAND' });
+    // Reset the grace gate via a microtask so the state update lands outside
+    // the effect body (per react-hooks/set-state-in-effect). The handNumber
+    // reset-effect will also clear graceRemainingMs once the new hand starts;
+    // this guards against re-firing in the gap before that effect runs.
+    const t = setTimeout(() => setGraceRemainingMs(null), 0);
     return () => clearTimeout(t);
-  }, [snapshot, send]);
+  }, [snapshot, send, revealComplete, graceRemainingMs]);
 
   // ── AI turn driver ────────────────────────────────────────────────────────
   useEffect(() => {
@@ -184,6 +277,58 @@ function OmahaSession({ session, onSessionOver, onReset }: OmahaSessionProps): J
     return () => clearTimeout(t);
   }, [snapshot, send, reduce]);
 
+  // ── Sound: state-transition driven (mirrors HoldemPage taxonomy) ──────────
+  // Entering posting_blinds → SB + BB chip placements + initial 4-card deal
+  // stagger (one card.deal per seat, capped ~12/sec so a 6-player table's
+  // 24-card deal stays sane). Entering advance_street flop → 3 staggered
+  // card.deal. Entering advance_street turn/river → single card.deal.
+  useEffect(() => {
+    const stateValue = typeof snapshot.value === 'string' ? snapshot.value : 'idle';
+    const prev = prevStateValueRef.current;
+    const prevStreet = prevStreetRef.current;
+    const curStreet = snapshot.context.street;
+
+    // Entering posting_blinds — SB + BB chip placements + per-seat 4-card deal stagger.
+    if (stateValue === 'posting_blinds' && prev !== 'posting_blinds') {
+      play('chip.place');
+      const tBb = setTimeout(() => play('chip.place'), 80);
+      // 4 cards per active seat. Stagger 80ms per seat to keep audio rate sane
+      // even at 6-max (5 AI × 4 = 20 cards capped ~12/sec).
+      const activeSeats = snapshot.context.seats.filter(
+        (s) => s.status === 'active' || s.status === 'all-in',
+      ).length;
+      const timers: ReturnType<typeof setTimeout>[] = [];
+      for (let i = 0; i < activeSeats; i += 1) {
+        timers.push(setTimeout(() => play('card.deal'), 200 + i * 80));
+      }
+      prevStateValueRef.current = stateValue;
+      prevStreetRef.current = curStreet;
+      return () => {
+        clearTimeout(tBb);
+        timers.forEach(clearTimeout);
+      };
+    }
+
+    // Street advanced (flop/turn/river) — board card(s) dealt.
+    if (stateValue === 'betting' && prev === 'advance_street' && curStreet !== prevStreet) {
+      if (curStreet === 'flop') {
+        // 3 staggered card.deal sounds.
+        const timers: ReturnType<typeof setTimeout>[] = [];
+        for (let i = 0; i < 3; i += 1) {
+          timers.push(setTimeout(() => play('card.deal'), i * 120));
+        }
+        prevStateValueRef.current = stateValue;
+        prevStreetRef.current = curStreet;
+        return () => timers.forEach(clearTimeout);
+      }
+      play('card.deal');
+    }
+
+    prevStateValueRef.current = stateValue;
+    prevStreetRef.current = curStreet;
+    return undefined;
+  }, [snapshot.value, snapshot.context.street, play, snapshot]);
+
   // ── Settle helper ─────────────────────────────────────────────────────────
   const doSettle = useCallback(
     async (ctx: OmahaContext) => {
@@ -230,13 +375,23 @@ function OmahaSession({ session, onSessionOver, onReset }: OmahaSessionProps): J
     return () => window.removeEventListener('beforeunload', handleUnload);
   }, [snapshot, doSettle]);
 
-  // ── Betting actions ───────────────────────────────────────────────────────
-  const handleFold = useCallback(() => send({ type: 'PLAYER_ACTION', action: 'fold' }), [send]);
-  const handleCheck = useCallback(() => send({ type: 'PLAYER_ACTION', action: 'check' }), [send]);
-  const handleCall = useCallback(() => send({ type: 'PLAYER_ACTION', action: 'call' }), [send]);
+  // ── Betting actions (fire chip.place for player commits) ──────────────────
+  const handleFold = useCallback(() => {
+    send({ type: 'PLAYER_ACTION', action: 'fold' });
+  }, [send]);
+  const handleCheck = useCallback(() => {
+    send({ type: 'PLAYER_ACTION', action: 'check' });
+  }, [send]);
+  const handleCall = useCallback(() => {
+    play('chip.place');
+    send({ type: 'PLAYER_ACTION', action: 'call' });
+  }, [play, send]);
   const handleRaise = useCallback(
-    (amount: number) => send({ type: 'PLAYER_RAISE', amount }),
-    [send],
+    (amount: number) => {
+      play('chip.place');
+      send({ type: 'PLAYER_RAISE', amount });
+    },
+    [play, send],
   );
 
   // ── LEAVE TABLE ───────────────────────────────────────────────────────────
@@ -252,11 +407,44 @@ function OmahaSession({ session, onSessionOver, onReset }: OmahaSessionProps): J
       void (async () => {
         const result = await placeBet(amount, { min: amount, max: amount });
         if (!result.ok) return;
+        play('chip.place');
         send({ type: 'REBUY', amount });
       })();
     },
-    [placeBet, send],
+    [placeBet, play, send],
   );
+
+  // ── Showdown win-tier (player-side) ──────────────────────────────────────
+  const playerSeat = snapshot.context.seats.find((s) => s.seatId === 0);
+  const playerHandWonAmount = (() => {
+    if (!snapshot.context.handResult || !playerSeat) return 0;
+    const w = snapshot.context.handResult.winners.find((wn) => wn.seatId === 0);
+    return w?.awarded ?? 0;
+  })();
+  const playerHandCommitted = playerSeat?.committedThisHand ?? 0;
+  const winTier: WinTier = pickWinTier(playerHandWonAmount, playerHandCommitted);
+
+  const handleRevealComplete = useCallback(() => {
+    setRevealComplete(true);
+    setGraceRemainingMs(LEAVE_GRACE_MS);
+    setOutcomeBannerVisible(true);
+  }, [LEAVE_GRACE_MS]);
+
+  const handleDealNow = useCallback(() => {
+    setGraceRemainingMs(0);
+  }, []);
+
+  // ── Win/loss stinger on hand_complete ────────────────────────────────────
+  useEffect(() => {
+    if (!outcomeBannerVisible) return;
+    if (winTier === 'loss') {
+      play('loss');
+    } else {
+      play(`win.${winTier}`);
+    }
+    // intentionally only re-fire when the banner toggles visible
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [outcomeBannerVisible]);
 
   // ── bust_prompt ───────────────────────────────────────────────────────────
   if (snapshot.matches('bust_prompt')) {
@@ -264,25 +452,27 @@ function OmahaSession({ session, onSessionOver, onReset }: OmahaSessionProps): J
     const rebuyAmount = ctx.stakes.bb * 40;
     const canRebuy = (balance ?? 0) >= rebuyAmount;
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-felt-deep text-white">
-        <h2 className="font-display text-xl tracking-widest text-casino-red">OUT OF CHIPS</h2>
-        <p className="text-white/60">You busted. Rebuy to continue.</p>
-        {canRebuy && (
+      <div className="flex h-full flex-col items-center justify-center gap-6 bg-felt-table text-ivory">
+        <div className="flex flex-col items-center gap-4 rounded-lg border border-brass/60 bg-velvet-deep p-8">
+          <h2 className="font-display text-xl tracking-[0.18em] text-casino-red">OUT OF CHIPS</h2>
+          <p className="text-ivory/85">You busted. Rebuy to continue.</p>
+          {canRebuy && (
+            <button
+              className="rounded-md bg-gold px-6 py-3 font-display text-sm tracking-[0.18em] text-felt-deep hover:bg-gold-bright"
+              onClick={() => handleRebuy(rebuyAmount)}
+              data-rebuy
+            >
+              REBUY {rebuyAmount.toLocaleString()}
+            </button>
+          )}
           <button
-            className="rounded bg-gold px-6 py-3 font-display text-sm tracking-widest text-felt-deep hover:bg-gold-bright"
-            onClick={() => handleRebuy(rebuyAmount)}
-            data-rebuy
+            className="rounded-md border border-brass/60 px-6 py-3 font-display text-sm tracking-[0.18em] text-ivory hover:bg-velvet"
+            onClick={handleLeave}
+            data-leave-bust
           >
-            REBUY {rebuyAmount.toLocaleString()}
+            LEAVE TABLE
           </button>
-        )}
-        <button
-          className="rounded border border-casino-red/50 px-6 py-3 font-display text-sm tracking-widest text-casino-red hover:bg-casino-red/10"
-          onClick={handleLeave}
-          data-leave-bust
-        >
-          LEAVE TABLE
-        </button>
+        </div>
       </div>
     );
   }
@@ -293,56 +483,121 @@ function OmahaSession({ session, onSessionOver, onReset }: OmahaSessionProps): J
     const finalStack = ctx.seats.find((s) => s.seatId === 0)?.stack ?? 0;
     const net = finalStack - ctx.totalBoughtIn;
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-felt-deep text-white">
-        <h2 className="font-display text-2xl tracking-widest text-gold-bright" data-session-over>
-          SESSION OVER
-        </h2>
-        <div className="flex flex-col items-center gap-2">
-          <span className="text-white/60">Hands played: {ctx.handsPlayed}</span>
-          <span className="text-white/60">Bought in: {ctx.totalBoughtIn.toLocaleString()}</span>
-          <span className="text-white/60">Final stack: {finalStack.toLocaleString()}</span>
-          <span
-            className={`font-mono text-xl font-bold ${net >= 0 ? 'text-chip-win' : 'text-casino-red'}`}
+      <div className="flex h-full flex-col items-center justify-center gap-6 bg-felt-table text-ivory">
+        <div className="flex flex-col items-center gap-4 rounded-lg border border-brass/60 bg-velvet-deep p-8">
+          <h2
+            className="font-display text-2xl tracking-[0.18em] text-gold-bright"
+            data-session-over
           >
-            {net >= 0 ? '+' : ''}
-            {net.toLocaleString()}
-          </span>
+            SESSION OVER
+          </h2>
+          <div className="flex flex-col items-center gap-2">
+            <span className="text-ivory/70">Hands played: {ctx.handsPlayed}</span>
+            <span className="text-ivory/70">Bought in: {ctx.totalBoughtIn.toLocaleString()}</span>
+            <span className="text-ivory/70">Final stack: {finalStack.toLocaleString()}</span>
+            <span
+              className={`font-mono text-xl font-bold ${net >= 0 ? 'text-chip-win' : 'text-casino-red'}`}
+            >
+              {net >= 0 ? '+' : ''}
+              {net.toLocaleString()}
+            </span>
+          </div>
+          <button
+            className="rounded-md bg-gold px-6 py-3 font-display text-sm tracking-[0.18em] text-felt-deep hover:bg-gold-bright"
+            onClick={onReset}
+            data-play-again
+          >
+            PLAY AGAIN
+          </button>
         </div>
-        <button
-          className="rounded bg-gold px-6 py-3 font-display text-sm tracking-widest text-felt-deep hover:bg-gold-bright"
-          onClick={onReset}
-          data-play-again
-        >
-          PLAY AGAIN
-        </button>
       </div>
     );
   }
 
   // ── Playing ───────────────────────────────────────────────────────────────
   const stateValue = typeof snapshot.value === 'string' ? snapshot.value : 'idle';
+  const inGracePeriod = graceRemainingMs !== null && graceRemainingMs > 0;
+  const isPlayerWin = winTier !== 'loss' && playerHandWonAmount > 0;
   return (
-    <OmahaTable
-      ctx={snapshot.context}
-      stateValue={stateValue}
-      onFold={handleFold}
-      onCheck={handleCheck}
-      onCall={handleCall}
-      onRaise={handleRaise}
-      onLeave={handleLeave}
-    />
+    <div className="relative h-full">
+      <OmahaTable
+        ctx={snapshot.context}
+        stateValue={stateValue}
+        winTier={winTier}
+        onRevealComplete={handleRevealComplete}
+        onFold={handleFold}
+        onCheck={handleCheck}
+        onCall={handleCall}
+        onRaise={handleRaise}
+        onLeave={handleLeave}
+      />
+      {outcomeBannerVisible && (
+        <div
+          className="pointer-events-none absolute inset-x-0 top-24 z-40 flex justify-center"
+          data-outcome-banner
+        >
+          <div
+            className={[
+              'rounded-lg border-2 px-10 py-5 text-center shadow-2xl backdrop-blur-sm',
+              isPlayerWin
+                ? 'border-gold-bright bg-velvet-deep/95 text-gold-bright'
+                : 'border-casino-red bg-velvet-deep/95 text-casino-red',
+            ].join(' ')}
+            data-outcome-banner-tone={isPlayerWin ? 'win' : 'loss'}
+          >
+            <div className="font-display text-3xl tracking-[0.22em]">
+              {isPlayerWin
+                ? `YOU WIN +${playerHandWonAmount.toLocaleString()}`
+                : 'BETTER LUCK NEXT HAND'}
+            </div>
+          </div>
+        </div>
+      )}
+      {inGracePeriod && (
+        <div
+          className="absolute inset-x-0 bottom-6 z-30 flex justify-center"
+          data-between-hands-bar
+        >
+          <div className="flex items-center gap-4 rounded-md border border-brass/60 bg-velvet-deep/95 px-6 py-3 shadow-xl">
+            <span className="font-display text-xs tracking-[0.18em] text-ivory/70">
+              Next hand in{' '}
+              <span className="text-gold-bright tabular-nums" data-grace-seconds>
+                {Math.ceil(graceRemainingMs / 1000)}s
+              </span>
+            </span>
+            <button
+              type="button"
+              onClick={handleLeave}
+              className="rounded-md border border-casino-red/60 px-4 py-2 font-display text-xs tracking-[0.18em] text-casino-red hover:bg-casino-red/10"
+              data-leave-grace
+            >
+              LEAVE NOW
+            </button>
+            <button
+              type="button"
+              onClick={handleDealNow}
+              className="rounded-md border border-brass/60 px-4 py-2 font-display text-xs tracking-[0.18em] text-ivory hover:bg-velvet"
+              data-deal-now
+            >
+              DEAL NOW
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
 // ── Top-level page: manages session lifecycle ─────────────────────────────────
 
-export default function OmahaPage(): JSX.Element {
+export default function OmahaPage(): JSX.Element | null {
   const user = useCurrentUser();
   const balance = useBalance();
   const { placeBet } = useGameRound('poker');
 
   const [session, setSession] = useState<SessionState | null>(null);
   const [sessionKey, setSessionKey] = useState(0);
+  const [rulesOpen, setRulesOpen] = useState(false);
 
   const handleSitDown = useCallback(
     (config: SitDownConfig) => {
@@ -375,30 +630,48 @@ export default function OmahaPage(): JSX.Element {
     setSessionKey((k) => k + 1);
   }, []);
 
-  if (!user) return <div />;
-
-  if (!session) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-felt-deep text-white">
-        {/* SetupPanel is imported from holdem/ — it's variant-agnostic in layout;
-            the heading "TEXAS HOLD'EM" is thin-forked here by rendering our own wrapper
-            with an Omaha Hold'em heading above the panel. */}
-        <div className="flex flex-col items-center gap-2">
-          <h1 className="font-display text-2xl tracking-widest text-gold-bright">
-            OMAHA HOLD&apos;EM
-          </h1>
-          <SetupPanel balance={balance} onSitDown={handleSitDown} />
-        </div>
-      </div>
-    );
-  }
+  if (!user) return null;
 
   return (
-    <OmahaSession
-      key={`${session.input.sessionId}-${sessionKey}`}
-      session={session}
-      onSessionOver={handleSessionOver}
-      onReset={handleReset}
-    />
+    <div className="relative flex h-full flex-col bg-felt-table text-ivory">
+      {/* Top-left back button */}
+      <div className="absolute left-4 top-4 z-20">
+        <LobbyButton />
+      </div>
+      {/* Top-right odds info */}
+      <div className="absolute right-4 top-4 z-20">
+        <PokerOddsHeader variant="omaha" />
+      </div>
+
+      <main className="flex flex-1 flex-col overflow-hidden p-3 pt-14">
+        <header className="mb-2 text-center">
+          <h1 className="font-display text-2xl tracking-[0.18em] text-gold-bright">
+            MASQUER &middot; Omaha
+          </h1>
+          <p
+            className="mt-1 font-display text-[10px] uppercase tracking-[0.18em] text-ivory/55"
+            data-omaha-subtitle
+          >
+            Omaha &middot; No-Limit &middot; Cash
+          </p>
+        </header>
+
+        {!session ? (
+          <div className="flex flex-1 items-center justify-center">
+            <SetupPanel balance={balance} onSitDown={handleSitDown} />
+          </div>
+        ) : (
+          <OmahaSession
+            key={`${session.input.sessionId}-${sessionKey}`}
+            session={session}
+            onSessionOver={handleSessionOver}
+            onReset={handleReset}
+          />
+        )}
+      </main>
+
+      <RulesButton onClick={() => setRulesOpen(true)} />
+      <PokerRulesModal open={rulesOpen} variant="omaha" onClose={() => setRulesOpen(false)} />
+    </div>
   );
 }
