@@ -172,13 +172,13 @@ Total new aggregations: ~12-15 depending on KPI consolidation.
 
 #### 4.4.2 Non-admin pages (~26 files)
 
-| File                                                                                     | Touches                                                                                                                                                           |
-| ---------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `LoginPage.tsx` / `RegisterPage.tsx`                                                     | Already use `@/components/ui` primitives — verify Card/Field/Input/Button are brand-tokened (PR C extends if not). Title legacy `text-gold` → `text-gold-bright`. |
-| `ProfilePage.tsx`                                                                        | Token swap on page title + Avatar circle chrome + edit-form Card.                                                                                                 |
-| `SettingsPage.tsx`                                                                       | Token swap on section dividers + Settings groups + Delete-Account zone (red border).                                                                              |
-| `LobbyPage.tsx`                                                                          | Verify all tile chrome uses brand tokens. Hero marquee polish.                                                                                                    |
-| Game-wrapper pages (in `src/pages/`) — if any wrap a game without GameShell, token swap. |
+| File                                 | Touches                                                                                                                                                           |
+| ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `LoginPage.tsx` / `RegisterPage.tsx` | Already use `@/components/ui` primitives — verify Card/Field/Input/Button are brand-tokened (PR C extends if not). Title legacy `text-gold` → `text-gold-bright`. |
+| `ProfilePage.tsx`                    | Token swap on page title + Avatar circle chrome + edit-form Card.                                                                                                 |
+| `SettingsPage.tsx`                   | Token swap on section dividers + Settings groups + Delete-Account zone (red border).                                                                              |
+| `LobbyPage.tsx`                      | Verify all tile chrome uses brand tokens. Hero marquee polish.                                                                                                    |
+| Game-wrapper pages (in `src/pages/`) | If any wrap a game without GameShell, token swap.                                                                                                                 |
 
 #### 4.4.3 Layout/UX consistency
 
@@ -249,7 +249,7 @@ Per `PHASE_15_PATTERNS.md §2`:
 
 **Additional sub-project-specific rule:**
 
-16. **Additive-only constraint on PR B** — every existing StatCard, chart, panel, table, header, label, button, link, and assertion on every existing admin page **MUST stay**. New content adds vertical space; never overwrites. Tests that pin existing elements remain green; new tests cover new elements only.
+- **Additive-only constraint on PR B** — every existing StatCard, chart, panel, table, header, label, button, link, and assertion on every existing admin page **MUST stay**. New content adds vertical space; never overwrites. Tests that pin existing elements remain green; new tests cover new elements only.
 
 ## 6. Risks + watch-outs
 
