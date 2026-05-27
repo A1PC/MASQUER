@@ -20,9 +20,13 @@ describe('PokerRulesModal', () => {
     expect(screen.getByText(/MASQUER · Hold'em/)).toBeInTheDocument();
   });
 
-  it('renders Draw placeholder when variant=five-card-draw', () => {
+  it('renders Draw full rules when variant=five-card-draw', () => {
     render(<PokerRulesModal open={true} variant="five-card-draw" onClose={vi.fn()} />);
-    expect(screen.getByText(/coming in #12.v2/)).toBeInTheDocument();
+    expect(screen.getByText('DRAW PHASE')).toBeInTheDocument();
+    expect(screen.getByText(/HAND RANKINGS/)).toBeInTheDocument();
+    expect(screen.getByText('BETTING ROUNDS')).toBeInTheDocument();
+    expect(screen.getByText('BLINDS')).toBeInTheDocument();
+    expect(screen.getByText('SHOWDOWN')).toBeInTheDocument();
     expect(screen.getByText(/MASQUER · Five-Card Draw/)).toBeInTheDocument();
   });
 

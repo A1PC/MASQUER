@@ -41,18 +41,42 @@ describe('DrawSeat', () => {
     expect(screen.getByText('800')).toBeInTheDocument();
   });
 
-  it('renders AI name and archetype', () => {
+  it('renders AI mask name (NOT archetype label)', () => {
     render(
       <DrawSeat
-        seat={makeSeat({ seatId: 1, occupant: { archetype: 'shark', name: 'Sharky' } })}
+        seat={makeSeat({ seatId: 1, occupant: { archetype: 'shark', name: 'Bauta' } })}
         isButton={false}
         isSb={false}
         isBb={false}
         isActing={false}
       />,
     );
-    expect(screen.getByText('Sharky')).toBeInTheDocument();
-    expect(screen.getByText('SHARK')).toBeInTheDocument();
+    expect(screen.getByText('Bauta')).toBeInTheDocument();
+    // Archetype label must NOT be visible.
+    expect(screen.queryByText('SHARK')).toBeNull();
+    expect(screen.queryByText('Shark')).toBeNull();
+  });
+
+  it('renders a MaskAvatar for AI seats', () => {
+    const { container } = render(
+      <DrawSeat
+        seat={makeSeat({ seatId: 1, occupant: { archetype: 'shark', name: 'Colombina' } })}
+        isButton={false}
+        isSb={false}
+        isBb={false}
+        isActing={false}
+      />,
+    );
+    expect(container.querySelector('[data-mask-avatar]')).toBeInTheDocument();
+    const avatar = container.querySelector('[data-mask-avatar]') as HTMLElement;
+    expect(avatar.getAttribute('data-mask-name')).toBe('Colombina');
+  });
+
+  it('does NOT render a MaskAvatar for the player seat', () => {
+    const { container } = render(
+      <DrawSeat seat={makeSeat()} isButton={false} isSb={false} isBb={false} isActing={false} />,
+    );
+    expect(container.querySelector('[data-mask-avatar]')).toBeNull();
   });
 
   it('shows 5 card placeholders when holeCards is empty', () => {
@@ -69,7 +93,7 @@ describe('DrawSeat', () => {
       <DrawSeat
         seat={makeSeat({
           seatId: 1,
-          occupant: { archetype: 'rock', name: 'Rocky' },
+          occupant: { archetype: 'rock', name: 'Volto' },
           holeCards: fiveCards,
         })}
         isButton={false}
@@ -149,6 +173,20 @@ describe('DrawSeat', () => {
     expect(el.hasAttribute('data-acting')).toBe(false);
   });
 
+  it('MaskAvatar gets active glow when seat isActing', () => {
+    const { container } = render(
+      <DrawSeat
+        seat={makeSeat({ seatId: 1, occupant: { archetype: 'shark', name: 'Pierrot' } })}
+        isButton={false}
+        isSb={false}
+        isBb={false}
+        isActing
+      />,
+    );
+    const avatar = container.querySelector('[data-mask-avatar]') as HTMLElement;
+    expect(avatar.className).toContain('ring-2');
+  });
+
   it('shows FOLDED badge when status=folded', () => {
     render(
       <DrawSeat
@@ -195,7 +233,7 @@ describe('DrawSeat', () => {
       <DrawSeat
         seat={makeSeat({
           seatId: 1,
-          occupant: { archetype: 'rock', name: 'Rocky' },
+          occupant: { archetype: 'rock', name: 'Moretta' },
           holeCards: fiveCards,
         })}
         isButton={false}
@@ -203,6 +241,77 @@ describe('DrawSeat', () => {
         isBb={false}
         isActing={false}
         highlightCards
+      />,
+    );
+    const backs = container.querySelectorAll('[data-face-down]');
+    expect(backs).toHaveLength(0);
+  });
+
+  it('uses brand tokens (brass / velvet / ivory) on the container', () => {
+    const { container } = render(
+      <DrawSeat seat={makeSeat()} isButton={false} isSb={false} isBb={false} isActing={false} />,
+    );
+    const el = container.querySelector('[data-seat="0"]') as HTMLElement;
+    expect(el.className).toContain('border-brass');
+    expect(el.className).toContain('bg-velvet-deep');
+  });
+
+  it('does not leak hand-category badge during play (no handRank prop)', () => {
+    const { container } = render(
+      <DrawSeat
+        seat={makeSeat({
+          seatId: 1,
+          occupant: { archetype: 'rock', name: 'Bauta' },
+          holeCards: fiveCards,
+        })}
+        isButton={false}
+        isSb={false}
+        isBb={false}
+        isActing={false}
+      />,
+    );
+    expect(container.querySelector('[data-seat-hand-category]')).toBeNull();
+  });
+
+  it('revealHoleCards + handRank renders the hand-category badge', () => {
+    const { container } = render(
+      <DrawSeat
+        seat={makeSeat({
+          seatId: 1,
+          occupant: { archetype: 'rock', name: 'Bauta' },
+          holeCards: fiveCards,
+        })}
+        isButton={false}
+        isSb={false}
+        isBb={false}
+        isActing={false}
+        revealHoleCards
+        handRank={{
+          category: 'pair',
+          categoryValue: 1,
+          tiebreakers: [14, 13, 12, 11, 10],
+          best5: [],
+        }}
+      />,
+    );
+    const badge = container.querySelector('[data-seat-hand-category="pair"]');
+    expect(badge).not.toBeNull();
+    expect(badge?.textContent).toBe('Pair');
+  });
+
+  it('revealHoleCards flips face-down AI cards face-up without highlight', () => {
+    const { container } = render(
+      <DrawSeat
+        seat={makeSeat({
+          seatId: 1,
+          occupant: { archetype: 'rock', name: 'Bauta' },
+          holeCards: fiveCards,
+        })}
+        isButton={false}
+        isSb={false}
+        isBb={false}
+        isActing={false}
+        revealHoleCards
       />,
     );
     const backs = container.querySelectorAll('[data-face-down]');
