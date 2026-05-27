@@ -104,6 +104,11 @@ describe('AdminLeaderboardPage', () => {
   beforeEach(async () => {
     await resetDb();
     localStorage.removeItem(SESSION_KEY);
+    // Per-tab range storage keys land in localStorage — clear them so each
+    // test starts from the default `'all'` preset.
+    for (const t of ['winners', 'volume', 'single-win', 'streak'] as const) {
+      localStorage.removeItem(`admin.leaderboard.${t}.range`);
+    }
   });
 
   it('renders the page heading and four tab buttons', async () => {
@@ -262,5 +267,73 @@ describe('AdminLeaderboardPage', () => {
     const heading = screen.getByRole('heading', { name: /leaderboard/i });
     expect(heading.className).toContain('font-display');
     expect(heading.className).toContain('text-gold-bright');
+  });
+
+  // PR D follow-up — DateRangeFilter wired into AdminLeaderboardPage.
+  it('renders the date-range filter strip', async () => {
+    const { container } = render(
+      <MemoryRouter>
+        <AdminLeaderboardPage />
+      </MemoryRouter>,
+    );
+    await waitFor(() => expect(container.querySelector('[data-admin-leaderboard]')).not.toBeNull());
+    expect(container.querySelector('[data-date-range-filter]')).not.toBeNull();
+    // All four preset tabs present, default `'all'` selected.
+    const all = container.querySelector('[data-range="all"]') as HTMLButtonElement;
+    expect(all.getAttribute('aria-selected')).toBe('true');
+  });
+
+  it('threads sinceMs into the aggregators — switching to 7d empties the seeded fixture (epoch playedAt)', async () => {
+    await seedFixture();
+    const user = userEvent.setup();
+    const { container } = render(
+      <MemoryRouter>
+        <AdminLeaderboardPage />
+      </MemoryRouter>,
+    );
+    // Default range = 'all' → carol/alice/bob all visible on Top winners.
+    await waitFor(() => {
+      expect(container.querySelector('[data-leaderboard-winners]')).toBeInTheDocument();
+    });
+    expect(
+      within(container.querySelector('[data-leaderboard-winners]') as HTMLElement).getByText(
+        'carol',
+      ),
+    ).toBeInTheDocument();
+
+    // Switch to 7d → fixture playedAt values are tiny epoch ms (1000–4000),
+    // far below `Date.now() - 7 days` so every aggregator returns 0 rows.
+    const sevenDay = container.querySelector('[data-range="7d"]') as HTMLButtonElement;
+    await user.click(sevenDay);
+
+    await waitFor(() => {
+      expect(container.querySelector('[data-leaderboard-empty]')).toBeInTheDocument();
+      expect(container.querySelector('[data-leaderboard-winners]')).toBeNull();
+    });
+  });
+
+  it('persists the active range per tab via localStorage', async () => {
+    await seedFixture();
+    const user = userEvent.setup();
+    const { container } = render(
+      <MemoryRouter>
+        <AdminLeaderboardPage />
+      </MemoryRouter>,
+    );
+    await waitFor(() =>
+      expect(container.querySelector('[data-leaderboard-winners]')).toBeInTheDocument(),
+    );
+    const thirty = container.querySelector('[data-range="30d"]') as HTMLButtonElement;
+    await user.click(thirty);
+    await waitFor(() => {
+      expect(localStorage.getItem('admin.leaderboard.winners.range')).toBe('30d');
+    });
+    // Switching tabs uses a new storage key — old one stays as it was.
+    await user.click(screen.getByRole('tab', { name: /top by volume/i }));
+    await waitFor(() => {
+      const tab = screen.getByRole('tab', { name: /top by volume/i });
+      expect(tab).toHaveAttribute('aria-selected', 'true');
+    });
+    expect(localStorage.getItem('admin.leaderboard.winners.range')).toBe('30d');
   });
 });
