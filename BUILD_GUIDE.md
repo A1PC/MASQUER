@@ -322,6 +322,8 @@ History is the `rounds` table; stats are **derived** from it (and from `balances
 - Every completed round writes exactly one `rounds` row, via `systems/history.ts`. Games must not skip this.
 - History is per-user and never deleted automatically (add a manual "clear history" action if desired).
 
+**Phase 15 #14 — Admin overhaul (PR A: layout + overview).** AdminLayout drops `min-h-screen` for `h-full flex-col` and gains a brand-tokened top-bar (`MASQUER · Admin` title + logout) and sidebar (velvet-deep + brass border, gold-bright active state). AdminOverviewPage adds three site-wide sections fed by `src/systems/stats.ts`: TOP GAMES BY SESSIONS (top-3 mini-cards), ACTIVITY (LAST 14 DAYS) sparkline via `DailyActivitySparkline`, and RECENT ADJUSTMENTS (last 10 from the `adjustments` table; no admin attribution because the schema has no `adminId`). See `docs/superpowers/specs/2026-05-27-phase-15-14-admin-overhaul-design.md`.
+
 ---
 
 ## 10. Leaderboard
