@@ -468,6 +468,12 @@ Phase 15 sub-project #12.v1 ships the standard MASQUER polish recipe for Texas H
 
 Design spec: `docs/superpowers/specs/2026-05-27-phase-15-12-v1-holdem-design.md`. Implementation plan: `docs/superpowers/plans/2026-05-27-phase-15-12-v1-holdem-plan.md`.
 
+### Phase 15 #12.v2 polish amendments (2026-05-27)
+
+Phase 15 sub-project #12.v2 applies the MASQUER polish recipe to Five-Card Draw, inheriting the shared chrome shipped in #12.v1 (MasquerCard adapter, mask names, MaskAvatar, PokerOddsHeader, PokerRulesModal, brand-token pairings, 3s outcome banner, 15s leave-grace, post-hand AI reveal). Pure logic (`drawLogic.ts`, `machine.ts`, `_shared/handEvaluator.ts`, `_shared/sidePots.ts`, `_shared/deck.ts`, `_shared/ai/{archetypes,decide,decideDiscard}.ts`) is byte-stable; changes are presentational + additive. `FiveCardDrawPage` chrome now mirrors `HoldemPage` (LobbyButton + variant odds + rules + h-full page root). `DrawTable` adopts the brass-edged felt backdrop + `isPostHand` reveal threading. `DrawSeat` adopts `MaskAvatar` + brand tokens + `revealHoleCards` + `handRank` props while preserving the Draw-specific `drewLabel`. `DiscardControls` repainted with brand tokens + `ring-gold-bright` selection + brass-bordered DRAW/STAND PAT button. `PokerRulesModal` Draw variant body now ships the full rules block (Object · Hand Rankings · Blinds · Draw Phase · Betting Rounds · Showdown · Table). Sound taxonomy mirrors Hold'em: `chip.place` on blinds + every player commit; `card.deal` stagger on initial 5-card deal + draw replacements; `win.{tier}` / `loss` stinger on hand completion. Single PR (`phase-15-12-v2-draw`).
+
+Design spec: `docs/superpowers/specs/2026-05-27-phase-15-12-v2-five-card-draw-design.md`. Implementation plan: `docs/superpowers/plans/2026-05-27-phase-15-12-v2-five-card-draw-plan.md`.
+
 ---
 
 ## 10.9 Craps
