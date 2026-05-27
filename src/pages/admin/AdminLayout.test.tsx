@@ -149,4 +149,43 @@ describe('AdminLayout', () => {
     expect(useSessionStore.getState().isAdmin).toBe(false);
     expect(await screen.findByText('admin login')).toBeInTheDocument();
   });
+
+  it('renders the MASQUER · Admin title in the top-bar', () => {
+    renderLayoutAt('/admin');
+    expect(screen.getByText(/MASQUER\s*·\s*Admin/i)).toBeInTheDocument();
+  });
+
+  it('root container uses h-full flex-col, never min-h-screen', () => {
+    const { container } = renderLayoutAt('/admin');
+    const root = container.querySelector('[data-admin-layout]');
+    expect(root).not.toBeNull();
+    expect(root?.className).toContain('h-full');
+    expect(root?.className).toContain('flex-col');
+    expect(root?.className).not.toContain('min-h-screen');
+    expect(root?.className).not.toContain('h-screen');
+  });
+
+  it('logout button is rendered with data-admin-logout in the top-bar', async () => {
+    const user = userEvent.setup();
+    renderLayoutAt('/admin');
+    const logout = screen.getByTestId
+      ? screen.queryByText(/log out/i)
+      : screen.getByText(/log out/i);
+    expect(logout).not.toBeNull();
+    const btn = document.querySelector('[data-admin-logout]');
+    expect(btn).not.toBeNull();
+    expect(btn?.tagName).toBe('BUTTON');
+    await user.click(btn!);
+    expect(useSessionStore.getState().isAdmin).toBe(false);
+  });
+
+  it('sidebar and top-bar use brand tokens (velvet-deep + brass border)', () => {
+    const { container } = renderLayoutAt('/admin');
+    const sidebar = container.querySelector('[data-admin-sidebar]');
+    const topbar = container.querySelector('[data-admin-topbar]');
+    expect(sidebar?.className).toContain('bg-velvet-deep');
+    expect(sidebar?.className).toContain('border-brass/60');
+    expect(topbar?.className).toContain('bg-velvet-deep');
+    expect(topbar?.className).toContain('border-brass/60');
+  });
 });
