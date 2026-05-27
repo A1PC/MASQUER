@@ -1,4 +1,5 @@
 import type { JSX } from 'react';
+import { BIN_COUNT, binCentreX } from './geometry';
 import type { Risk } from './logic';
 import { MULTIPLIER_CURVES } from './logic';
 
@@ -7,27 +8,74 @@ interface Props {
   flashedBinIdx?: number | null;
 }
 
-/** Returns a Tailwind class string for a bin based on its multiplier value. */
-function binColor(multi: number): string {
-  if (multi >= 100) return 'bg-casino-red text-white border-casino-red';
-  if (multi >= 5) return 'bg-gold text-felt-deep border-gold';
-  if (multi >= 1) return 'bg-neon-cyan text-felt-deep border-neon-cyan';
-  if (multi >= 0.5) return 'bg-white/10 text-white/70 border-white/20';
-  return 'bg-casino-red-deep text-white/70 border-casino-red-deep';
+/** Returns the bin's visual tier for styling — used to colour-grade buckets
+ *  from edge (signature jewel-magenta) to centre (loss territory). */
+function binTier(multi: number): 'jackpot' | 'big' | 'small' | 'push' | 'loss' {
+  if (multi >= 100) return 'jackpot';
+  if (multi >= 5) return 'big';
+  if (multi >= 1) return 'small';
+  if (multi >= 0.85) return 'push';
+  return 'loss';
 }
 
+function tierClass(tier: ReturnType<typeof binTier>, isEdge: boolean): string {
+  if (isEdge) {
+    // Edge bins (0 + 26) get the signature jewel-magenta tier-3 chrome.
+    return 'bg-jewel-magenta/40 text-ivory border-brass';
+  }
+  switch (tier) {
+    case 'jackpot':
+      return 'bg-velvet text-gold-bright border-brass';
+    case 'big':
+      return 'bg-velvet-deep text-gold-bright border-brass/80';
+    case 'small':
+      return 'bg-felt-table-deep text-gold border-brass/60';
+    case 'push':
+      return 'bg-felt-table-deep/80 text-ivory/80 border-brass/40';
+    case 'loss':
+    default:
+      return 'bg-felt-table-deep/60 text-ivory/55 border-brass/30';
+  }
+}
+
+/** 27 buckets aligned with the bottom peg row of the pyramid. Each bucket is
+ *  absolutely positioned at `binCentreX(bin)` (% of board width), spanning
+ *  100/BIN_COUNT of the width. No vertical gap between BinRow and Board's
+ *  bottom peg row — they touch (visually the pyramid's base). */
 export default function BinRow({ risk, flashedBinIdx = null }: Props): JSX.Element {
   const curve = MULTIPLIER_CURVES[risk];
+  const widthPct = 100 / BIN_COUNT;
   return (
-    <div className="flex justify-center gap-1 mt-2" data-bin-row>
+    <div
+      className="relative mx-auto h-9 w-full max-w-full overflow-visible"
+      style={{ height: '2.25rem' }}
+      data-bin-row
+    >
       {curve.map((multi, idx) => {
         const flash = flashedBinIdx === idx;
+        const isEdge = idx === 0 || idx === BIN_COUNT - 1;
+        const tier = binTier(multi);
+        const centre = binCentreX(idx);
         return (
           <div
             key={idx}
-            className={`flex-1 min-w-0 max-w-[42px] py-1 px-0.5 rounded-sm border text-[9px] tabular-nums text-center font-display ${binColor(multi)} ${flash ? 'ring-2 ring-gold animate-pulse' : ''}`}
+            className={[
+              'absolute -translate-x-1/2 rounded-sm border px-0.5 py-1 text-center',
+              'font-mono text-[9px] tabular-nums leading-tight',
+              tierClass(tier, isEdge),
+              flash ? 'ring-2 ring-gold shadow-[0_0_8px_rgba(232,189,109,0.85)]' : '',
+            ].join(' ')}
+            style={{
+              left: `${centre}%`,
+              top: 0,
+              width: `${widthPct}%`,
+              transform: flash ? 'translate(-50%, 0) scale(1.08)' : undefined,
+              transition: 'transform 180ms ease-out',
+            }}
             data-bin
             data-bin-idx={idx}
+            data-bin-tier={tier}
+            data-bin-edge={isEdge ? 'true' : 'false'}
             data-flash={flash ? 'true' : 'false'}
           >
             {multi >= 1 ? `${multi}x` : `${multi}x`}

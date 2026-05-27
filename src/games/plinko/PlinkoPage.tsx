@@ -1,9 +1,16 @@
 import type { JSX } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useMachine } from '@xstate/react';
 import { useCurrentUser } from '@/store/sessionStore';
 import { useBalance } from '@/store/walletStore';
 import { useGameRound } from '@/games/_shared/useGameRound';
+import LobbyButton from '@/games/_shared/LobbyButton';
+import OddsInfoBox from '@/games/_shared/OddsInfoBox';
+import RulesButton from '@/games/_shared/RulesButton';
+import RulesModal from '@/games/_shared/RulesModal';
+import { useSound } from '@/systems/sound/useSound';
+import { useEffectiveReducedMotion } from '@/motion/useEffectiveReducedMotion';
 import {
   AUTO_INTERVAL_MS,
   BET_MAX,
@@ -15,6 +22,7 @@ import {
   type Risk,
   _mulberry32,
 } from './logic';
+import { BIN_COUNT } from './geometry';
 import { plinkoMachine } from './machine';
 import SetupPanel from './SetupPanel';
 import Board from './Board';
@@ -23,6 +31,7 @@ import BinRow from './BinRow';
 import HistoryStrip from './HistoryStrip';
 import AutoDropControls from './AutoDropControls';
 import EndScreen from './EndScreen';
+import PlinkoRules from './PlinkoRules';
 
 /** Generate a uint32 seed from crypto.getRandomValues (no Math.random). */
 function cryptoSeed(): number {
@@ -31,11 +40,49 @@ function cryptoSeed(): number {
   return buf[0]!;
 }
 
+/** Debounce window for `peg.ping` across all in-flight balls. Plan §A.7
+ *  Step 3 — max ~33/sec ceiling so multi-ball auto mode doesn't drown the
+ *  player in clicks. */
+const PEG_PING_DEBOUNCE_MS = 30;
+
+/** Manual-drop cooldown. Prevents stack-clicking visual chaos (spec §4.8). */
+const MANUAL_COOLDOWN_MS = 150;
+
+/** Edge-bin celebration cooldown — at most one celebration per ~1 second so
+ *  multi-ball auto mode can't stack 5 coin-showers (spec §8). */
+const CELEBRATION_DEBOUNCE_MS = 1000;
+
+/** Stylable coin-shower particle for edge-bin celebrations. */
+function CoinShower({ active }: { active: boolean }): JSX.Element | null {
+  if (!active) return null;
+  const particles = Array.from({ length: 20 }, (_, i) => i);
+  return (
+    <div className="pointer-events-none absolute inset-0 z-30 overflow-hidden" data-coin-shower>
+      {particles.map((i) => {
+        const left = ((i * 53) % 100) + ((i % 3) * 4 - 4);
+        const delay = (i % 7) * 0.05;
+        return (
+          <motion.span
+            key={i}
+            className="absolute h-2 w-2 rounded-full bg-gold-bright shadow-[0_0_5px_rgba(232,189,109,0.85)]"
+            style={{ left: `${left}%`, top: '-2%' }}
+            initial={{ y: 0, opacity: 0 }}
+            animate={{ y: ['0%', '120%'], opacity: [0, 1, 0] }}
+            transition={{ duration: 1.8, delay, ease: 'easeIn' }}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
 export default function PlinkoPage(): JSX.Element | null {
   const user = useCurrentUser();
   const balance = useBalance() ?? 0;
   const { placeBet, settle } = useGameRound('plinko');
   const [snapshot, send] = useMachine(plinkoMachine);
+  const { play } = useSound();
+  const reduceMotion = useEffectiveReducedMotion();
 
   // Setup panel local state
   const [pendingRisk, setPendingRisk] = useState<Risk>('low');
@@ -43,6 +90,7 @@ export default function PlinkoPage(): JSX.Element | null {
   const [pendingMode, setPendingMode] = useState<'manual' | 'auto'>('manual');
   const [pendingAutoBalls, setPendingAutoBalls] = useState<number>(10);
   const [pendingAutoInterval, setPendingAutoInterval] = useState<AutoIntervalKey>('normal');
+  const [rulesOpen, setRulesOpen] = useState(false);
 
   // For session entries shown in EndScreen — the last autoBallsSpawned entries.
   const sessionEntries = useMemo(
@@ -70,11 +118,48 @@ export default function PlinkoPage(): JSX.Element | null {
   // Stable RNG instance per page mount — seeded from crypto, not Math.random.
   const rngRef = useRef<() => number>(_mulberry32(cryptoSeed()));
 
+  // Sound: peg.ping debounce across ALL in-flight balls (one ref shared by
+  // every FallingBall's onPegHit callback).
+  const lastPegPingAtRef = useRef<number>(0);
+  const handlePegHit = useCallback(() => {
+    const now = performance.now();
+    if (now - lastPegPingAtRef.current < PEG_PING_DEBOUNCE_MS) return;
+    lastPegPingAtRef.current = now;
+    play('peg.ping');
+  }, [play]);
+
+  // Manual-drop cooldown gate.
+  const [manualCooldown, setManualCooldown] = useState(false);
+  const cooldownTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (cooldownTimeoutRef.current) clearTimeout(cooldownTimeoutRef.current);
+    },
+    [],
+  );
+
+  // Edge-bin celebration state (debounced; spec §8).
+  const [celebrationActive, setCelebrationActive] = useState(false);
+  const lastCelebrationAtRef = useRef<number>(0);
+  const celebrationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (celebrationTimeoutRef.current) clearTimeout(celebrationTimeoutRef.current);
+    },
+    [],
+  );
+
   // Manual drop handler.
   const handleManualDrop = useCallback(async () => {
     if (!user) return;
+    if (manualCooldown) return;
+    setManualCooldown(true);
+    if (cooldownTimeoutRef.current) clearTimeout(cooldownTimeoutRef.current);
+    cooldownTimeoutRef.current = setTimeout(() => setManualCooldown(false), MANUAL_COOLDOWN_MS);
     const result = await placeBet(pendingBet, { min: BET_MIN, max: BET_MAX });
     if (!result.ok) return;
+    play('chip.place');
+    play('ball.drop');
     const { path, bin } = dropBall(rngRef.current);
     const multiplier = MULTIPLIER_CURVES[pendingRisk][bin]!;
     const payout = payoutFor(pendingRisk, bin, pendingBet);
@@ -92,11 +177,12 @@ export default function PlinkoPage(): JSX.Element | null {
       ballId,
       sessionId,
     });
-  }, [user, placeBet, pendingBet, pendingRisk, send]);
+  }, [user, manualCooldown, placeBet, pendingBet, pendingRisk, send, play]);
 
   // Start-auto handler.
   const handleStartAuto = useCallback(() => {
     const sessionId = crypto.randomUUID();
+    play('chip.place');
     send({
       type: 'START_AUTO',
       bet: pendingBet,
@@ -105,7 +191,7 @@ export default function PlinkoPage(): JSX.Element | null {
       intervalMs: AUTO_INTERVAL_MS[pendingAutoInterval],
       sessionId,
     });
-  }, [pendingBet, pendingRisk, pendingAutoBalls, pendingAutoInterval, send]);
+  }, [pendingBet, pendingRisk, pendingAutoBalls, pendingAutoInterval, send, play]);
 
   // Auto scheduler — runs while in playing-auto, spawns balls on interval.
   useEffect(() => {
@@ -124,6 +210,7 @@ export default function PlinkoPage(): JSX.Element | null {
           send({ type: 'AUTO_STOP', reason: 'insufficient-chips' });
           return;
         }
+        play('ball.drop');
         const { path, bin } = dropBall(rngRef.current);
         const multiplier = MULTIPLIER_CURVES[snapshot.context.risk][bin]!;
         const payout = payoutFor(snapshot.context.risk, bin, snapshot.context.bet);
@@ -141,9 +228,10 @@ export default function PlinkoPage(): JSX.Element | null {
     }, snapshot.context.autoIntervalMs);
 
     return () => clearTimeout(t);
-  }, [snapshot, balance, user, placeBet, send]);
+  }, [snapshot, balance, user, placeBet, send, play]);
 
-  // Ball-landed callback: settle wallet, send BALL_LANDED, trigger BinRow flash.
+  // Ball-landed callback: settle wallet, send BALL_LANDED, trigger BinRow flash,
+  // fire tier stinger, trigger edge-bin celebration when applicable.
   const handleBallLanded = useCallback(
     (ballId: string) => {
       void (async () => {
@@ -151,6 +239,32 @@ export default function PlinkoPage(): JSX.Element | null {
         if (!ball || !user) return;
         triggerFlash(ball.bin);
         const outcome = ball.payout > ball.bet ? 'win' : ball.payout === ball.bet ? 'push' : 'loss';
+
+        // Tier stinger gated on payout/stake ratio (per spec §4.10).
+        const ratio = ball.payout / ball.bet;
+        if (outcome === 'win') {
+          if (ratio >= 20) play('win.jackpot');
+          else if (ratio >= 2) play('win.medium');
+          else play('win.small');
+        } else if (outcome === 'loss') {
+          play('loss');
+        }
+
+        // Edge-bin celebration (debounced + reduced-motion respect).
+        const isEdge = ball.bin === 0 || ball.bin === BIN_COUNT - 1;
+        const isHighEdge = isEdge && ball.risk === 'high';
+        if (isHighEdge) {
+          const now = performance.now();
+          if (now - lastCelebrationAtRef.current >= CELEBRATION_DEBOUNCE_MS) {
+            lastCelebrationAtRef.current = now;
+            if (!reduceMotion) {
+              setCelebrationActive(true);
+              if (celebrationTimeoutRef.current) clearTimeout(celebrationTimeoutRef.current);
+              celebrationTimeoutRef.current = setTimeout(() => setCelebrationActive(false), 2000);
+            }
+          }
+        }
+
         await settle(
           {
             betId: ball.betHandleId,
@@ -175,7 +289,7 @@ export default function PlinkoPage(): JSX.Element | null {
         send({ type: 'BALL_LANDED', ballId });
       })();
     },
-    [snapshot, user, settle, send, triggerFlash],
+    [snapshot, user, settle, send, triggerFlash, play, reduceMotion],
   );
 
   // Show EndScreen when auto session has ended (idle + autoStopReason set).
@@ -190,20 +304,47 @@ export default function PlinkoPage(): JSX.Element | null {
 
   if (!user) return null;
 
+  const inGame =
+    snapshot.matches('playing-auto') ||
+    snapshot.matches('playing-auto-stopping') ||
+    snapshot.context.inFlightBalls.length > 0;
+  const activeRisk = inGame ? snapshot.context.risk : pendingRisk;
+  const subtitle = inGame
+    ? `Risk: ${activeRisk.toUpperCase()}`
+    : `Setup · ${pendingRisk.toUpperCase()}`;
+
   return (
-    <div className="flex min-h-screen bg-felt-deep text-white">
-      <main className="flex-1 overflow-auto p-6">
-        <header className="mb-4 flex items-center justify-between">
-          <h1 className="font-display text-base tracking-wider text-gold-bright">
-            🔻 PLINKO
-            {snapshot.context.mode === 'auto' && snapshot.matches('playing-auto')
-              ? ` — ${snapshot.context.risk.toUpperCase()}`
-              : ''}
+    <div className="relative flex min-h-screen bg-felt-table text-ivory">
+      {/* Top-left back button */}
+      <div className="absolute left-4 top-4 z-20">
+        <LobbyButton />
+      </div>
+      {/* Top-right odds info */}
+      <div className="absolute right-4 top-4 z-20">
+        <OddsInfoBox>
+          <span className="tabular-nums">
+            Safe ~{MULTIPLIER_CURVES.safe[0]}x &middot; Low ~{MULTIPLIER_CURVES.low[0]}x &middot;
+            Medium ~{MULTIPLIER_CURVES.medium[0]}x &middot; High ~{MULTIPLIER_CURVES.high[0]}x
+            (centre &lt; 1x)
+          </span>
+        </OddsInfoBox>
+      </div>
+
+      <main className="flex-1 overflow-auto p-6 pt-20">
+        <header className="mb-4 text-center">
+          <h1 className="font-display text-2xl tracking-[0.18em] text-gold-bright">
+            MASQUER &middot; Plinko
           </h1>
-          <span className="font-display text-xs text-white/60">
+          <p
+            className="mt-1 font-display text-[10px] uppercase tracking-[0.18em] text-ivory/55"
+            data-plinko-subtitle
+          >
+            {subtitle}
+          </p>
+          <p className="mt-1 font-display text-[10px] uppercase tracking-[0.18em] text-ivory/55">
             Balance:{' '}
             <span className="text-gold-bright tabular-nums">{balance.toLocaleString()}</span>
-          </span>
+          </p>
         </header>
 
         {showSetup && (
@@ -226,18 +367,30 @@ export default function PlinkoPage(): JSX.Element | null {
 
         {!showSetup && !showEndScreen && (
           <div className="flex gap-4">
-            <div className="flex-1">
-              <Board>
-                {snapshot.context.inFlightBalls.map((ball) => (
-                  <FallingBall
-                    key={ball.ballId}
-                    path={ball.path}
-                    bin={ball.bin}
-                    onLanded={() => handleBallLanded(ball.ballId)}
-                  />
-                ))}
-              </Board>
-              <BinRow risk={snapshot.context.risk || pendingRisk} flashedBinIdx={flashedBinIdx} />
+            <div className="relative flex-1">
+              <motion.div
+                animate={
+                  celebrationActive && !reduceMotion ? { x: [0, -2, 2, -1, 1, 0] } : { x: 0 }
+                }
+                transition={{ duration: 0.4 }}
+                className="relative"
+              >
+                <Board>
+                  <CoinShower active={celebrationActive} />
+                  <AnimatePresence>
+                    {snapshot.context.inFlightBalls.map((ball) => (
+                      <FallingBall
+                        key={ball.ballId}
+                        path={ball.path}
+                        bin={ball.bin}
+                        onLanded={() => handleBallLanded(ball.ballId)}
+                        onPegHit={handlePegHit}
+                      />
+                    ))}
+                  </AnimatePresence>
+                </Board>
+                <BinRow risk={activeRisk} flashedBinIdx={flashedBinIdx} />
+              </motion.div>
 
               {snapshot.matches('playing-auto') && (
                 <div className="mt-4">
@@ -250,11 +403,24 @@ export default function PlinkoPage(): JSX.Element | null {
               )}
 
               {snapshot.matches('idle') && snapshot.context.inFlightBalls.length === 0 && (
-                <div className="mt-4 flex justify-center">
+                <div className="mt-4 flex justify-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => void handleManualDrop()}
+                    disabled={manualCooldown || balance < pendingBet}
+                    className={[
+                      'rounded-md border-2 border-brass bg-velvet px-4 py-2 font-display text-xs tracking-[0.18em] text-ivory',
+                      'disabled:cursor-not-allowed disabled:opacity-40',
+                      manualCooldown ? 'ring-1 ring-brass/40' : '',
+                    ].join(' ')}
+                    data-drop-button
+                  >
+                    DROP ({pendingBet.toLocaleString()})
+                  </button>
                   <button
                     type="button"
                     onClick={() => send({ type: 'RESET' })}
-                    className="px-4 py-2 rounded-md border border-gold/40 bg-felt-deep text-gold-bright text-xs hover:border-gold"
+                    className="rounded-md border border-brass/40 bg-felt-table-deep px-4 py-2 font-display text-xs text-ivory hover:border-brass"
                   >
                     BACK TO SETUP
                   </button>
@@ -275,6 +441,11 @@ export default function PlinkoPage(): JSX.Element | null {
           />
         )}
       </main>
+
+      <RulesButton onClick={() => setRulesOpen(true)} />
+      <RulesModal open={rulesOpen} title="MASQUER · Plinko" onClose={() => setRulesOpen(false)}>
+        <PlinkoRules />
+      </RulesModal>
     </div>
   );
 }

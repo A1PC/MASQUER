@@ -10,7 +10,7 @@ function makeManualEvent(
     bet: 50,
     risk: 'low' as const,
     betHandleId: 'handle-' + (overrides.ballId ?? 'm1'),
-    path: Array(20).fill('L') as ('L' | 'R')[],
+    path: Array(26).fill('L') as ('L' | 'R')[],
     bin: overrides.bin ?? 0,
     multiplier: 110,
     payout: overrides.payout ?? 5500,
@@ -36,7 +36,7 @@ function makeAutoTickEvent(ballId: string, bin = 5, payout = 75) {
   return {
     type: 'AUTO_TICK' as const,
     betHandleId: 'handle-' + ballId,
-    path: Array(20).fill('R') as ('L' | 'R')[],
+    path: Array(26).fill('R') as ('L' | 'R')[],
     bin,
     multiplier: 1.5,
     payout,

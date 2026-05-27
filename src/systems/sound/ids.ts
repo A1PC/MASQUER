@@ -18,6 +18,7 @@ export type SoundId =
   | 'reel.stop'
   | 'wheel.spin'
   | 'ball.drop'
+  | 'peg.ping'
   | 'win.small'
   | 'win.medium'
   | 'win.jackpot'
@@ -39,6 +40,7 @@ export const SOUND_CATEGORY: Record<SoundId, SoundCategory> = {
   'reel.stop': 'game',
   'wheel.spin': 'game',
   'ball.drop': 'game',
+  'peg.ping': 'game',
   'win.small': 'game',
   'win.medium': 'game',
   'win.jackpot': 'game',
