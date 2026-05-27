@@ -314,7 +314,7 @@ export default function PlinkoPage(): JSX.Element | null {
     : `Setup · ${pendingRisk.toUpperCase()}`;
 
   return (
-    <div className="relative flex min-h-screen bg-felt-table text-ivory">
+    <div className="relative flex h-full flex-col bg-felt-table text-ivory">
       {/* Top-left back button */}
       <div className="absolute left-4 top-4 z-20">
         <LobbyButton />
@@ -330,7 +330,7 @@ export default function PlinkoPage(): JSX.Element | null {
         </OddsInfoBox>
       </div>
 
-      <main className="flex-1 overflow-hidden p-4 pt-16">
+      <main className="flex flex-1 flex-col overflow-hidden p-3 pt-14">
         <header className="mb-2 text-center">
           <h1 className="font-display text-2xl tracking-[0.18em] text-gold-bright">
             MASQUER &middot; Plinko
