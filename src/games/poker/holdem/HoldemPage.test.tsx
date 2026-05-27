@@ -287,3 +287,37 @@ describe('HoldemPage — gameplay', () => {
     );
   }, 40_000);
 });
+
+describe('HoldemPage — between-hands grace', () => {
+  it('shows outcome banner + 15s countdown bar after the hand completes', async () => {
+    renderPage();
+    await sitDown2Players();
+    await waitForTable();
+
+    await waitForPlayerTurn();
+    await userEvent.click(screen.getByRole('button', { name: /FOLD/ }));
+
+    // After fold → uncontested win → hand_complete → revealComplete fires
+    // (instant under reduced motion). Grace overlay should mount with the
+    // outcome banner + countdown bar.
+    await waitFor(
+      () => {
+        expect(document.querySelector('[data-between-hands-bar]')).not.toBeNull();
+      },
+      { timeout: 8_000 },
+    );
+
+    const banner = document.querySelector('[data-outcome-banner]');
+    expect(banner).not.toBeNull();
+    expect(banner?.textContent?.toUpperCase()).toContain('BETTER LUCK');
+
+    const seconds = document.querySelector('[data-grace-seconds]');
+    expect(seconds).not.toBeNull();
+    expect(seconds?.textContent).toMatch(/^(15|14)s$/);
+
+    // LEAVE NOW button is present (distinct from PokerTable's LEAVE TABLE)
+    expect(screen.getByRole('button', { name: /LEAVE NOW/ })).toBeInTheDocument();
+    // DEAL NOW lets the player skip the countdown
+    expect(screen.getByRole('button', { name: /DEAL NOW/ })).toBeInTheDocument();
+  }, 30_000);
+});

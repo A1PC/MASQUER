@@ -137,8 +137,8 @@ describe('AdminPokerPage', () => {
     expect(within(handsCard as HTMLElement).getByText('16')).toBeInTheDocument();
   });
 
-  it('renders the house-net card with red (negative tone) when house is ahead', async () => {
-    // House ahead = player lost; per spec §5.1 this reads RED → tone="negative".
+  it('renders the house-net card with green (positive tone) when house is ahead', async () => {
+    // Casino-operator perspective: house ahead reads GREEN → tone="positive".
     await seedRow({
       id: 'p-1',
       variant: 'holdem',
@@ -154,14 +154,14 @@ describe('AdminPokerPage', () => {
       </MemoryRouter>,
     );
     await waitFor(() => {
-      expect(container.querySelector('[data-tone="negative"]')).toBeInTheDocument();
+      expect(container.querySelector('[data-tone="positive"]')).toBeInTheDocument();
     });
-    const negative = container.querySelector('[data-tone="negative"]') as HTMLElement;
-    expect(negative.textContent).toContain('+400');
-    expect(negative.textContent?.toLowerCase()).toContain('house ahead');
+    const positive = container.querySelector('[data-tone="positive"]') as HTMLElement;
+    expect(positive.textContent).toContain('+400');
+    expect(positive.textContent?.toLowerCase()).toContain('house ahead');
   });
 
-  it('renders the house-net card with green (positive tone) when house is behind', async () => {
+  it('renders the house-net card with red (negative tone) when house is behind', async () => {
     await seedRow({
       id: 'p-1',
       variant: 'holdem',
@@ -177,11 +177,11 @@ describe('AdminPokerPage', () => {
       </MemoryRouter>,
     );
     await waitFor(() => {
-      expect(container.querySelector('[data-tone="positive"]')).toBeInTheDocument();
+      expect(container.querySelector('[data-tone="negative"]')).toBeInTheDocument();
     });
-    const positive = container.querySelector('[data-tone="positive"]') as HTMLElement;
-    expect(positive.textContent).toContain('-400');
-    expect(positive.textContent?.toLowerCase()).toContain('house behind');
+    const negative = container.querySelector('[data-tone="negative"]') as HTMLElement;
+    expect(negative.textContent).toContain('-400');
+    expect(negative.textContent?.toLowerCase()).toContain('house behind');
   });
 
   it('filters the recent-sessions table when a variant tab is selected', async () => {
