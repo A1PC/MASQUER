@@ -117,8 +117,52 @@ function DrawRules(): JSX.Element {
 
 function OmahaRules(): JSX.Element {
   return (
-    <div className="text-ivory/85" data-poker-rules-body="omaha">
-      <p className="text-sm italic">Full rules content coming in #12.v3.</p>
+    <div className="space-y-3 text-ivory/85" data-poker-rules-body="omaha">
+      <section>
+        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold">OBJECT</h3>
+        <p>
+          Make the best 5-card hand using <strong>exactly 2 of your 4 hole cards</strong> +{' '}
+          <strong>exactly 3 of the 5 community cards</strong>. The 2+3 rule is strict — you cannot
+          play &ldquo;the board&rdquo; or use just 1 hole card.
+        </p>
+      </section>
+      <section>
+        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold">
+          HAND RANKINGS (HIGH → LOW)
+        </h3>
+        <ol className="list-inside list-decimal text-sm">
+          <li>Royal Flush · Straight Flush</li>
+          <li>Four of a Kind</li>
+          <li>Full House</li>
+          <li>Flush</li>
+          <li>Straight</li>
+          <li>Three of a Kind</li>
+          <li>Two Pair</li>
+          <li>One Pair</li>
+          <li>High Card</li>
+        </ol>
+      </section>
+      <section>
+        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold">BLINDS</h3>
+        <p>
+          Heads-up: button is small blind. 3+: button posts nothing; next two seats post SB + BB.
+        </p>
+      </section>
+      <section>
+        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold">BETTING ROUNDS</h3>
+        <p>Preflop → Flop (3) → Turn (1) → River (1). Action: fold · check · call · raise.</p>
+      </section>
+      <section>
+        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold">SHOWDOWN</h3>
+        <p>
+          If two or more players remain after the river, hole cards reveal and the best 5-card hand
+          wins per the 2+3 rule (split on ties).
+        </p>
+      </section>
+      <section>
+        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold">TABLE</h3>
+        <p>Cash game. Buy-in = 80 BB. Rebuy on bust. Leave Table any time between hands.</p>
+      </section>
     </div>
   );
 }
@@ -136,9 +180,9 @@ const TITLES: Record<Variant, string> = {
 };
 
 /**
- * Variant-aware `RulesModal` wrapper for the poker trio. Hold'em + Draw ship
- * full rules blocks; Omaha renders a one-line placeholder until the #12.v3
- * polish sub-project fleshes it out.
+ * Variant-aware `RulesModal` wrapper for the poker trio. Hold'em, Draw, and
+ * Omaha all ship full rules blocks. The Omaha block makes the 2+3 rule
+ * load-bearing — it's the single most common confusion for Hold'em players.
  */
 export default function PokerRulesModal({ open, variant, onClose }: Props): JSX.Element | null {
   const Body = RULES[variant];
