@@ -4,11 +4,15 @@ import Seat from './Seat';
 import CommunityBoard from './CommunityBoard';
 import BettingControls from './BettingControls';
 import SessionBar from './SessionBar';
-import ShowdownReveal from './ShowdownReveal';
+import ShowdownReveal, { type WinTier } from './ShowdownReveal';
 
 interface Props {
   ctx: PokerContext;
   stateValue: string;
+  /** Player-side win tier for the current hand. Drives the showdown stinger. */
+  winTier: WinTier;
+  /** Forwarded to ShowdownReveal — fires when the reveal animation finishes. */
+  onRevealComplete: () => void;
   onFold: () => void;
   onCheck: () => void;
   onCall: () => void;
@@ -16,9 +20,7 @@ interface Props {
   onLeave: () => void;
 }
 
-/** Derive which seats hold the SB/BB for the current hand.
- *  We infer this from committedThisHand when we're early in the hand.
- *  A simpler approach: the seat with the smallest non-zero committedThisHand is SB. */
+/** Derive which seats hold the SB/BB for the current hand. */
 function inferBlinds(ctx: PokerContext): { sbSeat: number | null; bbSeat: number | null } {
   const eligibleSeats = ctx.seats.filter((s) => s.status !== 'busted' && s.status !== 'empty');
   if (eligibleSeats.length < 2) return { sbSeat: null, bbSeat: null };
@@ -56,6 +58,8 @@ function boardHighlightIndices(
 export default function PokerTable({
   ctx,
   stateValue,
+  winTier,
+  onRevealComplete,
   onFold,
   onCheck,
   onCall,
@@ -85,9 +89,9 @@ export default function PokerTable({
     stateValue === 'showdown';
 
   return (
-    <div className="flex min-h-screen bg-felt-deep text-white">
-      {/* Main table area */}
-      <div className="flex flex-1 flex-col gap-4 p-4">
+    <div className="flex flex-1 gap-4 text-ivory">
+      {/* Main table area — oval-felt brass-edged backdrop */}
+      <div className="flex flex-1 flex-col gap-4 rounded-[3rem] border border-brass/60 bg-felt-table-deep p-6">
         {/* AI seats row */}
         <div className="flex flex-wrap justify-center gap-3" data-ai-seats>
           {aiSeats.map((seat) => {
@@ -137,13 +141,18 @@ export default function PokerTable({
         {isShowdown && handResult && (
           <div className="flex justify-center">
             <div className="w-full max-w-lg">
-              <ShowdownReveal handResult={handResult} seats={seats} />
+              <ShowdownReveal
+                handResult={handResult}
+                seats={seats}
+                winTier={winTier}
+                onRevealComplete={onRevealComplete}
+              />
             </div>
           </div>
         )}
 
         {/* Player seat + betting controls */}
-        <div className="flex justify-center gap-4" data-player-area>
+        <div className="flex flex-wrap items-end justify-center gap-4" data-player-area>
           <Seat
             seat={playerSeat}
             isButton={playerSeat.seatId === buttonSeat}
@@ -169,7 +178,7 @@ export default function PokerTable({
       </div>
 
       {/* Session bar — right rail */}
-      <aside className="w-44 shrink-0 border-l border-gold/20 p-3">
+      <aside className="w-44 shrink-0">
         <SessionBar
           stack={playerSeat.stack}
           totalBoughtIn={ctx.totalBoughtIn}

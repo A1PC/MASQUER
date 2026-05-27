@@ -31,12 +31,12 @@ describe('Seat', () => {
     expect(screen.getByText('800')).toBeInTheDocument();
   });
 
-  it('renders AI name and archetype', () => {
+  it('renders AI mask name (NOT archetype label)', () => {
     render(
       <Seat
         seat={makeSeat({
           seatId: 1,
-          occupant: { archetype: 'rock', name: 'Rocky' },
+          occupant: { archetype: 'rock', name: 'Bauta' },
         })}
         isButton={false}
         isSb={false}
@@ -44,16 +44,43 @@ describe('Seat', () => {
         isActing={false}
       />,
     );
-    expect(screen.getByText('Rocky')).toBeInTheDocument();
-    expect(screen.getByText('ROCK')).toBeInTheDocument();
+    expect(screen.getByText('Bauta')).toBeInTheDocument();
+    // Archetype label must NOT be visible.
+    expect(screen.queryByText('ROCK')).toBeNull();
+    expect(screen.queryByText('Rock')).toBeNull();
   });
 
-  it('shows face-down cards for AI (non-highlighted)', () => {
+  it('renders a MaskAvatar for AI seats', () => {
     const { container } = render(
       <Seat
         seat={makeSeat({
           seatId: 1,
-          occupant: { archetype: 'maniac', name: 'Mo' },
+          occupant: { archetype: 'shark', name: 'Colombina' },
+        })}
+        isButton={false}
+        isSb={false}
+        isBb={false}
+        isActing={false}
+      />,
+    );
+    expect(container.querySelector('[data-mask-avatar]')).toBeInTheDocument();
+    const avatar = container.querySelector('[data-mask-avatar]') as HTMLElement;
+    expect(avatar.getAttribute('data-mask-name')).toBe('Colombina');
+  });
+
+  it('does NOT render a MaskAvatar for the player seat', () => {
+    const { container } = render(
+      <Seat seat={makeSeat()} isButton={false} isSb={false} isBb={false} isActing={false} />,
+    );
+    expect(container.querySelector('[data-mask-avatar]')).toBeNull();
+  });
+
+  it('shows face-down cards for AI', () => {
+    const { container } = render(
+      <Seat
+        seat={makeSeat({
+          seatId: 1,
+          occupant: { archetype: 'maniac', name: 'Volto' },
           holeCards: [
             { rank: 14, suit: 's' },
             { rank: 13, suit: 'h' },
@@ -107,6 +134,23 @@ describe('Seat', () => {
     expect(el.hasAttribute('data-acting')).toBe(false);
   });
 
+  it('MaskAvatar gets active glow when seat isActing', () => {
+    const { container } = render(
+      <Seat
+        seat={makeSeat({
+          seatId: 1,
+          occupant: { archetype: 'shark', name: 'Pierrot' },
+        })}
+        isButton={false}
+        isSb={false}
+        isBb={false}
+        isActing
+      />,
+    );
+    const avatar = container.querySelector('[data-mask-avatar]') as HTMLElement;
+    expect(avatar.className).toContain('ring-2');
+  });
+
   it('shows FOLDED badge when status=folded', () => {
     render(
       <Seat
@@ -117,7 +161,6 @@ describe('Seat', () => {
         isActing={false}
       />,
     );
-    expect(screen.getByTestId !== undefined);
     expect(screen.getByText('FOLDED')).toBeInTheDocument();
   });
 
@@ -137,5 +180,14 @@ describe('Seat', () => {
   it('shows dealer badge when isButton=true', () => {
     render(<Seat seat={makeSeat()} isButton isSb={false} isBb={false} isActing={false} />);
     expect(screen.getByText('D')).toBeInTheDocument();
+  });
+
+  it('uses brand tokens (brass / velvet / ivory) on the container', () => {
+    const { container } = render(
+      <Seat seat={makeSeat()} isButton={false} isSb={false} isBb={false} isActing={false} />,
+    );
+    const el = container.querySelector('[data-seat="0"]') as HTMLElement;
+    expect(el.className).toContain('border-brass');
+    expect(el.className).toContain('bg-velvet-deep');
   });
 });
