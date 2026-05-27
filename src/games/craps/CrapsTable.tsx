@@ -17,12 +17,21 @@ const PLACE_LABELS: Record<number, string> = {
   10: '10',
 };
 
+/**
+ * Flash overlay for the per-roll BetSpot feedback. Keyed by betId (and, when
+ * point-bound, encoded as `${betId}@${betPoint}` so come-bets at different
+ * travelling points can flash independently).
+ */
+export type FlashEntry = { tone: 'win' | 'loss'; payout: number };
+export type FlashMap = Record<string, FlashEntry>;
+
 interface Props {
   ctx: CrapsContext;
   onPlace: (betId: string, betPoint?: number) => void;
   onRemove: (betId: string, betPoint?: number) => void;
   onRoll: () => void;
   canRoll: boolean;
+  flashMap?: FlashMap;
 }
 
 function getBetsFor(bets: ActiveBet[], betId: string, betPoint?: number): ActiveBet[] {
@@ -31,12 +40,28 @@ function getBetsFor(bets: ActiveBet[], betId: string, betPoint?: number): Active
   );
 }
 
+/**
+ * Build the props spread for a BetSpot's transient flash + payout badge. The
+ * spread form keeps `exactOptionalPropertyTypes` happy — we only pass the
+ * keys when there's actually a flash to apply.
+ */
+function flashSpread(
+  flashMap: FlashMap | undefined,
+  betId: string,
+): { flashTone: 'win' | 'loss'; payoutChips: number } | Record<string, never> {
+  if (!flashMap) return {};
+  const entry = flashMap[betId];
+  if (!entry) return {};
+  return { flashTone: entry.tone, payoutChips: entry.payout };
+}
+
 export default function CrapsTable({
   ctx,
   onPlace,
   onRemove,
   onRoll,
   canRoll,
+  flashMap,
 }: Props): JSX.Element {
   const { phase, point, bets, lastRoll } = ctx;
 
@@ -49,7 +74,10 @@ export default function CrapsTable({
   const rollTotal = lastRoll ? lastRoll.d1 + lastRoll.d2 : null;
 
   return (
-    <div className="flex flex-col gap-2 rounded-xl border-2 border-[#5a3a1a] bg-[#0d3823] p-3 shadow-2xl">
+    <div
+      className="flex flex-col gap-2 rounded-[3rem] border border-brass/60 bg-felt-table-deep p-6 shadow-2xl"
+      data-craps-table
+    >
       {/* Row 1: Place numbers + puck */}
       <div className="flex gap-1.5">
         {/* Puck column */}
@@ -62,9 +90,9 @@ export default function CrapsTable({
           const spotBets = getBetsFor(bets, betId);
           const isPoint = point === num;
           return (
-            <div key={num} className="flex-1 relative">
+            <div key={num} className="relative flex-1">
               {isPoint && (
-                <div className="absolute -top-1 left-1/2 -translate-x-1/2 z-10 pointer-events-none">
+                <div className="pointer-events-none absolute -top-1 left-1/2 z-10 -translate-x-1/2">
                   <PointPuck point={point} />
                 </div>
               )}
@@ -75,6 +103,7 @@ export default function CrapsTable({
                 canPlace={canPlace(betId)}
                 onPlace={() => onPlace(betId)}
                 onRemove={spotBets.length > 0 ? () => onRemove(betId) : undefined}
+                {...flashSpread(flashMap, betId)}
               />
             </div>
           );
@@ -90,6 +119,7 @@ export default function CrapsTable({
             chips={getBetsFor(bets, 'come')}
             canPlace={canPlace('come')}
             onPlace={() => onPlace('come')}
+            {...flashSpread(flashMap, 'come')}
           />
         </div>
         <div className="flex-1">
@@ -99,6 +129,7 @@ export default function CrapsTable({
             chips={getBetsFor(bets, 'dont-come')}
             canPlace={canPlace('dont-come')}
             onPlace={() => onPlace('dont-come')}
+            {...flashSpread(flashMap, 'dont-come')}
           />
         </div>
       </div>
@@ -113,6 +144,7 @@ export default function CrapsTable({
             canPlace={canPlace('field')}
             onPlace={() => onPlace('field')}
             onRemove={getBetsFor(bets, 'field').length > 0 ? () => onRemove('field') : undefined}
+            {...flashSpread(flashMap, 'field')}
           />
         </div>
         <div className="flex-1">
@@ -135,6 +167,7 @@ export default function CrapsTable({
             chips={getBetsFor(bets, 'dont-pass')}
             canPlace={canPlace('dont-pass')}
             onPlace={() => onPlace('dont-pass')}
+            {...flashSpread(flashMap, 'dont-pass')}
           />
         </div>
         <div className="flex-1">
@@ -144,6 +177,7 @@ export default function CrapsTable({
             chips={getBetsFor(bets, 'pass')}
             canPlace={canPlace('pass')}
             onPlace={() => onPlace('pass')}
+            {...flashSpread(flashMap, 'pass')}
           />
         </div>
         <div className="flex w-24 items-center justify-center">
@@ -163,6 +197,7 @@ export default function CrapsTable({
             onRemove={
               getBetsFor(bets, 'odds-dont').length > 0 ? () => onRemove('odds-dont') : undefined
             }
+            {...flashSpread(flashMap, 'odds-dont')}
           />
         </div>
         <div className="flex-1">
@@ -175,17 +210,19 @@ export default function CrapsTable({
             onRemove={
               getBetsFor(bets, 'odds-pass').length > 0 ? () => onRemove('odds-pass') : undefined
             }
+            {...flashSpread(flashMap, 'odds-pass')}
           />
         </div>
         <div className="flex w-24 flex-col items-center justify-center gap-1">
           {rollTotal !== null && (
-            <span className="font-display text-xs text-white/60">
-              Total: <span className="font-bold text-gold">{rollTotal}</span>
+            <span className="font-display text-xs text-ivory/55">
+              Total:{' '}
+              <span className="font-mono font-bold tabular-nums text-gold-bright">{rollTotal}</span>
             </span>
           )}
           <button
             type="button"
-            className="rounded bg-gold px-3 py-1.5 font-display text-xs tracking-widest text-felt-deep hover:bg-gold-bright disabled:cursor-not-allowed disabled:opacity-40"
+            className="rounded bg-gold px-3 py-1.5 font-display text-xs tracking-[0.18em] text-felt-deep hover:bg-gold-bright disabled:cursor-not-allowed disabled:opacity-40"
             onClick={onRoll}
             disabled={!canRoll}
             data-roll-button
@@ -197,7 +234,7 @@ export default function CrapsTable({
 
       {/* Phase indicator */}
       <div className="flex items-center justify-between px-1 pt-1">
-        <span className="font-display text-[10px] uppercase tracking-wider text-white/40">
+        <span className="font-display text-[10px] uppercase tracking-[0.18em] text-ivory/55">
           {phase === 'come-out' ? 'Come-Out Roll' : `Point: ${point ?? '—'}`}
         </span>
       </div>
