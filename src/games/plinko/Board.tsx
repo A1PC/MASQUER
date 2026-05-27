@@ -8,7 +8,7 @@ interface Props {
 // Bound the board by the smaller of (vh, vw) so it always fits on screen
 // without scrolling in either direction. Tuned to leave headroom for the
 // AppLayout TopBar/Sidebar chrome, page header, bin row, and drop controls.
-const BOARD_SIZE = 'min(50vh, 40vw)';
+const BOARD_SIZE = 'min(60vh, 50vw)';
 
 export default function Board({ children }: Props): JSX.Element {
   const pegs: JSX.Element[] = [];
