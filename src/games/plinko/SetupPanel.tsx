@@ -62,7 +62,7 @@ export default function SetupPanel({
 
   return (
     <div
-      className="mx-auto flex max-w-2xl flex-col gap-4 rounded-lg border border-brass/60 bg-velvet-deep p-6"
+      className="mx-auto flex max-w-3xl flex-col gap-4 rounded-lg border border-brass/60 bg-velvet-deep p-6"
       data-setup-panel
     >
       <h2 className="font-display text-base tracking-[0.18em] text-gold-bright">

@@ -8,6 +8,17 @@ interface Props {
   flashedBinIdx?: number | null;
 }
 
+/** Short-form multiplier label so 5-digit High-risk edges (60000x) still fit
+ *  inside narrow buckets on the gameplay board. */
+function fmtMulti(multi: number): string {
+  if (multi >= 1000) {
+    const k = multi / 1000;
+    const decimals = k >= 10 ? 0 : 1;
+    return `${k.toFixed(decimals).replace(/\.0$/, '')}k×`;
+  }
+  return `${multi}×`;
+}
+
 /** Returns the bin's visual tier for styling — used to colour-grade buckets
  *  from edge (signature jewel-magenta) to centre (loss territory). */
 function binTier(multi: number): 'jackpot' | 'big' | 'small' | 'push' | 'loss' {
@@ -46,11 +57,7 @@ export default function BinRow({ risk, flashedBinIdx = null }: Props): JSX.Eleme
   const curve = MULTIPLIER_CURVES[risk];
   const widthPct = 100 / BIN_COUNT;
   return (
-    <div
-      className="relative mx-auto h-9 w-full max-w-full overflow-visible"
-      style={{ height: '2.25rem' }}
-      data-bin-row
-    >
+    <div className="relative mx-auto h-5 w-full max-w-full" data-bin-row>
       {curve.map((multi, idx) => {
         const flash = flashedBinIdx === idx;
         const isEdge = idx === 0 || idx === BIN_COUNT - 1;
@@ -60,8 +67,8 @@ export default function BinRow({ risk, flashedBinIdx = null }: Props): JSX.Eleme
           <div
             key={idx}
             className={[
-              'absolute -translate-x-1/2 rounded-sm border px-0.5 py-1 text-center',
-              'font-mono text-[9px] tabular-nums leading-tight',
+              'absolute flex h-5 -translate-x-1/2 items-center justify-center rounded-sm border px-0.5 text-center',
+              'font-mono text-[8px] tabular-nums leading-none',
               tierClass(tier, isEdge),
               flash ? 'ring-2 ring-gold shadow-[0_0_8px_rgba(232,189,109,0.85)]' : '',
             ].join(' ')}
@@ -78,7 +85,7 @@ export default function BinRow({ risk, flashedBinIdx = null }: Props): JSX.Eleme
             data-bin-edge={isEdge ? 'true' : 'false'}
             data-flash={flash ? 'true' : 'false'}
           >
-            {multi >= 1 ? `${multi}x` : `${multi}x`}
+            {fmtMulti(multi)}
           </div>
         );
       })}
