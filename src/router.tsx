@@ -41,6 +41,7 @@ const AdminUsersListPage = lazy(() => import('@/pages/admin/AdminUsersListPage')
 const AdminUserPage = lazy(() => import('@/pages/admin/AdminUserPage'));
 const AdminAuditPage = lazy(() => import('@/pages/admin/AdminAuditPage'));
 const AdminSessionsPage = lazy(() => import('@/pages/admin/AdminSessionsPage'));
+const AdminLeaderboardPage = lazy(() => import('@/pages/admin/AdminLeaderboardPage'));
 const AdminLotteryPage = lazy(() => import('@/pages/admin/AdminLotteryPage'));
 const AdminBingoPage = lazy(() => import('@/pages/admin/AdminBingoPage'));
 const AdminRoulettePage = lazy(() => import('@/pages/admin/AdminRoulettePage'));
@@ -88,6 +89,7 @@ export const router = createBrowserRouter([
       { path: 'users/:id', element: <AdminUserPage /> },
       { path: 'adjustments', element: <AdminAuditPage /> },
       { path: 'sessions', element: <AdminSessionsPage /> },
+      { path: 'leaderboard', element: <AdminLeaderboardPage /> },
       { path: 'lottery', element: <AdminLotteryPage /> },
       { path: 'bingo', element: <AdminBingoPage /> },
       { path: 'roulette', element: <AdminRoulettePage /> },

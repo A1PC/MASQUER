@@ -4559,3 +4559,354 @@ describe('getRecentAdjustments (Phase 15 #14)', () => {
     expect(out[0]!.targetUser).toBe('<deleted>');
   });
 });
+
+// ── Cross-game leaderboard aggregations (Phase 15 #14 PR C) ─────────────────
+
+import {
+  getLeaderboardBiggestSingleWins,
+  getLeaderboardLongestStreaks,
+  getLeaderboardTopVolume,
+  getLeaderboardTopWinners,
+} from './stats';
+
+/**
+ * Seeds three users (alice/bob/carol) with a deterministic 12-round mix
+ * across four games. Pinned ledger:
+ *  - alice: +200 (BJ +100, BJ +50, Slots +50) — 3 win streak
+ *  - bob:   −150 (Roulette −100, Slots −50) — no win streak
+ *  - carol: +900 (Slots +500, Poker −80, BJ +100, BJ +80, BJ +120, BJ +200,
+ *            Slots −20) — best win streak = 4 (closes on BJ)
+ */
+async function seedLeaderboardFixture(): Promise<{
+  aliceId: string;
+  bobId: string;
+  carolId: string;
+}> {
+  await resetDb();
+  localStorage.removeItem(SESSION_KEY);
+  const a = await register({ username: 'alice', password: 'password123' });
+  const b = await register({ username: 'bob', password: 'password123' });
+  const c = await register({ username: 'carol', password: 'password123' });
+  if (!a.ok || !b.ok || !c.ok) throw new Error('register failed');
+
+  // alice — 3 rounds, all wins (BJ, BJ, Slots → streak of 3)
+  await db.rounds.bulkAdd([
+    {
+      id: 'lb-a-1',
+      userId: a.user.id,
+      game: 'blackjack',
+      betAmount: 100,
+      payout: 200,
+      netChange: 100,
+      outcome: 'win',
+      details: {},
+      balanceAfter: 1100,
+      playedAt: 1000,
+    },
+    {
+      id: 'lb-a-2',
+      userId: a.user.id,
+      game: 'blackjack',
+      betAmount: 50,
+      payout: 100,
+      netChange: 50,
+      outcome: 'win',
+      details: {},
+      balanceAfter: 1150,
+      playedAt: 2000,
+    },
+    {
+      id: 'lb-a-3',
+      userId: a.user.id,
+      game: 'slots',
+      betAmount: 10,
+      payout: 60,
+      netChange: 50,
+      outcome: 'win',
+      details: {},
+      balanceAfter: 1200,
+      playedAt: 3000,
+    },
+  ]);
+
+  // bob — 2 rounds, all losses
+  await db.rounds.bulkAdd([
+    {
+      id: 'lb-b-1',
+      userId: b.user.id,
+      game: 'roulette',
+      betAmount: 100,
+      payout: 0,
+      netChange: -100,
+      outcome: 'loss',
+      details: {},
+      balanceAfter: 900,
+      playedAt: 1500,
+    },
+    {
+      id: 'lb-b-2',
+      userId: b.user.id,
+      game: 'slots',
+      betAmount: 50,
+      payout: 0,
+      netChange: -50,
+      outcome: 'loss',
+      details: {},
+      balanceAfter: 850,
+      playedAt: 2500,
+    },
+  ]);
+
+  // carol — 7 rounds: big slots win, then loss, then 4-streak of BJ wins,
+  // closing on a slots loss. Total wagered = 1000+200+100+80+100+200+200=1880.
+  await db.rounds.bulkAdd([
+    {
+      id: 'lb-c-1',
+      userId: c.user.id,
+      game: 'slots',
+      betAmount: 1000,
+      payout: 1500,
+      netChange: 500,
+      outcome: 'win',
+      details: {},
+      balanceAfter: 1500,
+      playedAt: 1100,
+    },
+    {
+      id: 'lb-c-2',
+      userId: c.user.id,
+      game: 'poker',
+      betAmount: 200,
+      payout: 120,
+      netChange: -80,
+      outcome: 'loss',
+      details: {},
+      balanceAfter: 1420,
+      playedAt: 1200,
+    },
+    {
+      id: 'lb-c-3',
+      userId: c.user.id,
+      game: 'blackjack',
+      betAmount: 100,
+      payout: 200,
+      netChange: 100,
+      outcome: 'win',
+      details: {},
+      balanceAfter: 1520,
+      playedAt: 1300,
+    },
+    {
+      id: 'lb-c-4',
+      userId: c.user.id,
+      game: 'blackjack',
+      betAmount: 80,
+      payout: 160,
+      netChange: 80,
+      outcome: 'win',
+      details: {},
+      balanceAfter: 1600,
+      playedAt: 1400,
+    },
+    {
+      id: 'lb-c-5',
+      userId: c.user.id,
+      game: 'blackjack',
+      betAmount: 100,
+      payout: 220,
+      netChange: 120,
+      outcome: 'win',
+      details: {},
+      balanceAfter: 1720,
+      playedAt: 1500,
+    },
+    {
+      id: 'lb-c-6',
+      userId: c.user.id,
+      game: 'blackjack',
+      betAmount: 200,
+      payout: 400,
+      netChange: 200,
+      outcome: 'win',
+      details: {},
+      balanceAfter: 1920,
+      playedAt: 1600,
+    },
+    {
+      id: 'lb-c-7',
+      userId: c.user.id,
+      game: 'slots',
+      betAmount: 200,
+      payout: 180,
+      netChange: -20,
+      outcome: 'loss',
+      details: {},
+      balanceAfter: 1900,
+      playedAt: 1700,
+    },
+  ]);
+
+  return { aliceId: a.user.id, bobId: b.user.id, carolId: c.user.id };
+}
+
+describe('queries.getLeaderboardTopWinners', () => {
+  beforeEach(async () => {
+    await resetDb();
+    localStorage.removeItem(SESSION_KEY);
+  });
+
+  it('returns empty array when no rounds', async () => {
+    const out = await getLeaderboardTopWinners(10);
+    expect(out).toEqual([]);
+  });
+
+  it('sorts users by net chips descending and pins the top three', async () => {
+    await seedLeaderboardFixture();
+    const out = await getLeaderboardTopWinners(10);
+    expect(out).toHaveLength(3);
+    expect(out[0]).toEqual({ username: 'carol', netChips: 900, rounds: 7 });
+    expect(out[1]).toEqual({ username: 'alice', netChips: 200, rounds: 3 });
+    expect(out[2]).toEqual({ username: 'bob', netChips: -150, rounds: 2 });
+  });
+
+  it('respects the limit parameter', async () => {
+    await seedLeaderboardFixture();
+    const out = await getLeaderboardTopWinners(1);
+    expect(out).toHaveLength(1);
+    expect(out[0]!.username).toBe('carol');
+  });
+
+  it('honours sinceMs as a strict lower bound', async () => {
+    await seedLeaderboardFixture();
+    // sinceMs=1100 drops rows with playedAt <= 1100 → alice loses one +100,
+    // carol loses one +500 (her playedAt=1100 row).
+    const out = await getLeaderboardTopWinners(10, 1100);
+    const carol = out.find((r) => r.username === 'carol')!;
+    const alice = out.find((r) => r.username === 'alice')!;
+    expect(carol.netChips).toBe(400);
+    expect(alice.netChips).toBe(100);
+  });
+});
+
+describe('queries.getLeaderboardTopVolume', () => {
+  beforeEach(async () => {
+    await resetDb();
+    localStorage.removeItem(SESSION_KEY);
+  });
+
+  it('returns empty array when no rounds', async () => {
+    const out = await getLeaderboardTopVolume(10);
+    expect(out).toEqual([]);
+  });
+
+  it('sorts users by total wagered descending', async () => {
+    await seedLeaderboardFixture();
+    const out = await getLeaderboardTopVolume(10);
+    expect(out).toHaveLength(3);
+    expect(out[0]).toEqual({ username: 'carol', totalWagered: 1880, rounds: 7 });
+    expect(out[1]).toEqual({ username: 'alice', totalWagered: 160, rounds: 3 });
+    expect(out[2]).toEqual({ username: 'bob', totalWagered: 150, rounds: 2 });
+  });
+});
+
+describe('queries.getLeaderboardBiggestSingleWins', () => {
+  beforeEach(async () => {
+    await resetDb();
+    localStorage.removeItem(SESSION_KEY);
+  });
+
+  it('returns empty array when no rounds', async () => {
+    const out = await getLeaderboardBiggestSingleWins(10);
+    expect(out).toEqual([]);
+  });
+
+  it('returns top wins sorted by netChange descending and skips non-wins', async () => {
+    await seedLeaderboardFixture();
+    const out = await getLeaderboardBiggestSingleWins(3);
+    expect(out).toHaveLength(3);
+    expect(out[0]).toMatchObject({
+      username: 'carol',
+      game: 'slots',
+      payout: 1500,
+      netChange: 500,
+      playedAt: 1100,
+    });
+    expect(out[1]).toMatchObject({
+      username: 'carol',
+      game: 'blackjack',
+      netChange: 200,
+      playedAt: 1600,
+    });
+    expect(out[2]).toMatchObject({
+      username: 'carol',
+      game: 'blackjack',
+      netChange: 120,
+      playedAt: 1500,
+    });
+  });
+
+  it('excludes losing and break-even rounds', async () => {
+    await seedLeaderboardFixture();
+    const out = await getLeaderboardBiggestSingleWins(50);
+    // Combined wins: 3 alice + 5 carol = 8 (bob has none).
+    expect(out).toHaveLength(8);
+    expect(out.every((r) => r.netChange > 0)).toBe(true);
+  });
+});
+
+describe('queries.getLeaderboardLongestStreaks', () => {
+  beforeEach(async () => {
+    await resetDb();
+    localStorage.removeItem(SESSION_KEY);
+  });
+
+  it('returns empty array when no rounds', async () => {
+    const out = await getLeaderboardLongestStreaks(10);
+    expect(out).toEqual([]);
+  });
+
+  it('returns longest positive-netChange runs per user, sorted desc', async () => {
+    await seedLeaderboardFixture();
+    const out = await getLeaderboardLongestStreaks(10);
+    // carol: 4-run (BJ x4) closing on blackjack at playedAt 1600
+    // alice: 3-run (BJ, BJ, Slots) closing on slots at playedAt 3000
+    // bob:   none (all losses → omitted from output)
+    expect(out).toHaveLength(2);
+    expect(out[0]).toEqual({ username: 'carol', streakLength: 4, game: 'blackjack' });
+    expect(out[1]).toEqual({ username: 'alice', streakLength: 3, game: 'slots' });
+  });
+
+  it('returns empty array when no rounds have positive netChange', async () => {
+    await resetDb();
+    const u = await register({ username: 'unlucky', password: 'password123' });
+    if (!u.ok) throw new Error('register failed');
+    await db.rounds.bulkAdd([
+      {
+        id: 'loss-1',
+        userId: u.user.id,
+        game: 'roulette',
+        betAmount: 100,
+        payout: 0,
+        netChange: -100,
+        outcome: 'loss',
+        details: {},
+        balanceAfter: 900,
+        playedAt: 1000,
+      },
+      {
+        id: 'push-1',
+        userId: u.user.id,
+        game: 'blackjack',
+        betAmount: 50,
+        payout: 50,
+        netChange: 0,
+        outcome: 'push',
+        details: {},
+        balanceAfter: 900,
+        playedAt: 2000,
+      },
+    ]);
+    const out = await getLeaderboardLongestStreaks(10);
+    expect(out).toEqual([]);
+  });
+});
