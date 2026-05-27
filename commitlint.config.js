@@ -39,7 +39,6 @@ export default {
         'tracking',
         'baccarat',
         'craps',
-        'sound',
       ],
     ],
     'subject-case': [0],
