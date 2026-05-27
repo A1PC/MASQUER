@@ -111,12 +111,12 @@ export default function AdminPokerPage(): JSX.Element {
 
   const rtpDisplay = stats.actualRtp === null ? '—' : `${(stats.actualRtp * 100).toFixed(1)}%`;
 
-  // Per spec §5.1: "House Net Chips (red if positive / green if negative)".
-  // House-ahead reads RED here (player-perspective semantic on the poker
-  // page — diverges from the plinko/bingo admin pages which use the
-  // opposite mapping; documented in the PR description).
+  // Casino-operator perspective (matches every other admin page): house ahead
+  // reads GREEN, house behind reads RED. Spec §5.1's "red if positive" was
+  // written from the player's perspective and got reverted to align with the
+  // rest of the admin suite.
   const houseNetTone: 'positive' | 'negative' | 'neutral' =
-    stats.netHouseChips > 0 ? 'negative' : stats.netHouseChips < 0 ? 'positive' : 'neutral';
+    stats.netHouseChips > 0 ? 'positive' : stats.netHouseChips < 0 ? 'negative' : 'neutral';
   const houseNetSub =
     stats.netHouseChips > 0
       ? 'House ahead'

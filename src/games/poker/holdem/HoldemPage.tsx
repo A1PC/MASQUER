@@ -116,6 +116,14 @@ function HoldemSession({ session, onSessionOver, onReset }: HoldemSessionProps):
   const lastHandNumberRef = useRef<number>(snapshot.context.handNumber);
   const playerStartStackRef = useRef<number>(session.input.buyIn);
 
+  // Between-hands grace period — gives the player 15s to read the table and
+  // leave before the next hand auto-deals. Banner with the outcome shows for
+  // the first 3s then fades, leaving the leave-vs-deal-now controls.
+  const LEAVE_GRACE_MS = 15_000;
+  const OUTCOME_BANNER_MS = 3_000;
+  const [graceRemainingMs, setGraceRemainingMs] = useState<number | null>(null);
+  const [outcomeBannerVisible, setOutcomeBannerVisible] = useState(false);
+
   // Prior-state tracking for sound transitions.
   const prevStateValueRef = useRef<string>('idle');
   const prevStreetRef = useRef<string>('preflop');
@@ -133,6 +141,8 @@ function HoldemSession({ session, onSessionOver, onReset }: HoldemSessionProps):
     if (snapshot.context.handNumber !== lastHandNumberRef.current) {
       lastHandNumberRef.current = snapshot.context.handNumber;
       setRevealComplete(false);
+      setGraceRemainingMs(null);
+      setOutcomeBannerVisible(false);
       // Capture player's stack at hand start to compute win-tier on completion.
       const playerSeat = snapshot.context.seats.find((s) => s.seatId === 0);
       if (playerSeat) {
@@ -141,29 +151,72 @@ function HoldemSession({ session, onSessionOver, onReset }: HoldemSessionProps):
     }
   }, [snapshot.context.handNumber, snapshot.context.seats]);
 
+  // ── 3s outcome banner ────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!outcomeBannerVisible) return;
+    const t = setTimeout(() => setOutcomeBannerVisible(false), OUTCOME_BANNER_MS);
+    return () => clearTimeout(t);
+  }, [outcomeBannerVisible, OUTCOME_BANNER_MS]);
+
+  // ── Fallback grace-period trigger ───────────────────────────────────────
+  // ShowdownReveal mounts only while the machine state is `'showdown'` or
+  // `'hand_complete'`. The latter is an `always` transition straight to
+  // `'idle'`, so uncontested wins may never mount the reveal component →
+  // its `onRevealComplete` never fires → grace never starts. This effect
+  // independently kicks the grace period once the machine settles into
+  // `idle` post-hand. If ShowdownReveal does mount and call back first,
+  // the `revealComplete` guard makes this a no-op.
+  useEffect(() => {
+    if (revealComplete) return;
+    if (!startedRef.current) return;
+    if (!snapshot.matches('idle')) return;
+    if (snapshot.context.handsPlayed === 0) return;
+    if (!snapshot.context.handResult) return;
+    const t = setTimeout(() => {
+      setRevealComplete(true);
+      setGraceRemainingMs(LEAVE_GRACE_MS);
+      setOutcomeBannerVisible(true);
+    }, 100);
+    return () => clearTimeout(t);
+  }, [snapshot, revealComplete, LEAVE_GRACE_MS]);
+
+  // ── Between-hands countdown tick ─────────────────────────────────────────
+  useEffect(() => {
+    if (graceRemainingMs === null) return;
+    if (graceRemainingMs <= 0) return;
+    const t = setTimeout(() => {
+      setGraceRemainingMs((ms) => (ms === null ? null : Math.max(0, ms - 1000)));
+    }, 1000);
+    return () => clearTimeout(t);
+  }, [graceRemainingMs]);
+
   // ── Auto-next-hand after idle (post hand_complete) — gated on revealComplete
+  //     AND the 15s leave-grace countdown reaching 0
   useEffect(() => {
     if (!startedRef.current) return;
     if (!snapshot.matches('idle')) return;
     if (snapshot.context.handsPlayed === 0) return;
-    // Wait for the ShowdownReveal stagger to finish before queueing next hand.
     if (!revealComplete) return;
+    if (graceRemainingMs === null || graceRemainingMs > 0) return;
 
-    const t = setTimeout(() => {
-      for (const seat of snapshot.context.seats) {
-        if (seat.seatId !== 0 && seat.status === 'busted') {
-          const rng = rngRef.current;
-          const archetype = pickArchetype(rng);
-          // Assign a fresh single mask name for the reseat.
-          const [name] = assignMaskName(rng, 2);
-          const stack = snapshot.context.stakes.bb * 80;
-          send({ type: 'RESEAT_AI', seatId: seat.seatId, archetype, name: name ?? 'Bauta', stack });
-        }
+    for (const seat of snapshot.context.seats) {
+      if (seat.seatId !== 0 && seat.status === 'busted') {
+        const rng = rngRef.current;
+        const archetype = pickArchetype(rng);
+        // Assign a fresh single mask name for the reseat.
+        const [name] = assignMaskName(rng, 2);
+        const stack = snapshot.context.stakes.bb * 80;
+        send({ type: 'RESEAT_AI', seatId: seat.seatId, archetype, name: name ?? 'Bauta', stack });
       }
-      send({ type: 'START_HAND' });
-    }, 250); // Short tail-pause after the reveal completes.
+    }
+    send({ type: 'START_HAND' });
+    // Reset the grace gate via a microtask so the state update lands outside
+    // the effect body (per react-hooks/set-state-in-effect). The handNumber
+    // reset-effect will also clear graceRemainingMs once the new hand starts;
+    // this guards against re-firing in the gap before that effect runs.
+    const t = setTimeout(() => setGraceRemainingMs(null), 0);
     return () => clearTimeout(t);
-  }, [snapshot, send, revealComplete]);
+  }, [snapshot, send, revealComplete, graceRemainingMs]);
 
   // ── AI turn driver ────────────────────────────────────────────────────────
   useEffect(() => {
@@ -357,6 +410,12 @@ function HoldemSession({ session, onSessionOver, onReset }: HoldemSessionProps):
 
   const handleRevealComplete = useCallback(() => {
     setRevealComplete(true);
+    setGraceRemainingMs(LEAVE_GRACE_MS);
+    setOutcomeBannerVisible(true);
+  }, [LEAVE_GRACE_MS]);
+
+  const handleDealNow = useCallback(() => {
+    setGraceRemainingMs(0);
   }, []);
 
   // ── bust_prompt ───────────────────────────────────────────────────────────
@@ -429,18 +488,75 @@ function HoldemSession({ session, onSessionOver, onReset }: HoldemSessionProps):
 
   // ── Playing ───────────────────────────────────────────────────────────────
   const stateValue = typeof snapshot.value === 'string' ? snapshot.value : 'idle';
+  const inGracePeriod = graceRemainingMs !== null && graceRemainingMs > 0;
+  const isPlayerWin = winTier !== 'loss' && playerHandWonAmount > 0;
   return (
-    <PokerTable
-      ctx={snapshot.context}
-      stateValue={stateValue}
-      winTier={winTier}
-      onRevealComplete={handleRevealComplete}
-      onFold={handleFold}
-      onCheck={handleCheck}
-      onCall={handleCall}
-      onRaise={handleRaise}
-      onLeave={handleLeave}
-    />
+    <div className="relative h-full">
+      <PokerTable
+        ctx={snapshot.context}
+        stateValue={stateValue}
+        winTier={winTier}
+        onRevealComplete={handleRevealComplete}
+        onFold={handleFold}
+        onCheck={handleCheck}
+        onCall={handleCall}
+        onRaise={handleRaise}
+        onLeave={handleLeave}
+      />
+      {outcomeBannerVisible && (
+        <div
+          className="pointer-events-none absolute inset-x-0 top-24 z-40 flex justify-center"
+          data-outcome-banner
+        >
+          <div
+            className={[
+              'rounded-lg border-2 px-10 py-5 text-center backdrop-blur-sm shadow-2xl',
+              isPlayerWin
+                ? 'border-gold-bright bg-velvet-deep/95 text-gold-bright'
+                : 'border-casino-red bg-velvet-deep/95 text-casino-red',
+            ].join(' ')}
+            data-outcome-banner-tone={isPlayerWin ? 'win' : 'loss'}
+          >
+            <div className="font-display text-3xl tracking-[0.22em]">
+              {isPlayerWin
+                ? `YOU WIN +${playerHandWonAmount.toLocaleString()}`
+                : 'BETTER LUCK NEXT HAND'}
+            </div>
+          </div>
+        </div>
+      )}
+      {inGracePeriod && (
+        <div
+          className="absolute inset-x-0 bottom-6 z-30 flex justify-center"
+          data-between-hands-bar
+        >
+          <div className="flex items-center gap-4 rounded-md border border-brass/60 bg-velvet-deep/95 px-6 py-3 shadow-xl">
+            <span className="font-display text-xs tracking-[0.18em] text-ivory/70">
+              Next hand in{' '}
+              <span className="text-gold-bright tabular-nums" data-grace-seconds>
+                {Math.ceil(graceRemainingMs / 1000)}s
+              </span>
+            </span>
+            <button
+              type="button"
+              onClick={handleLeave}
+              className="rounded-md border border-casino-red/60 px-4 py-2 font-display text-xs tracking-[0.18em] text-casino-red hover:bg-casino-red/10"
+              data-leave-grace
+            >
+              LEAVE NOW
+            </button>
+            <button
+              type="button"
+              onClick={handleDealNow}
+              className="rounded-md border border-brass/60 px-4 py-2 font-display text-xs tracking-[0.18em] text-ivory hover:bg-velvet"
+              data-deal-now
+            >
+              DEAL NOW
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
