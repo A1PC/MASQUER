@@ -14,7 +14,7 @@ const FOUR_CARDS: Card[] = [
 function makeAiSeat(overrides: Partial<OmahaSeatState> = {}): OmahaSeatState {
   return {
     seatId: 1,
-    occupant: { archetype: 'rock', name: 'Rock 1' },
+    occupant: { archetype: 'rock', name: 'Bauta' },
     stack: 3_200,
     holeCards: FOUR_CARDS,
     committedThisStreet: 0,
@@ -99,10 +99,82 @@ describe('OmahaSeat', () => {
     expect(faceDown.length).toBe(0);
   });
 
-  it('shows AI archetype label in uppercase', () => {
-    const seat = makeAiSeat();
-    render(<OmahaSeat seat={seat} isButton={false} isSb={false} isBb={false} isActing={false} />);
-    expect(screen.getByText('ROCK')).toBeInTheDocument();
+  it('renders AI mask name (NOT archetype label)', () => {
+    render(
+      <OmahaSeat
+        seat={makeAiSeat({ occupant: { archetype: 'rock', name: 'Bauta' } })}
+        isButton={false}
+        isSb={false}
+        isBb={false}
+        isActing={false}
+      />,
+    );
+    expect(screen.getByText('Bauta')).toBeInTheDocument();
+    // Archetype label must NOT be visible.
+    expect(screen.queryByText('ROCK')).toBeNull();
+    expect(screen.queryByText('Rock')).toBeNull();
+    expect(screen.queryByText('SHARK')).toBeNull();
+    expect(screen.queryByText('MANIAC')).toBeNull();
+    expect(screen.queryByText('STATION')).toBeNull();
+  });
+
+  it('renders a MaskAvatar for AI seats', () => {
+    const { container } = render(
+      <OmahaSeat
+        seat={makeAiSeat({ occupant: { archetype: 'shark', name: 'Colombina' } })}
+        isButton={false}
+        isSb={false}
+        isBb={false}
+        isActing={false}
+      />,
+    );
+    expect(container.querySelector('[data-mask-avatar]')).toBeInTheDocument();
+    const avatar = container.querySelector('[data-mask-avatar]') as HTMLElement;
+    expect(avatar.getAttribute('data-mask-name')).toBe('Colombina');
+  });
+
+  it('does NOT render a MaskAvatar for the player seat', () => {
+    const { container } = render(
+      <OmahaSeat
+        seat={makePlayerSeat()}
+        isButton={false}
+        isSb={false}
+        isBb={false}
+        isActing={false}
+        position="bottom"
+      />,
+    );
+    expect(container.querySelector('[data-mask-avatar]')).toBeNull();
+  });
+
+  it('MaskAvatar gets active glow when seat isActing', () => {
+    const { container } = render(
+      <OmahaSeat
+        seat={makeAiSeat({ occupant: { archetype: 'shark', name: 'Pierrot' } })}
+        isButton={false}
+        isSb={false}
+        isBb={false}
+        isActing
+      />,
+    );
+    const avatar = container.querySelector('[data-mask-avatar]') as HTMLElement;
+    expect(avatar.className).toContain('ring-2');
+  });
+
+  it('uses brand tokens (brass / velvet / ivory) on the container', () => {
+    const { container } = render(
+      <OmahaSeat
+        seat={makePlayerSeat()}
+        isButton={false}
+        isSb={false}
+        isBb={false}
+        isActing={false}
+        position="bottom"
+      />,
+    );
+    const el = container.querySelector('[data-seat="0"]') as HTMLElement;
+    expect(el.className).toContain('border-brass');
+    expect(el.className).toContain('bg-velvet-deep');
   });
 
   it('shows stack formatted with thousands separator', () => {
@@ -201,19 +273,6 @@ describe('OmahaSeat', () => {
     expect(nameEl?.textContent).toBe('YOU');
   });
 
-  it('shows AI name', () => {
-    render(
-      <OmahaSeat
-        seat={makeAiSeat({ occupant: { archetype: 'shark', name: 'Shark 2' } })}
-        isButton={false}
-        isSb={false}
-        isBb={false}
-        isActing={false}
-      />,
-    );
-    expect(screen.getByText('Shark 2')).toBeInTheDocument();
-  });
-
   it('highlightCards=true shows face-up cards for AI seat', () => {
     render(
       <OmahaSeat
@@ -228,5 +287,49 @@ describe('OmahaSeat', () => {
     // When highlightCards=true, showFaceUp=true → no face-down cards
     const faceDown = document.querySelectorAll('[data-face-down]');
     expect(faceDown.length).toBe(0);
+  });
+
+  it('revealHoleCards=true shows AI cards face-up without highlight', () => {
+    render(
+      <OmahaSeat
+        seat={makeAiSeat()}
+        isButton={false}
+        isSb={false}
+        isBb={false}
+        isActing={false}
+        revealHoleCards
+      />,
+    );
+    const faceDown = document.querySelectorAll('[data-face-down]');
+    expect(faceDown.length).toBe(0);
+  });
+
+  it('does not leak hand-category badge during play (no handRank prop)', () => {
+    const { container } = render(
+      <OmahaSeat seat={makeAiSeat()} isButton={false} isSb={false} isBb={false} isActing={false} />,
+    );
+    expect(container.querySelector('[data-seat-hand-category]')).toBeNull();
+  });
+
+  it('revealHoleCards + handRank renders the hand-category badge', () => {
+    const { container } = render(
+      <OmahaSeat
+        seat={makeAiSeat()}
+        isButton={false}
+        isSb={false}
+        isBb={false}
+        isActing={false}
+        revealHoleCards
+        handRank={{
+          category: 'pair',
+          categoryValue: 1,
+          tiebreakers: [14, 13, 12, 11, 10],
+          best5: [],
+        }}
+      />,
+    );
+    const badge = container.querySelector('[data-seat-hand-category="pair"]');
+    expect(badge).not.toBeNull();
+    expect(badge?.textContent).toBe('Pair');
   });
 });
