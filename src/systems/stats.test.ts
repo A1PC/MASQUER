@@ -3562,3 +3562,406 @@ describe('queries.getPlinkoRiskDistribution', () => {
     ]);
   });
 });
+
+// ─── Phase 15 #12.v1 — Poker admin aggregations ──────────────────────────────
+
+import {
+  getPokerAllTimeStats,
+  getPokerBiggestPots,
+  getPokerSessionsByVariant,
+  type PokerVariant,
+} from './stats';
+
+interface PersistedPokerDetails {
+  readonly variant: PokerVariant;
+  readonly tableSize: number;
+  readonly stakes: { sb: number; bb: number };
+  readonly handsPlayed: number;
+  readonly rebuys: number;
+  readonly biggestPotWon: number;
+  readonly sessionId: string;
+}
+
+const POKER_ONE_DAY_MS = 86_400_000;
+
+function pokerRow(opts: {
+  id: string;
+  variant: PokerVariant;
+  betAmount: number;
+  payoutChips: number;
+  handsPlayed: number;
+  biggestPotWon: number;
+  playedAt: number;
+  rebuys?: number;
+  tableSize?: number;
+}) {
+  const netChange = opts.payoutChips - opts.betAmount;
+  const outcome: 'win' | 'loss' | 'push' = netChange > 0 ? 'win' : netChange < 0 ? 'loss' : 'push';
+  const details: PersistedPokerDetails = {
+    variant: opts.variant,
+    tableSize: opts.tableSize ?? 6,
+    stakes: { sb: 5, bb: 10 },
+    handsPlayed: opts.handsPlayed,
+    rebuys: opts.rebuys ?? 0,
+    biggestPotWon: opts.biggestPotWon,
+    sessionId: `poker-${opts.id}`,
+  };
+  return {
+    id: opts.id,
+    userId: 'u-1',
+    game: 'poker' as const,
+    betAmount: opts.betAmount,
+    payout: opts.payoutChips,
+    netChange,
+    outcome,
+    details: details as unknown,
+    balanceAfter: 1000,
+    playedAt: opts.playedAt,
+  };
+}
+
+/** ~12-row poker fixture covering all 3 variants × win/loss/push, spread
+ *  across the past 30 days. Pinned totals fall out as round numbers:
+ *
+ *    Hold'em:   4 sessions · wagered 2,000 · paid 2,400 · hands 40 · biggest 1,200 (house -400)
+ *    Draw:      4 sessions · wagered 2,000 · paid 1,800 · hands 32 · biggest 900   (house +200)
+ *    Omaha:     4 sessions · wagered 2,000 · paid 1,600 · hands 24 · biggest 1,400 (house +400)
+ *
+ *  Total: 12 sessions · 96 hands · wagered 6,000 · paid 5,800 · house net +200.
+ *  Biggest pot ever = 1,400 (Omaha). */
+async function seedPokerRows() {
+  await resetDb();
+  const now = Date.now();
+  await db.rounds.bulkAdd([
+    // HOLD'EM — 4 sessions
+    pokerRow({
+      id: 'po-h-1',
+      variant: 'holdem',
+      betAmount: 500,
+      payoutChips: 800,
+      handsPlayed: 10,
+      biggestPotWon: 1200,
+      playedAt: now - 1 * POKER_ONE_DAY_MS,
+    }),
+    pokerRow({
+      id: 'po-h-2',
+      variant: 'holdem',
+      betAmount: 500,
+      payoutChips: 300,
+      handsPlayed: 8,
+      biggestPotWon: 400,
+      playedAt: now - 3 * POKER_ONE_DAY_MS,
+    }),
+    pokerRow({
+      id: 'po-h-3',
+      variant: 'holdem',
+      betAmount: 500,
+      payoutChips: 500,
+      handsPlayed: 12,
+      biggestPotWon: 600,
+      playedAt: now - 10 * POKER_ONE_DAY_MS,
+    }),
+    pokerRow({
+      id: 'po-h-4',
+      variant: 'holdem',
+      betAmount: 500,
+      payoutChips: 800,
+      handsPlayed: 10,
+      biggestPotWon: 900,
+      playedAt: now - 20 * POKER_ONE_DAY_MS,
+    }),
+    // FIVE-CARD DRAW — 4 sessions
+    pokerRow({
+      id: 'po-d-1',
+      variant: 'five-card-draw',
+      betAmount: 500,
+      payoutChips: 700,
+      handsPlayed: 8,
+      biggestPotWon: 900,
+      playedAt: now - 2 * POKER_ONE_DAY_MS,
+    }),
+    pokerRow({
+      id: 'po-d-2',
+      variant: 'five-card-draw',
+      betAmount: 500,
+      payoutChips: 200,
+      handsPlayed: 6,
+      biggestPotWon: 300,
+      playedAt: now - 5 * POKER_ONE_DAY_MS,
+    }),
+    pokerRow({
+      id: 'po-d-3',
+      variant: 'five-card-draw',
+      betAmount: 500,
+      payoutChips: 500,
+      handsPlayed: 10,
+      biggestPotWon: 600,
+      playedAt: now - 15 * POKER_ONE_DAY_MS,
+    }),
+    pokerRow({
+      id: 'po-d-4',
+      variant: 'five-card-draw',
+      betAmount: 500,
+      payoutChips: 400,
+      handsPlayed: 8,
+      biggestPotWon: 500,
+      playedAt: now - 25 * POKER_ONE_DAY_MS,
+    }),
+    // OMAHA — 4 sessions
+    pokerRow({
+      id: 'po-o-1',
+      variant: 'omaha',
+      betAmount: 500,
+      payoutChips: 1000,
+      handsPlayed: 6,
+      biggestPotWon: 1400,
+      playedAt: now - 4 * POKER_ONE_DAY_MS,
+    }),
+    pokerRow({
+      id: 'po-o-2',
+      variant: 'omaha',
+      betAmount: 500,
+      payoutChips: 100,
+      handsPlayed: 6,
+      biggestPotWon: 200,
+      playedAt: now - 8 * POKER_ONE_DAY_MS,
+    }),
+    pokerRow({
+      id: 'po-o-3',
+      variant: 'omaha',
+      betAmount: 500,
+      payoutChips: 500,
+      handsPlayed: 6,
+      biggestPotWon: 700,
+      playedAt: now - 12 * POKER_ONE_DAY_MS,
+    }),
+    pokerRow({
+      id: 'po-o-4',
+      variant: 'omaha',
+      betAmount: 500,
+      payoutChips: 0,
+      handsPlayed: 6,
+      biggestPotWon: 0,
+      playedAt: now - 28 * POKER_ONE_DAY_MS,
+    }),
+  ]);
+  return now;
+}
+
+describe('queries.getPokerAllTimeStats', () => {
+  beforeEach(async () => {
+    await resetDb();
+  });
+
+  it('returns zeroes when no poker rounds exist', async () => {
+    const s = await getPokerAllTimeStats();
+    expect(s.sessions).toBe(0);
+    expect(s.hands).toBe(0);
+    expect(s.totalWagered).toBe(0);
+    expect(s.totalPaid).toBe(0);
+    expect(s.netHouseChips).toBe(0);
+    expect(s.netPlayerChips).toBe(0);
+    expect(Object.is(s.netPlayerChips, 0)).toBe(true);
+    expect(s.actualRtp).toBeNull();
+    expect(s.biggestPotEver).toBe(0);
+  });
+
+  it('aggregates 12 poker sessions across all 3 variants', async () => {
+    await seedPokerRows();
+    const s = await getPokerAllTimeStats();
+    expect(s.sessions).toBe(12);
+    expect(s.hands).toBe(96);
+    expect(s.totalWagered).toBe(6000);
+    expect(s.totalPaid).toBe(5800);
+    expect(s.netHouseChips).toBe(200);
+    expect(s.netPlayerChips).toBe(-200);
+    expect(s.actualRtp).toBeCloseTo(5800 / 6000, 5);
+    expect(s.biggestPotEver).toBe(1400);
+  });
+
+  it('filters to a single variant when requested', async () => {
+    await seedPokerRows();
+    const holdem = await getPokerAllTimeStats('holdem');
+    expect(holdem.sessions).toBe(4);
+    expect(holdem.hands).toBe(40);
+    expect(holdem.totalWagered).toBe(2000);
+    expect(holdem.totalPaid).toBe(2400);
+    expect(holdem.netHouseChips).toBe(-400);
+    expect(holdem.biggestPotEver).toBe(1200);
+
+    const draw = await getPokerAllTimeStats('five-card-draw');
+    expect(draw.sessions).toBe(4);
+    expect(draw.hands).toBe(32);
+    expect(draw.totalWagered).toBe(2000);
+    expect(draw.totalPaid).toBe(1800);
+    expect(draw.netHouseChips).toBe(200);
+    expect(draw.biggestPotEver).toBe(900);
+
+    const omaha = await getPokerAllTimeStats('omaha');
+    expect(omaha.sessions).toBe(4);
+    expect(omaha.hands).toBe(24);
+    expect(omaha.totalWagered).toBe(2000);
+    expect(omaha.totalPaid).toBe(1600);
+    expect(omaha.netHouseChips).toBe(400);
+    expect(omaha.biggestPotEver).toBe(1400);
+  });
+
+  it('skips rows whose details are missing the poker shape', async () => {
+    await db.rounds.bulkAdd([
+      pokerRow({
+        id: 'po-ok',
+        variant: 'holdem',
+        betAmount: 500,
+        payoutChips: 600,
+        handsPlayed: 5,
+        biggestPotWon: 400,
+        playedAt: Date.now() - POKER_ONE_DAY_MS,
+      }),
+      {
+        id: 'po-bad',
+        userId: 'u-1',
+        game: 'poker' as const,
+        betAmount: 100,
+        payout: 0,
+        netChange: -100,
+        outcome: 'loss' as const,
+        details: { wrong: true },
+        balanceAfter: 1000,
+        playedAt: Date.now(),
+      },
+    ]);
+    const s = await getPokerAllTimeStats();
+    expect(s.sessions).toBe(1);
+    expect(s.totalWagered).toBe(500);
+    expect(s.totalPaid).toBe(600);
+  });
+});
+
+describe('queries.getPokerSessionsByVariant', () => {
+  beforeEach(async () => {
+    await resetDb();
+  });
+
+  it('returns a zeroed N-day spine when no rounds exist', async () => {
+    const series = await getPokerSessionsByVariant(7);
+    expect(series).toHaveLength(7);
+    for (const day of series) {
+      expect(day.holdem).toBe(0);
+      expect(day.fiveCardDraw).toBe(0);
+      expect(day.omaha).toBe(0);
+    }
+  });
+
+  it('returns an empty array for non-positive day counts', async () => {
+    expect(await getPokerSessionsByVariant(0)).toEqual([]);
+    expect(await getPokerSessionsByVariant(-3)).toEqual([]);
+  });
+
+  it('groups sessions into per-day per-variant buckets across the 30-day window', async () => {
+    await seedPokerRows();
+    const series = await getPokerSessionsByVariant(30);
+    expect(series).toHaveLength(30);
+    // Sum across the whole window should match the seeded counts.
+    const totalHoldem = series.reduce((acc, d) => acc + d.holdem, 0);
+    const totalDraw = series.reduce((acc, d) => acc + d.fiveCardDraw, 0);
+    const totalOmaha = series.reduce((acc, d) => acc + d.omaha, 0);
+    expect(totalHoldem).toBe(4);
+    expect(totalDraw).toBe(4);
+    expect(totalOmaha).toBe(4);
+  });
+
+  it('excludes sessions that fall outside the window', async () => {
+    // Two sessions today, one session 40 days ago (outside 7-day window).
+    const now = Date.now();
+    await db.rounds.bulkAdd([
+      pokerRow({
+        id: 'win-1',
+        variant: 'holdem',
+        betAmount: 500,
+        payoutChips: 600,
+        handsPlayed: 4,
+        biggestPotWon: 300,
+        playedAt: now,
+      }),
+      pokerRow({
+        id: 'win-2',
+        variant: 'omaha',
+        betAmount: 500,
+        payoutChips: 600,
+        handsPlayed: 4,
+        biggestPotWon: 300,
+        playedAt: now,
+      }),
+      pokerRow({
+        id: 'oob',
+        variant: 'five-card-draw',
+        betAmount: 500,
+        payoutChips: 600,
+        handsPlayed: 4,
+        biggestPotWon: 300,
+        playedAt: now - 40 * POKER_ONE_DAY_MS,
+      }),
+    ]);
+    const series = await getPokerSessionsByVariant(7);
+    const totalHoldem = series.reduce((acc, d) => acc + d.holdem, 0);
+    const totalDraw = series.reduce((acc, d) => acc + d.fiveCardDraw, 0);
+    const totalOmaha = series.reduce((acc, d) => acc + d.omaha, 0);
+    expect(totalHoldem).toBe(1);
+    expect(totalOmaha).toBe(1);
+    expect(totalDraw).toBe(0);
+  });
+});
+
+describe('queries.getPokerBiggestPots', () => {
+  beforeEach(async () => {
+    await resetDb();
+  });
+
+  it('returns an empty array when no rounds exist', async () => {
+    expect(await getPokerBiggestPots(10)).toEqual([]);
+  });
+
+  it('returns an empty array for non-positive limits', async () => {
+    await seedPokerRows();
+    expect(await getPokerBiggestPots(0)).toEqual([]);
+    expect(await getPokerBiggestPots(-1)).toEqual([]);
+  });
+
+  it('returns the top-N pots sorted by amount desc across all variants', async () => {
+    await seedPokerRows();
+    const top3 = await getPokerBiggestPots(3);
+    expect(top3).toHaveLength(3);
+    // Biggest seeded pots are 1,400 (Omaha) · 1,200 (Hold'em) · 900 (Hold'em / Draw tie)
+    expect(top3[0]!.amount).toBe(1400);
+    expect(top3[0]!.variant).toBe('omaha');
+    expect(top3[1]!.amount).toBe(1200);
+    expect(top3[1]!.variant).toBe('holdem');
+    expect(top3[2]!.amount).toBe(900);
+  });
+
+  it('filters by variant when requested', async () => {
+    await seedPokerRows();
+    const omaha = await getPokerBiggestPots(10, 'omaha');
+    // 4 omaha sessions but one had biggestPotWon=0 → filtered out.
+    expect(omaha).toHaveLength(3);
+    expect(omaha.every((p) => p.variant === 'omaha')).toBe(true);
+    expect(omaha[0]!.amount).toBe(1400);
+    expect(omaha[1]!.amount).toBe(700);
+    expect(omaha[2]!.amount).toBe(200);
+  });
+
+  it('skips rows with biggestPotWon = 0', async () => {
+    await db.rounds.bulkAdd([
+      pokerRow({
+        id: 'po-zero',
+        variant: 'holdem',
+        betAmount: 500,
+        payoutChips: 0,
+        handsPlayed: 1,
+        biggestPotWon: 0,
+        playedAt: Date.now(),
+      }),
+    ]);
+    expect(await getPokerBiggestPots(10)).toEqual([]);
+  });
+});

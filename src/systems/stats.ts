@@ -1398,3 +1398,180 @@ export async function getPlinkoRiskDistribution(): Promise<PlinkoRiskDistributio
   }
   return PLINKO_RISKS_ORDER.map((risk) => ({ risk, count: counts[risk] }));
 }
+
+// ─── Phase 15 #12.v1 — Poker (Hold'em / Five-Card Draw / Omaha) admin stats ─
+
+export type PokerVariant = 'holdem' | 'five-card-draw' | 'omaha';
+
+/**
+ * Shape of `rounds.details` for a poker row — flattened at persist time in
+ * HoldemPage's `doSettle` (see `src/games/poker/holdem/HoldemPage.tsx`).
+ * Mirrored in AdminPokerPage.tsx and the stats test fixtures; if you change
+ * this, update all three. (Mirrors the baccarat #249 / plinko flat-shape
+ * lesson — the persisted shape is FLAT, not the nested in-memory context.)
+ */
+interface PersistedPokerDetails {
+  readonly variant: PokerVariant;
+  readonly tableSize: number;
+  readonly stakes: { sb: number; bb: number };
+  readonly handsPlayed: number;
+  readonly rebuys: number;
+  readonly biggestPotWon: number;
+  readonly sessionId: string;
+}
+
+/** Type guard for poker round details. Skips half-written / legacy rows so
+ *  the aggregators stay defensive against schema drift. */
+function isPokerDetails(d: unknown): d is PersistedPokerDetails {
+  if (typeof d !== 'object' || d === null) return false;
+  const obj = d as Record<string, unknown>;
+  const variant = obj.variant;
+  const tableSize = obj.tableSize;
+  const handsPlayed = obj.handsPlayed;
+  const rebuys = obj.rebuys;
+  const biggestPotWon = obj.biggestPotWon;
+  const stakes = obj.stakes;
+  if (variant !== 'holdem' && variant !== 'five-card-draw' && variant !== 'omaha') return false;
+  if (typeof tableSize !== 'number' || !Number.isInteger(tableSize)) return false;
+  if (typeof handsPlayed !== 'number' || !Number.isInteger(handsPlayed)) return false;
+  if (typeof rebuys !== 'number' || !Number.isInteger(rebuys)) return false;
+  if (typeof biggestPotWon !== 'number') return false;
+  if (typeof stakes !== 'object' || stakes === null) return false;
+  const s = stakes as Record<string, unknown>;
+  return typeof s.sb === 'number' && typeof s.bb === 'number';
+}
+
+export interface PokerAllTimeStats {
+  /** Settled poker sessions (one row per session — ADR-0041). */
+  sessions: number;
+  /** Total hands played across all sessions. */
+  hands: number;
+  /** Sum of bought-in chips (initial buy-in + rebuys, persisted as `betAmount`). */
+  totalWagered: number;
+  /** Sum of final stacks (persisted as `payout`). */
+  totalPaid: number;
+  /** `totalWagered - totalPaid` (positive = house won). */
+  netHouseChips: number;
+  /** Mirror of `netHouseChips` (sign-flipped, zero normalised). */
+  netPlayerChips: number;
+  /** `totalPaid / totalWagered` (null when no wagering). */
+  actualRtp: number | null;
+  /** Maximum `biggestPotWon` value across all sessions. */
+  biggestPotEver: number;
+}
+
+export interface PokerSessionsByVariantDay {
+  /** YYYY-MM-DD in UTC. */
+  date: string;
+  holdem: number;
+  fiveCardDraw: number;
+  omaha: number;
+}
+
+export interface PokerBiggestPot {
+  playedAt: number;
+  variant: PokerVariant;
+  amount: number;
+}
+
+/** Aggregates all poker sessions, optionally filtered to a single variant. */
+export async function getPokerAllTimeStats(variant?: PokerVariant): Promise<PokerAllTimeStats> {
+  const rows = await db.rounds.where('game').equals('poker').toArray();
+  let sessions = 0;
+  let hands = 0;
+  let totalWagered = 0;
+  let totalPaid = 0;
+  let biggestPotEver = 0;
+  for (const r of rows) {
+    if (!isPokerDetails(r.details)) continue;
+    if (variant !== undefined && r.details.variant !== variant) continue;
+    sessions += 1;
+    hands += r.details.handsPlayed;
+    totalWagered += r.betAmount;
+    totalPaid += r.payout;
+    if (r.details.biggestPotWon > biggestPotEver) {
+      biggestPotEver = r.details.biggestPotWon;
+    }
+  }
+  const netHouseChips = totalWagered - totalPaid;
+  return {
+    sessions,
+    hands,
+    totalWagered,
+    totalPaid,
+    netHouseChips,
+    // Add zero to normalise `-0` (e.g. `-(0)`) to `+0` for strict assertions.
+    netPlayerChips: -netHouseChips + 0,
+    actualRtp: totalWagered > 0 ? totalPaid / totalWagered : null,
+    biggestPotEver,
+  };
+}
+
+/** YYYY-MM-DD in UTC for an epoch-ms timestamp. */
+function utcDateKey(ms: number): string {
+  const d = new Date(ms);
+  const y = d.getUTCFullYear().toString().padStart(4, '0');
+  const m = (d.getUTCMonth() + 1).toString().padStart(2, '0');
+  const day = d.getUTCDate().toString().padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+/** Returns the last `days` UTC days (inclusive of today, oldest first) with
+ *  per-variant session counts. Days with no sessions return zeroed entries
+ *  so the stacked-bar chart always has a full N-day spine. */
+export async function getPokerSessionsByVariant(
+  days: number,
+): Promise<PokerSessionsByVariantDay[]> {
+  if (days <= 0) return [];
+  const rows = await db.rounds.where('game').equals('poker').toArray();
+  // Build the canonical N-day window first so the chart's x-axis is fixed
+  // regardless of which days had data.
+  const todayUtcMs = startOfUtcDay(Date.now());
+  const ONE_DAY_MS = 86_400_000;
+  const window: PokerSessionsByVariantDay[] = [];
+  const keyToIndex = new Map<string, number>();
+  for (let i = days - 1; i >= 0; i -= 1) {
+    const dayMs = todayUtcMs - i * ONE_DAY_MS;
+    const key = utcDateKey(dayMs);
+    keyToIndex.set(key, window.length);
+    window.push({ date: key, holdem: 0, fiveCardDraw: 0, omaha: 0 });
+  }
+  for (const r of rows) {
+    if (!isPokerDetails(r.details)) continue;
+    const key = utcDateKey(r.playedAt);
+    const idx = keyToIndex.get(key);
+    if (idx === undefined) continue;
+    const day = window[idx]!;
+    if (r.details.variant === 'holdem') day.holdem += 1;
+    else if (r.details.variant === 'five-card-draw') day.fiveCardDraw += 1;
+    else day.omaha += 1;
+  }
+  return window;
+}
+
+/** Top-N biggest pots ever won, optionally filtered by variant. Returned
+ *  newest-tiebreaker first via stable `sort` on a descending amount. */
+export async function getPokerBiggestPots(
+  limit: number,
+  variant?: PokerVariant,
+): Promise<PokerBiggestPot[]> {
+  if (limit <= 0) return [];
+  const rows = await db.rounds.where('game').equals('poker').toArray();
+  const all: PokerBiggestPot[] = [];
+  for (const r of rows) {
+    if (!isPokerDetails(r.details)) continue;
+    if (variant !== undefined && r.details.variant !== variant) continue;
+    if (r.details.biggestPotWon <= 0) continue;
+    all.push({
+      playedAt: r.playedAt,
+      variant: r.details.variant,
+      amount: r.details.biggestPotWon,
+    });
+  }
+  all.sort((a, b) => {
+    if (b.amount !== a.amount) return b.amount - a.amount;
+    // Tie-break by most-recent first for stable display.
+    return b.playedAt - a.playedAt;
+  });
+  return all.slice(0, limit);
+}
