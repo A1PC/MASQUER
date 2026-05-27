@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import SetupPanel from './SetupPanel';
+import { BET_MAX, AUTO_BALLS_MAX } from './logic';
 
 const defaultProps = {
   risk: 'low' as const,
@@ -28,7 +29,7 @@ describe('SetupPanel', () => {
 
   it('auto mode shows START AUTO with total commit', () => {
     render(<SetupPanel {...defaultProps} mode="auto" bet={50} autoBalls={10} />);
-    expect(screen.getByRole('button', { name: /START AUTO \(10 × 50/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /START AUTO \(10.*×.*50/ })).toBeInTheDocument();
   });
 
   it('auto mode reveals balls input + interval picker', () => {
@@ -48,14 +49,39 @@ describe('SetupPanel', () => {
     expect(onRiskChange).toHaveBeenCalledWith('high');
   });
 
-  it('bet input clamps to [10, 5000]', () => {
+  it('bet input clamps to [10, BET_MAX = 1,000,000]', () => {
     const onBetChange = vi.fn();
     render(<SetupPanel {...defaultProps} onBetChange={onBetChange} />);
     const input = screen.getByDisplayValue('50');
     // Use fireEvent to set the full value at once on a controlled input.
-    fireEvent.change(input, { target: { value: '99999' } });
-    expect(onBetChange).toHaveBeenLastCalledWith(5000);
+    fireEvent.change(input, { target: { value: '99999999' } });
+    expect(onBetChange).toHaveBeenLastCalledWith(BET_MAX);
     fireEvent.change(input, { target: { value: '1' } });
     expect(onBetChange).toHaveBeenLastCalledWith(10); // clamp to BET_MIN
+  });
+
+  it('MAX bet button jumps to BET_MAX', async () => {
+    const onBetChange = vi.fn();
+    render(<SetupPanel {...defaultProps} onBetChange={onBetChange} />);
+    await userEvent.click(screen.getByRole('button', { name: /^MAX$/ }));
+    expect(onBetChange).toHaveBeenLastCalledWith(BET_MAX);
+  });
+
+  it('auto-balls input clamps to [1, AUTO_BALLS_MAX = 1,000]', () => {
+    const onAutoBallsChange = vi.fn();
+    render(<SetupPanel {...defaultProps} mode="auto" onAutoBallsChange={onAutoBallsChange} />);
+    const input = screen.getByDisplayValue('10');
+    fireEvent.change(input, { target: { value: '99999' } });
+    expect(onAutoBallsChange).toHaveBeenLastCalledWith(AUTO_BALLS_MAX);
+  });
+
+  it('renders the bet range hint (1,000,000) in BET PER BALL section', () => {
+    render(<SetupPanel {...defaultProps} />);
+    expect(screen.getByText(/1,000,000 chips/)).toBeInTheDocument();
+  });
+
+  it('renders the auto-balls max hint (1,000) in BALLS section', () => {
+    render(<SetupPanel {...defaultProps} mode="auto" />);
+    expect(screen.getByText(/max 1,000/)).toBeInTheDocument();
   });
 });

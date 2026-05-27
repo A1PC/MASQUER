@@ -62,10 +62,12 @@ export default function SetupPanel({
 
   return (
     <div
-      className="flex flex-col gap-4 rounded border border-gold/30 bg-felt-deep p-6 max-w-2xl mx-auto"
+      className="mx-auto flex max-w-2xl flex-col gap-4 rounded-lg border border-brass/60 bg-velvet-deep p-6"
       data-setup-panel
     >
-      <h2 className="font-display text-base tracking-wider text-gold-bright">🔻 PLINKO</h2>
+      <h2 className="font-display text-base tracking-[0.18em] text-gold-bright">
+        MASQUER &middot; Plinko
+      </h2>
 
       <section>
         <h3 className="mb-2 font-display text-[11px] tracking-[0.18em] text-gold">RISK</h3>
@@ -78,10 +80,10 @@ export default function SetupPanel({
               aria-checked={risk === r}
               onClick={() => onRiskChange(r)}
               className={[
-                'flex-1 rounded-md border px-3 py-2 text-xs font-display tracking-wider',
+                'flex-1 rounded-md border px-3 py-2 font-display text-xs tracking-[0.18em]',
                 risk === r
-                  ? 'border-gold bg-gold text-felt-deep'
-                  : 'border-white/30 bg-felt-deep text-white/70 hover:border-gold',
+                  ? 'border-brass bg-velvet text-gold-bright'
+                  : 'border-brass/40 bg-felt-table-deep text-ivory/80 hover:border-brass',
               ].join(' ')}
             >
               {RISK_LABELS[r]}
@@ -96,8 +98,13 @@ export default function SetupPanel({
       </section>
 
       <section>
-        <h3 className="mb-2 font-display text-[11px] tracking-[0.18em] text-gold">BET PER BALL</h3>
-        <div className="flex items-center gap-2">
+        <h3 className="mb-2 font-display text-[11px] tracking-[0.18em] text-gold">
+          BET PER BALL{' '}
+          <span className="ml-2 text-[10px] text-ivory/55">
+            ({BET_MIN.toLocaleString()}&ndash;{BET_MAX.toLocaleString()} chips)
+          </span>
+        </h3>
+        <div className="flex flex-wrap items-center gap-2">
           <input
             type="number"
             min={BET_MIN}
@@ -106,34 +113,34 @@ export default function SetupPanel({
             onChange={(e) =>
               onBetChange(clamp(parseInt(e.target.value, 10) || BET_MIN, BET_MIN, BET_MAX))
             }
-            className="w-24 rounded-md border border-white/30 bg-felt-deep px-2 py-1 text-sm text-white tabular-nums"
+            className="w-32 rounded-md border border-brass/60 bg-felt-table-deep px-2 py-1 text-sm text-ivory tabular-nums"
             data-bet-input
           />
           <button
             type="button"
             onClick={() => onBetChange(clamp(bet + 10, BET_MIN, BET_MAX))}
-            className="px-2 py-1 text-[11px] rounded border border-white/20 text-white/70 hover:border-gold"
+            className="rounded border border-brass/40 px-2 py-1 text-[11px] text-ivory/80 hover:border-brass"
           >
             +10
           </button>
           <button
             type="button"
             onClick={() => onBetChange(clamp(bet + 100, BET_MIN, BET_MAX))}
-            className="px-2 py-1 text-[11px] rounded border border-white/20 text-white/70 hover:border-gold"
+            className="rounded border border-brass/40 px-2 py-1 text-[11px] text-ivory/80 hover:border-brass"
           >
             +100
           </button>
           <button
             type="button"
             onClick={() => onBetChange(clamp(bet * 2, BET_MIN, BET_MAX))}
-            className="px-2 py-1 text-[11px] rounded border border-white/20 text-white/70 hover:border-gold"
+            className="rounded border border-brass/40 px-2 py-1 text-[11px] text-ivory/80 hover:border-brass"
           >
-            ×2
+            &times;2
           </button>
           <button
             type="button"
             onClick={() => onBetChange(BET_MAX)}
-            className="px-2 py-1 text-[11px] rounded border border-white/20 text-white/70 hover:border-gold"
+            className="rounded border border-brass/40 px-2 py-1 text-[11px] text-ivory/80 hover:border-brass"
           >
             MAX
           </button>
@@ -151,10 +158,10 @@ export default function SetupPanel({
               aria-checked={mode === m}
               onClick={() => onModeChange(m)}
               className={[
-                'flex-1 rounded-md border px-3 py-2 text-xs font-display tracking-wider',
+                'flex-1 rounded-md border px-3 py-2 font-display text-xs tracking-[0.18em]',
                 mode === m
-                  ? 'border-gold bg-gold text-felt-deep'
-                  : 'border-white/30 bg-felt-deep text-white/70 hover:border-gold',
+                  ? 'border-brass bg-velvet text-gold-bright'
+                  : 'border-brass/40 bg-felt-table-deep text-ivory/80 hover:border-brass',
               ].join(' ')}
             >
               {m.toUpperCase()}
@@ -166,7 +173,12 @@ export default function SetupPanel({
       {mode === 'auto' && (
         <section className="grid grid-cols-2 gap-3">
           <div>
-            <h3 className="mb-2 font-display text-[11px] tracking-[0.18em] text-gold">BALLS</h3>
+            <h3 className="mb-2 font-display text-[11px] tracking-[0.18em] text-gold">
+              BALLS{' '}
+              <span className="ml-1 text-[10px] text-ivory/55">
+                (max {AUTO_BALLS_MAX.toLocaleString()})
+              </span>
+            </h3>
             <input
               type="number"
               min={AUTO_BALLS_MIN}
@@ -181,7 +193,7 @@ export default function SetupPanel({
                   ),
                 )
               }
-              className="w-full rounded-md border border-white/30 bg-felt-deep px-2 py-1 text-sm text-white tabular-nums"
+              className="w-full rounded-md border border-brass/60 bg-felt-table-deep px-2 py-1 text-sm text-ivory tabular-nums"
               data-auto-balls-input
             />
           </div>
@@ -196,10 +208,10 @@ export default function SetupPanel({
                   aria-checked={autoInterval === k}
                   onClick={() => onAutoIntervalChange(k)}
                   className={[
-                    'flex-1 rounded-md border px-2 py-1 text-[10px] font-display',
+                    'flex-1 rounded-md border px-2 py-1 font-display text-[10px]',
                     autoInterval === k
-                      ? 'border-gold bg-gold text-felt-deep'
-                      : 'border-white/30 text-white/70 hover:border-gold',
+                      ? 'border-brass bg-velvet text-gold-bright'
+                      : 'border-brass/40 text-ivory/80 hover:border-brass',
                   ].join(' ')}
                 >
                   {INTERVAL_LABELS[k]}
@@ -211,8 +223,8 @@ export default function SetupPanel({
       )}
 
       <section className="flex items-center justify-between text-xs">
-        <span className="text-white/60">Balance</span>
-        <span className="font-display tabular-nums text-white">{balance.toLocaleString()}</span>
+        <span className="text-ivory/55">Balance</span>
+        <span className="font-display text-ivory tabular-nums">{balance.toLocaleString()}</span>
       </section>
 
       {mode === 'manual' ? (
@@ -220,20 +232,21 @@ export default function SetupPanel({
           type="button"
           onClick={onDrop}
           disabled={!canAffordOne}
-          className="mt-2 w-full rounded-md border-2 border-gold bg-casino-red py-3 font-display text-sm tracking-wider text-white disabled:cursor-not-allowed disabled:opacity-40"
+          className="mt-2 w-full rounded-md border-2 border-brass bg-velvet py-3 font-display text-sm tracking-[0.18em] text-ivory disabled:cursor-not-allowed disabled:opacity-40"
           data-drop-button
         >
-          DROP ({bet})
+          DROP ({bet.toLocaleString()})
         </button>
       ) : (
         <button
           type="button"
           onClick={onStartAuto}
           disabled={!canAffordOne}
-          className="mt-2 w-full rounded-md border-2 border-gold bg-casino-red py-3 font-display text-sm tracking-wider text-white disabled:cursor-not-allowed disabled:opacity-40"
+          className="mt-2 w-full rounded-md border-2 border-brass bg-velvet py-3 font-display text-sm tracking-[0.18em] text-ivory disabled:cursor-not-allowed disabled:opacity-40"
           data-start-auto-button
         >
-          START AUTO ({autoBalls} × {bet} = {autoTotal.toLocaleString()})
+          START AUTO ({autoBalls.toLocaleString()} &times; {bet.toLocaleString()} ={' '}
+          {autoTotal.toLocaleString()})
         </button>
       )}
       {!canAffordOne && (

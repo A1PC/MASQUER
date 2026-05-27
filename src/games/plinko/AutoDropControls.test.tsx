@@ -9,6 +9,11 @@ describe('AutoDropControls', () => {
     expect(screen.getByText(/3 \/ 10 balls/)).toBeInTheDocument();
   });
 
+  it('formats large counts with thousands separators (1,000 cap)', () => {
+    render(<AutoDropControls ballsSpawned={250} ballsRequested={1000} onStop={vi.fn()} />);
+    expect(screen.getByText(/250 \/ 1,000 balls/)).toBeInTheDocument();
+  });
+
   it('clicking STOP fires onStop', async () => {
     const onStop = vi.fn();
     render(<AutoDropControls ballsSpawned={1} ballsRequested={5} onStop={onStop} />);
