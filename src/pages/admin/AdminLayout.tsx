@@ -7,6 +7,7 @@ const NAV_ITEMS = [
   { to: '/admin/users', label: 'Users', end: false },
   { to: '/admin/adjustments', label: 'Adjustments', end: false },
   { to: '/admin/sessions', label: 'Sessions', end: false },
+  { to: '/admin/leaderboard', label: 'Leaderboard', end: false },
   { to: '/admin/lottery', label: 'Lottery', end: false },
   { to: '/admin/bingo', label: 'Bingo', end: false },
   { to: '/admin/roulette', label: 'Roulette', end: false },

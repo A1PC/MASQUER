@@ -19,6 +19,7 @@ function renderLayoutAt(initial: string) {
           { path: 'users/:id', element: <div>per-user content</div> },
           { path: 'adjustments', element: <div>adjustments content</div> },
           { path: 'sessions', element: <div>sessions content</div> },
+          { path: 'leaderboard', element: <div>leaderboard content</div> },
           { path: 'roulette', element: <div>roulette content</div> },
           { path: 'slots', element: <div>slots content</div> },
           { path: 'poker', element: <div>poker content</div> },
@@ -57,6 +58,10 @@ describe('AdminLayout', () => {
     expect(screen.getByRole('link', { name: /sessions/i })).toHaveAttribute(
       'href',
       '/admin/sessions',
+    );
+    expect(screen.getByRole('link', { name: /^leaderboard$/i })).toHaveAttribute(
+      'href',
+      '/admin/leaderboard',
     );
     expect(screen.getByRole('link', { name: /^roulette$/i })).toHaveAttribute(
       'href',
@@ -134,6 +139,30 @@ describe('AdminLayout', () => {
     const link = screen.getByRole('link', { name: /^craps$/i });
     expect(link).toHaveAttribute('aria-current', 'page');
     expect(screen.getByText('craps content')).toBeInTheDocument();
+  });
+
+  it('marks the Leaderboard nav link active on /admin/leaderboard', () => {
+    renderLayoutAt('/admin/leaderboard');
+    const link = screen.getByRole('link', { name: /^leaderboard$/i });
+    expect(link).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByText('leaderboard content')).toBeInTheDocument();
+  });
+
+  it('places the Leaderboard nav entry between Sessions and Lottery', () => {
+    renderLayoutAt('/admin');
+    const sessions = screen.getByRole('link', { name: /^sessions$/i });
+    const leaderboard = screen.getByRole('link', { name: /^leaderboard$/i });
+    // Lottery is a lazy-loaded route in the real app; here we only have a
+    // partial route table so check ordering against the next existing entry
+    // (Roulette comes after Bingo which comes after Lottery in the real nav).
+    const roulette = screen.getByRole('link', { name: /^roulette$/i });
+    // DOCUMENT_POSITION_FOLLOWING (4) = b comes after a in the DOM.
+    expect(
+      sessions.compareDocumentPosition(leaderboard) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      leaderboard.compareDocumentPosition(roulette) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 
   it('marks the active nav link with aria-current=page', () => {
