@@ -1,7 +1,12 @@
 import type { JSX } from 'react';
+import { useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import StatCard from '@/pages/admin/StatCard';
 import CrapsBetTypeFrequencyBar from '@/components/charts/CrapsBetTypeFrequencyBar';
+import DateRangeFilter, {
+  rangeToSinceMs,
+  type RangePreset,
+} from '@/components/admin/DateRangeFilter';
 import {
   getCrapsAllTimeStats,
   getCrapsBetTypeFrequency,
@@ -58,10 +63,14 @@ function formatTimestamp(ms: number): string {
 }
 
 export default function AdminCrapsPage(): JSX.Element {
+  // Phase 15 #14 PR B — shared date-range filter persisted across mounts.
+  const [range, setRange] = useState<RangePreset>('all');
+  const sinceMs = useMemo(() => rangeToSinceMs(range), [range]);
+
   // Phase 9 lesson — let useLiveQuery infer T from the querier's Promise<T>
   // return; do NOT pass an explicit generic. (Mirrors the other admin
   // pages.)
-  const stats = useLiveQuery(() => getCrapsAllTimeStats(), [], EMPTY_STATS);
+  const stats = useLiveQuery(() => getCrapsAllTimeStats(sinceMs), [sinceMs], EMPTY_STATS);
   const frequency = useLiveQuery(() => getCrapsBetTypeFrequency(), [], EMPTY_FREQ);
   const biggestSessions = useLiveQuery(() => getCrapsBiggestSessionWins(10), [], EMPTY_BIGGEST);
   // Load-all + sort by playedAt desc + slice(20) — #250 pattern; do NOT use
@@ -74,6 +83,10 @@ export default function AdminCrapsPage(): JSX.Element {
     },
     [],
     EMPTY_ROUNDS,
+  );
+  const filteredRecent = useMemo(
+    () => (sinceMs !== undefined ? recentRounds.filter((r) => r.playedAt > sinceMs) : recentRounds),
+    [recentRounds, sinceMs],
   );
 
   const rtpDisplay = stats.actualRtp === null ? '—' : `${(stats.actualRtp * 100).toFixed(1)}%`;
@@ -92,6 +105,8 @@ export default function AdminCrapsPage(): JSX.Element {
   return (
     <div className="flex flex-col gap-6">
       <h1 className="font-display text-base tracking-wider text-gold-bright">CRAPS</h1>
+
+      <DateRangeFilter value={range} onChange={setRange} storageKey="admin.craps.range" />
 
       {/* 4 StatCards row */}
       <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
@@ -164,7 +179,7 @@ export default function AdminCrapsPage(): JSX.Element {
         <h2 className="mb-2 font-display text-xs tracking-wider text-white/60">
           RECENT SESSIONS (LAST 20)
         </h2>
-        {recentRounds.length === 0 ? (
+        {filteredRecent.length === 0 ? (
           <p className="text-xs text-white/40">No sessions yet.</p>
         ) : (
           <table className="w-full text-left text-xs" data-recent-sessions>
@@ -179,7 +194,7 @@ export default function AdminCrapsPage(): JSX.Element {
               </tr>
             </thead>
             <tbody>
-              {recentRounds.map((r) => {
+              {filteredRecent.map((r) => {
                 const d = r.details as PersistedCrapsDetails | undefined;
                 const tier = d?.tier ?? null;
                 const rollsPlayed = d?.rollsPlayed ?? 0;

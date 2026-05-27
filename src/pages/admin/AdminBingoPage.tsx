@@ -1,11 +1,15 @@
 import type { JSX } from 'react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { DIFFICULTY, BUY_IN, type Difficulty, type DifficultyConfig } from '@/games/bingo/logic';
 import { useBingoConfigStore } from '@/store/bingoConfigStore';
 import { resolveDifficulty } from '@/systems/bingoConfig';
 import StatCard from '@/pages/admin/StatCard';
 import BingoVariantDifficultyBar from '@/components/charts/BingoVariantDifficultyBar';
+import DateRangeFilter, {
+  rangeToSinceMs,
+  type RangePreset,
+} from '@/components/admin/DateRangeFilter';
 import {
   getBingoAllTimeStats,
   getBingoBallsToBingo,
@@ -388,8 +392,12 @@ function OutcomeBadge({ outcome }: { outcome: 'bingo' | 'bonus' | 'lost' }): JSX
 }
 
 function AdminBingoStats(): JSX.Element {
+  // Phase 15 #14 PR B — shared date-range filter persisted across mounts.
+  const [range, setRange] = useState<RangePreset>('all');
+  const sinceMs = useMemo(() => rangeToSinceMs(range), [range]);
+
   // Inferred-Promise pattern per #250 — no explicit generic.
-  const stats = useLiveQuery(() => getBingoAllTimeStats(), [], EMPTY_STATS);
+  const stats = useLiveQuery(() => getBingoAllTimeStats(sinceMs), [sinceMs], EMPTY_STATS);
   const distribution = useLiveQuery(() => getBingoVariantDifficultyDistribution(), [], EMPTY_DIST);
   const ballsToBingo = useLiveQuery(() => getBingoBallsToBingo(), [], EMPTY_BALLS);
   // Load-all + sort by playedAt desc + slice(20) — #250 pattern; do NOT use
@@ -403,6 +411,10 @@ function AdminBingoStats(): JSX.Element {
     [],
     EMPTY_ROUNDS,
   );
+  const filteredRecent = useMemo(
+    () => (sinceMs !== undefined ? recentRounds.filter((r) => r.playedAt > sinceMs) : recentRounds),
+    [recentRounds, sinceMs],
+  );
 
   const gamesPlayed = stats.gamesPlayed;
   const capturePctDisplay =
@@ -413,6 +425,8 @@ function AdminBingoStats(): JSX.Element {
   return (
     <div className="flex flex-col gap-6" data-bingo-stats>
       <h2 className="font-display text-base tracking-[0.18em] text-gold-bright">STATISTICS</h2>
+
+      <DateRangeFilter value={range} onChange={setRange} storageKey="admin.bingo.range" />
 
       {/* 4 StatCards */}
       <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
@@ -538,7 +552,7 @@ function AdminBingoStats(): JSX.Element {
         <h3 className="mb-2 font-display text-xs tracking-[0.18em] text-white/60">
           RECENT GAMES (LAST 20)
         </h3>
-        {recentRounds.length === 0 ? (
+        {filteredRecent.length === 0 ? (
           <p className="text-xs text-white/40">No games yet.</p>
         ) : (
           <table className="w-full text-left text-xs">
@@ -555,7 +569,7 @@ function AdminBingoStats(): JSX.Element {
               </tr>
             </thead>
             <tbody>
-              {recentRounds.map((r) => {
+              {filteredRecent.map((r) => {
                 const d = r.details as PersistedBingoDetails | undefined;
                 const variant = d?.variant ?? null;
                 const difficulty = d?.difficulty ?? null;

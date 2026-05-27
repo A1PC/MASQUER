@@ -1,7 +1,12 @@
 import type { JSX } from 'react';
+import { useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import StatCard from '@/pages/admin/StatCard';
 import BaccaratWinnerBar from '@/components/charts/BaccaratWinnerBar';
+import DateRangeFilter, {
+  rangeToSinceMs,
+  type RangePreset,
+} from '@/components/admin/DateRangeFilter';
 import {
   getBaccaratAllTimeStats,
   getBaccaratStreakStats,
@@ -140,10 +145,14 @@ function StreakCell({ label, count, fillClass }: StreakCellProps): JSX.Element {
 }
 
 export default function AdminBaccaratPage(): JSX.Element {
+  // Phase 15 #14 PR B — shared date-range filter persisted across mounts.
+  const [range, setRange] = useState<RangePreset>('all');
+  const sinceMs = useMemo(() => rangeToSinceMs(range), [range]);
+
   // Phase 9 lesson — let useLiveQuery infer T from the querier's Promise<T>
   // return; do NOT pass an explicit generic. (Mirrors AdminRoulettePage /
   // AdminSlotsPage.)
-  const stats = useLiveQuery(() => getBaccaratAllTimeStats(), [], EMPTY_STATS);
+  const stats = useLiveQuery(() => getBaccaratAllTimeStats(sinceMs), [sinceMs], EMPTY_STATS);
   const distribution = useLiveQuery(() => getBaccaratWinnerDistribution(), [], EMPTY_DIST);
   const streaks = useLiveQuery(() => getBaccaratStreakStats(), [], EMPTY_STREAKS);
   // `.where(...).reverse()` ties-break by primary key (lexicographic on
@@ -157,6 +166,10 @@ export default function AdminBaccaratPage(): JSX.Element {
     [],
     EMPTY_ROUNDS,
   );
+  const filteredRecent = useMemo(
+    () => (sinceMs !== undefined ? recentRounds.filter((r) => r.playedAt > sinceMs) : recentRounds),
+    [recentRounds, sinceMs],
+  );
 
   const roundsPlayed = stats.roundsPlayed;
   const rtpDisplay = stats.actualRtp === null ? '—' : `${(stats.actualRtp * 100).toFixed(1)}%`;
@@ -168,6 +181,8 @@ export default function AdminBaccaratPage(): JSX.Element {
   return (
     <div className="flex flex-col gap-6">
       <h1 className="font-display text-base tracking-wider text-gold-bright">BACCARAT</h1>
+
+      <DateRangeFilter value={range} onChange={setRange} storageKey="admin.baccarat.range" />
 
       {/* Top row: 4 StatCards */}
       <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
@@ -312,7 +327,7 @@ export default function AdminBaccaratPage(): JSX.Element {
         <h2 className="mb-2 font-display text-xs tracking-wider text-white/60">
           RECENT ROUNDS (LAST 20)
         </h2>
-        {recentRounds.length === 0 ? (
+        {filteredRecent.length === 0 ? (
           <p className="text-xs text-white/40">No rounds yet.</p>
         ) : (
           <table className="w-full text-left text-xs">
@@ -328,7 +343,7 @@ export default function AdminBaccaratPage(): JSX.Element {
               </tr>
             </thead>
             <tbody>
-              {recentRounds.map((r) => {
+              {filteredRecent.map((r) => {
                 const d = r.details as PersistedBaccaratDetails | undefined;
                 const winner: Winner = d?.winner ?? 'tie';
                 const badge = WINNER_BADGE[winner];

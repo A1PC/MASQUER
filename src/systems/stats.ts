@@ -625,8 +625,9 @@ export function dozenOf(n: number): 0 | 1 | 2 | 3 {
   return 3;
 }
 
-export async function getRouletteAllTimeStats(): Promise<RouletteAllTimeStats> {
-  const rows = await db.rounds.where('game').equals('roulette').toArray();
+export async function getRouletteAllTimeStats(sinceMs?: number): Promise<RouletteAllTimeStats> {
+  let rows = await db.rounds.where('game').equals('roulette').toArray();
+  if (sinceMs !== undefined) rows = rows.filter((r) => r.playedAt > sinceMs);
   let ballsSpun = 0;
   let netHouseChips = 0;
   let redCount = 0;
@@ -732,8 +733,9 @@ export interface SlotsAllTimeStats {
   jackpotsHit: number;
 }
 
-export async function getSlotsAllTimeStats(): Promise<SlotsAllTimeStats> {
-  const rows = await db.rounds.where('game').equals('slots').toArray();
+export async function getSlotsAllTimeStats(sinceMs?: number): Promise<SlotsAllTimeStats> {
+  let rows = await db.rounds.where('game').equals('slots').toArray();
+  if (sinceMs !== undefined) rows = rows.filter((r) => r.playedAt > sinceMs);
   let spinsRun = 0;
   let totalWagered = 0;
   let totalPaid = 0;
@@ -892,8 +894,9 @@ export interface BaccaratAllTimeStats {
   bankerDragons: number;
 }
 
-export async function getBaccaratAllTimeStats(): Promise<BaccaratAllTimeStats> {
-  const rows = await db.rounds.where('game').equals('baccarat').toArray();
+export async function getBaccaratAllTimeStats(sinceMs?: number): Promise<BaccaratAllTimeStats> {
+  let rows = await db.rounds.where('game').equals('baccarat').toArray();
+  if (sinceMs !== undefined) rows = rows.filter((r) => r.playedAt > sinceMs);
   let roundsPlayed = 0;
   let totalWagered = 0;
   let totalPaid = 0;
@@ -1086,8 +1089,9 @@ export interface BingoAllTimeStats {
   totalPotsWonByPlayer: number;
 }
 
-export async function getBingoAllTimeStats(): Promise<BingoAllTimeStats> {
-  const rows = await db.rounds.where('game').equals('bingo').toArray();
+export async function getBingoAllTimeStats(sinceMs?: number): Promise<BingoAllTimeStats> {
+  let rows = await db.rounds.where('game').equals('bingo').toArray();
+  if (sinceMs !== undefined) rows = rows.filter((r) => r.playedAt > sinceMs);
   let gamesPlayed = 0;
   let totalWagered = 0;
   let totalPaid = 0;
@@ -1303,8 +1307,9 @@ export interface PlinkoRiskDistribution {
   count: number;
 }
 
-export async function getPlinkoAllTimeStats(): Promise<PlinkoAllTimeStats> {
-  const rows = await db.rounds.where('game').equals('plinko').toArray();
+export async function getPlinkoAllTimeStats(sinceMs?: number): Promise<PlinkoAllTimeStats> {
+  let rows = await db.rounds.where('game').equals('plinko').toArray();
+  if (sinceMs !== undefined) rows = rows.filter((r) => r.playedAt > sinceMs);
   let ballsDropped = 0;
   let totalWagered = 0;
   let totalPaid = 0;
@@ -1474,9 +1479,16 @@ export interface PokerBiggestPot {
   amount: number;
 }
 
-/** Aggregates all poker sessions, optionally filtered to a single variant. */
-export async function getPokerAllTimeStats(variant?: PokerVariant): Promise<PokerAllTimeStats> {
-  const rows = await db.rounds.where('game').equals('poker').toArray();
+/** Aggregates all poker sessions, optionally filtered to a single variant.
+ *  Phase 15 #14 PR B — accepts an optional `sinceMs` epoch threshold
+ *  (exclusive lower-bound on `playedAt`); when omitted the aggregator
+ *  behaves exactly as before (back-compatible). */
+export async function getPokerAllTimeStats(
+  variant?: PokerVariant,
+  sinceMs?: number,
+): Promise<PokerAllTimeStats> {
+  let rows = await db.rounds.where('game').equals('poker').toArray();
+  if (sinceMs !== undefined) rows = rows.filter((r) => r.playedAt > sinceMs);
   let sessions = 0;
   let hands = 0;
   let totalWagered = 0;
@@ -1671,8 +1683,9 @@ export interface CrapsBiggestSession {
 }
 
 /** Aggregates all craps sessions into the headline operator metrics. */
-export async function getCrapsAllTimeStats(): Promise<CrapsAllTimeStats> {
-  const rows = await db.rounds.where('game').equals('craps').toArray();
+export async function getCrapsAllTimeStats(sinceMs?: number): Promise<CrapsAllTimeStats> {
+  let rows = await db.rounds.where('game').equals('craps').toArray();
+  if (sinceMs !== undefined) rows = rows.filter((r) => r.playedAt > sinceMs);
   let sessions = 0;
   let totalRolls = 0;
   let totalWagered = 0;

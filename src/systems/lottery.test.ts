@@ -562,4 +562,57 @@ describe('admin queries', () => {
     const bonusFreq = await getNumberFrequency('bonus');
     expect(bonusFreq.reduce((s, n) => s + n, 0)).toBe(2);
   });
+
+  // Phase 15 #14 PR B — optional sinceMs filter on getLotteryAdminStats /
+  // getNumberFrequency. Lottery rows use `drawAt`, not `playedAt`, but the
+  // filter semantic is the same (strictly greater than).
+  it('getLotteryAdminStats with sinceMs only counts draws after the threshold', async () => {
+    const r = await register({ username: 'c', password: 'password123' });
+    if (!r.ok) throw new Error();
+    // Old draw — settled on 2026-04-15.
+    await buyTicket({
+      userId: r.user.id,
+      lines: [{ kind: 'manual', mainNumbers: [1, 2, 3, 4, 5, 6], bonusNumber: 1 }],
+      now: new Date(2026, 3, 15, 12, 0, 0).getTime(),
+    });
+    await settleMissedDraws({ now: new Date(2026, 3, 15, 20, 30, 0).getTime() });
+    // Recent draw — settled on 2026-05-19.
+    await buyTicket({
+      userId: r.user.id,
+      lines: [{ kind: 'manual', mainNumbers: [7, 8, 9, 10, 11, 12], bonusNumber: 2 }],
+      now: new Date(2026, 4, 19, 12, 0, 0).getTime(),
+    });
+    await settleMissedDraws({ now: new Date(2026, 4, 19, 20, 30, 0).getTime() });
+    // Threshold = midnight 2026-05-19 — should exclude the April draw.
+    const since = new Date(2026, 4, 19, 0, 0, 0).getTime();
+    const lifetime = await getLotteryAdminStats(new Date(2026, 4, 19, 22, 0, 0).getTime());
+    const recent = await getLotteryAdminStats(new Date(2026, 4, 19, 22, 0, 0).getTime(), since);
+    expect(lifetime.totalRevenue).toBe(10); // 5 * 2 lines
+    expect(recent.totalRevenue).toBe(5); // 5 * 1 line only
+  });
+
+  it('getNumberFrequency with sinceMs only counts draws after the threshold', async () => {
+    const r = await register({ username: 'd', password: 'password123' });
+    if (!r.ok) throw new Error();
+    // Use adjacent days so settleMissedDraws doesn't backfill empty draws —
+    // backfilled draws still contribute to the frequency count and would
+    // inflate the lifetime baseline.
+    await buyTicket({
+      userId: r.user.id,
+      lines: [{ kind: 'manual', mainNumbers: [1, 2, 3, 4, 5, 6], bonusNumber: 1 }],
+      now: new Date(2026, 4, 18, 12, 0, 0).getTime(),
+    });
+    await settleMissedDraws({ now: new Date(2026, 4, 18, 20, 30, 0).getTime() });
+    await buyTicket({
+      userId: r.user.id,
+      lines: [{ kind: 'manual', mainNumbers: [1, 2, 3, 4, 5, 6], bonusNumber: 1 }],
+      now: new Date(2026, 4, 19, 12, 0, 0).getTime(),
+    });
+    await settleMissedDraws({ now: new Date(2026, 4, 19, 20, 30, 0).getTime() });
+    const since = new Date(2026, 4, 19, 0, 0, 0).getTime();
+    const lifetime = await getNumberFrequency('main');
+    const recent = await getNumberFrequency('main', since);
+    expect(lifetime.reduce((s, n) => s + n, 0)).toBe(12); // 2 draws × 6 nums
+    expect(recent.reduce((s, n) => s + n, 0)).toBe(6); // 1 draw × 6 nums
+  });
 });

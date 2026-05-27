@@ -59,6 +59,7 @@ async function seedRow(opts: {
 describe('AdminPokerPage', () => {
   beforeEach(async () => {
     await resetDb();
+    localStorage.removeItem('admin.poker.range');
   });
 
   it('renders the four top stat-card labels even when there is no data', async () => {
@@ -74,20 +75,29 @@ describe('AdminPokerPage', () => {
   });
 
   it('renders the four variant tabs with All selected by default', async () => {
-    render(
+    const { container } = render(
       <MemoryRouter>
         <AdminPokerPage />
       </MemoryRouter>,
     );
     await waitFor(() => expect(screen.getByText(/sessions played/i)).toBeInTheDocument());
-    const allTab = screen.getByRole('tab', { name: /^all$/i });
-    const holdemTab = screen.getByRole('tab', { name: /hold'em/i });
-    const drawTab = screen.getByRole('tab', { name: /five-card draw/i });
-    const omahaTab = screen.getByRole('tab', { name: /omaha/i });
-    expect(allTab).toHaveAttribute('aria-selected', 'true');
-    expect(holdemTab).toHaveAttribute('aria-selected', 'false');
-    expect(drawTab).toHaveAttribute('aria-selected', 'false');
-    expect(omahaTab).toHaveAttribute('aria-selected', 'false');
+    // Scope to the variant tablist — the page now also renders the shared
+    // DateRangeFilter (Phase 15 #14 PR B) which contributes its own "All"
+    // tab. Use the data-poker-tab attribute to disambiguate.
+    const allTab = container.querySelector('[data-poker-tab="all"]') as HTMLButtonElement;
+    const holdemTab = container.querySelector('[data-poker-tab="holdem"]') as HTMLButtonElement;
+    const drawTab = container.querySelector(
+      '[data-poker-tab="five-card-draw"]',
+    ) as HTMLButtonElement;
+    const omahaTab = container.querySelector('[data-poker-tab="omaha"]') as HTMLButtonElement;
+    expect(allTab).not.toBeNull();
+    expect(holdemTab).not.toBeNull();
+    expect(drawTab).not.toBeNull();
+    expect(omahaTab).not.toBeNull();
+    expect(allTab.getAttribute('aria-selected')).toBe('true');
+    expect(holdemTab.getAttribute('aria-selected')).toBe('false');
+    expect(drawTab.getAttribute('aria-selected')).toBe('false');
+    expect(omahaTab.getAttribute('aria-selected')).toBe('false');
   });
 
   it('renders the hero chart wrapper', async () => {
@@ -289,5 +299,41 @@ describe('AdminPokerPage', () => {
     const rows = container.querySelectorAll('[data-recent-sessions] tbody tr');
     // Newer row first — Omaha variant in row 0.
     expect(rows[0]!.textContent).toContain('Omaha');
+  });
+
+  // Phase 15 #14 PR B — shared DateRangeFilter integration.
+  it('renders the shared <DateRangeFilter> alongside the variant tabs', async () => {
+    const { container } = render(
+      <MemoryRouter>
+        <AdminPokerPage />
+      </MemoryRouter>,
+    );
+    await waitFor(() => {
+      expect(container.querySelector('[data-date-range-filter]')).not.toBeNull();
+    });
+    expect(container.querySelector('[data-range="7d"]')).not.toBeNull();
+    expect(container.querySelector('[data-range="30d"]')).not.toBeNull();
+    expect(container.querySelector('[data-range="90d"]')).not.toBeNull();
+    expect(container.querySelector('[data-range="all"]')).not.toBeNull();
+  });
+
+  it('persists the clicked preset to localStorage under admin.poker.range', async () => {
+    localStorage.removeItem('admin.poker.range');
+    const { container } = render(
+      <MemoryRouter>
+        <AdminPokerPage />
+      </MemoryRouter>,
+    );
+    const btn = await waitFor(() => {
+      const b = container.querySelector('[data-range="7d"]');
+      expect(b).not.toBeNull();
+      return b as HTMLButtonElement;
+    });
+    const user = userEvent.setup();
+    await user.click(btn);
+    await waitFor(() => {
+      expect(btn.getAttribute('aria-selected')).toBe('true');
+    });
+    expect(localStorage.getItem('admin.poker.range')).toBe('7d');
   });
 });

@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach } from 'vitest';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import AdminPlinkoPage from './AdminPlinkoPage';
 import { resetDb } from '@/test/db-helpers';
@@ -48,6 +48,11 @@ async function seedRow(opts: {
 describe('AdminPlinkoPage', () => {
   beforeEach(async () => {
     await resetDb();
+    // Phase 15 #14 PR B — the DateRangeFilter persists to localStorage; clear
+    // it between cases so tests stay isolated (otherwise a prior case's
+    // "30d" selection would hide fixture rows seeded with low playedAt
+    // values).
+    localStorage.removeItem('admin.plinko.range');
   });
 
   it('renders the four top stat-card labels even when there is no data', async () => {
@@ -287,6 +292,41 @@ describe('AdminPlinkoPage', () => {
     await waitFor(() =>
       expect(container.querySelector('.recharts-responsive-container')).toBeInTheDocument(),
     );
+  });
+
+  // Phase 15 #14 PR B — shared DateRangeFilter integration.
+  it('renders the shared <DateRangeFilter> with the four preset tabs', async () => {
+    const { container } = render(
+      <MemoryRouter>
+        <AdminPlinkoPage />
+      </MemoryRouter>,
+    );
+    await waitFor(() => {
+      expect(container.querySelector('[data-date-range-filter]')).not.toBeNull();
+    });
+    expect(container.querySelector('[data-range="7d"]')).not.toBeNull();
+    expect(container.querySelector('[data-range="30d"]')).not.toBeNull();
+    expect(container.querySelector('[data-range="90d"]')).not.toBeNull();
+    expect(container.querySelector('[data-range="all"]')).not.toBeNull();
+  });
+
+  it('persists the clicked preset to localStorage under admin.plinko.range', async () => {
+    localStorage.removeItem('admin.plinko.range');
+    const { container } = render(
+      <MemoryRouter>
+        <AdminPlinkoPage />
+      </MemoryRouter>,
+    );
+    const btn = await waitFor(() => {
+      const b = container.querySelector('[data-range="30d"]');
+      expect(b).not.toBeNull();
+      return b as HTMLButtonElement;
+    });
+    fireEvent.click(btn);
+    await waitFor(() => {
+      expect(btn.getAttribute('aria-selected')).toBe('true');
+    });
+    expect(localStorage.getItem('admin.plinko.range')).toBe('30d');
   });
 
   it('orders the recent drops table newest first via playedAt desc', async () => {

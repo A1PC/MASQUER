@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach } from 'vitest';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import AdminSlotsPage from './AdminSlotsPage';
 import { resetDb } from '@/test/db-helpers';
@@ -58,6 +58,7 @@ async function seedSlotsRow(opts: {
 describe('AdminSlotsPage', () => {
   beforeEach(async () => {
     await resetDb();
+    localStorage.removeItem('admin.slots.range');
   });
 
   it('renders the four top stat-card labels even when there is no data', async () => {
@@ -299,5 +300,39 @@ describe('AdminSlotsPage', () => {
         container.querySelector('[data-chart="slots-symbol-reel-heatmap"]'),
       ).toBeInTheDocument();
     });
+  });
+
+  // Phase 15 #14 PR B — shared DateRangeFilter integration.
+  it('renders the shared <DateRangeFilter> above the StatCards', async () => {
+    const { container } = render(
+      <MemoryRouter>
+        <AdminSlotsPage />
+      </MemoryRouter>,
+    );
+    await waitFor(() => {
+      expect(container.querySelector('[data-date-range-filter]')).not.toBeNull();
+    });
+    expect(container.querySelector('[data-range="7d"]')).not.toBeNull();
+    expect(container.querySelector('[data-range="30d"]')).not.toBeNull();
+    expect(container.querySelector('[data-range="90d"]')).not.toBeNull();
+    expect(container.querySelector('[data-range="all"]')).not.toBeNull();
+  });
+
+  it('persists the clicked preset to localStorage under admin.slots.range', async () => {
+    const { container } = render(
+      <MemoryRouter>
+        <AdminSlotsPage />
+      </MemoryRouter>,
+    );
+    const btn = await waitFor(() => {
+      const b = container.querySelector('[data-range="7d"]');
+      expect(b).not.toBeNull();
+      return b as HTMLButtonElement;
+    });
+    fireEvent.click(btn);
+    await waitFor(() => {
+      expect(btn.getAttribute('aria-selected')).toBe('true');
+    });
+    expect(localStorage.getItem('admin.slots.range')).toBe('7d');
   });
 });

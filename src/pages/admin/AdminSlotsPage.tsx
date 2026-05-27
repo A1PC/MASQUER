@@ -1,8 +1,13 @@
 import type { JSX } from 'react';
+import { useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import StatCard from '@/pages/admin/StatCard';
 import SlotsCombinationBar from '@/components/charts/SlotsCombinationBar';
 import SlotsSymbolReelHeatmap from '@/components/charts/SlotsSymbolReelHeatmap';
+import DateRangeFilter, {
+  rangeToSinceMs,
+  type RangePreset,
+} from '@/components/admin/DateRangeFilter';
 import {
   getSlotsAllTimeStats,
   getSlotsCombinationDistribution,
@@ -81,10 +86,14 @@ function MiniTierBar({ label, count, total, fillClass }: MiniTierBarProps): JSX.
 }
 
 export default function AdminSlotsPage(): JSX.Element {
+  // Phase 15 #14 PR B — shared date-range filter persisted across mounts.
+  const [range, setRange] = useState<RangePreset>('all');
+  const sinceMs = useMemo(() => rangeToSinceMs(range), [range]);
+
   // Phase 9 lesson — let useLiveQuery infer T from the querier's Promise<T>
   // return; do NOT pass an explicit generic. (See: getRouletteAllTimeStats
   // call in AdminRoulettePage.)
-  const stats = useLiveQuery(() => getSlotsAllTimeStats(), [], EMPTY_STATS);
+  const stats = useLiveQuery(() => getSlotsAllTimeStats(sinceMs), [sinceMs], EMPTY_STATS);
   const combos = useLiveQuery(() => getSlotsCombinationDistribution(), [], EMPTY_COMBOS);
   const symbolDist = useLiveQuery(() => getSlotsSymbolDistribution(), [], EMPTY_SYMBOLS);
   // `.where(...).reverse()` ties-break by primary key (lexicographic on
@@ -98,6 +107,10 @@ export default function AdminSlotsPage(): JSX.Element {
     [],
     EMPTY_ROUNDS,
   );
+  const filteredRecent = useMemo(
+    () => (sinceMs !== undefined ? recentRounds.filter((r) => r.playedAt > sinceMs) : recentRounds),
+    [recentRounds, sinceMs],
+  );
 
   const spinsRun = stats.spinsRun;
   const rtpDisplay = stats.actualRtp === null ? '—' : `${(stats.actualRtp * 100).toFixed(1)}%`;
@@ -106,6 +119,8 @@ export default function AdminSlotsPage(): JSX.Element {
   return (
     <div className="flex flex-col gap-6">
       <h1 className="font-display text-base tracking-wider text-gold-bright">SLOTS</h1>
+
+      <DateRangeFilter value={range} onChange={setRange} storageKey="admin.slots.range" />
 
       {/* Top row: 4 StatCards */}
       <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
@@ -201,7 +216,7 @@ export default function AdminSlotsPage(): JSX.Element {
         <h2 className="mb-2 font-display text-xs tracking-wider text-white/60">
           RECENT SPINS (LAST 20)
         </h2>
-        {recentRounds.length === 0 ? (
+        {filteredRecent.length === 0 ? (
           <p className="text-xs text-white/40">No spins yet.</p>
         ) : (
           <table className="w-full text-left text-xs">
@@ -216,7 +231,7 @@ export default function AdminSlotsPage(): JSX.Element {
               </tr>
             </thead>
             <tbody>
-              {recentRounds.map((r) => {
+              {filteredRecent.map((r) => {
                 const d = r.details as SlotsRoundDetails | undefined;
                 const reels = d?.spin?.reels ?? ['cherry', 'cherry', 'cherry'];
                 const tier = d?.winTier ?? 'none';

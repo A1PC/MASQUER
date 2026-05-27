@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach } from 'vitest';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { render, screen, waitFor, within, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import AdminBaccaratPage from './AdminBaccaratPage';
 import { resetDb } from '@/test/db-helpers';
@@ -74,6 +74,7 @@ async function seedRow(opts: {
 describe('AdminBaccaratPage', () => {
   beforeEach(async () => {
     await resetDb();
+    localStorage.removeItem('admin.baccarat.range');
   });
 
   it('renders the four top stat-card labels even when there is no data', async () => {
@@ -391,5 +392,40 @@ describe('AdminBaccaratPage', () => {
     await waitFor(() => {
       expect(container.querySelector('.recharts-responsive-container')).toBeInTheDocument();
     });
+  });
+
+  // Phase 15 #14 PR B — shared DateRangeFilter integration.
+  it('renders the shared <DateRangeFilter> with the four preset tabs', async () => {
+    const { container } = render(
+      <MemoryRouter>
+        <AdminBaccaratPage />
+      </MemoryRouter>,
+    );
+    await waitFor(() => {
+      expect(container.querySelector('[data-date-range-filter]')).not.toBeNull();
+    });
+    expect(container.querySelector('[data-range="7d"]')).not.toBeNull();
+    expect(container.querySelector('[data-range="30d"]')).not.toBeNull();
+    expect(container.querySelector('[data-range="90d"]')).not.toBeNull();
+    expect(container.querySelector('[data-range="all"]')).not.toBeNull();
+  });
+
+  it('marks the clicked preset tab as aria-selected', async () => {
+    localStorage.removeItem('admin.baccarat.range');
+    const { container } = render(
+      <MemoryRouter>
+        <AdminBaccaratPage />
+      </MemoryRouter>,
+    );
+    const btn = await waitFor(() => {
+      const b = container.querySelector('[data-range="7d"]');
+      expect(b).not.toBeNull();
+      return b as HTMLButtonElement;
+    });
+    fireEvent.click(btn);
+    await waitFor(() => {
+      expect(btn.getAttribute('aria-selected')).toBe('true');
+    });
+    expect(localStorage.getItem('admin.baccarat.range')).toBe('7d');
   });
 });

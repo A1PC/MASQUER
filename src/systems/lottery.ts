@@ -529,13 +529,20 @@ export interface LotteryAdminStats {
   netProfit: number;
 }
 
-export async function getLotteryAdminStats(now: number = Date.now()): Promise<LotteryAdminStats> {
+export async function getLotteryAdminStats(
+  now: number = Date.now(),
+  sinceMs?: number,
+): Promise<LotteryAdminStats> {
   try {
     const today = dateStringFor(now);
     const todayTickets = await db.lotteryTickets.where('drawId').equals(today).toArray();
     const ticketsSoldToday = todayTickets.length;
     const linesSoldToday = todayTickets.reduce((s, t) => s + t.lineCount, 0);
-    const allDraws = await db.lotteryDraws.toArray();
+    let allDraws = await db.lotteryDraws.toArray();
+    // Phase 15 #14 PR B — optional date-range filter. Lottery rows use `drawAt`
+    // (not `playedAt`); applied post-load to match the same filter precedent
+    // used elsewhere in stats.ts. `sinceMs === undefined` preserves old shape.
+    if (sinceMs !== undefined) allDraws = allDraws.filter((d) => d.drawAt > sinceMs);
     let totalRevenue = 0;
     let totalPayout = 0;
     for (const d of allDraws) {
@@ -564,12 +571,18 @@ export async function getLotteryAdminStats(now: number = Date.now()): Promise<Lo
 }
 
 /** Returns array of length MAIN_POOL_SIZE (or BONUS_POOL_SIZE) where index i = times
- *  number (i+1) appeared in a draw, historically. */
-export async function getNumberFrequency(pool: 'main' | 'bonus'): Promise<number[]> {
+ *  number (i+1) appeared in a draw, historically. Phase 15 #14 PR B adds an
+ *  optional `sinceMs` filter so the admin date-range tabs can scope the
+ *  frequency chart to the same window as the StatCards. */
+export async function getNumberFrequency(
+  pool: 'main' | 'bonus',
+  sinceMs?: number,
+): Promise<number[]> {
   try {
     const size = pool === 'main' ? MAIN_POOL_SIZE : BONUS_POOL_SIZE;
     const freq = new Array<number>(size).fill(0);
-    const draws = await db.lotteryDraws.toArray();
+    let draws = await db.lotteryDraws.toArray();
+    if (sinceMs !== undefined) draws = draws.filter((d) => d.drawAt > sinceMs);
     for (const d of draws) {
       if (pool === 'main') {
         for (const n of d.mainNumbers) freq[n - 1]! += 1;
