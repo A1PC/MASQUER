@@ -24,6 +24,7 @@ function renderLayoutAt(initial: string) {
           { path: 'poker', element: <div>poker content</div> },
           { path: 'plinko', element: <div>plinko content</div> },
           { path: 'baccarat', element: <div>baccarat content</div> },
+          { path: 'craps', element: <div>craps content</div> },
         ],
       },
       { path: '/admin/login', element: <div>admin login</div> },
@@ -71,6 +72,7 @@ describe('AdminLayout', () => {
       'href',
       '/admin/baccarat',
     );
+    expect(screen.getByRole('link', { name: /^craps$/i })).toHaveAttribute('href', '/admin/craps');
   });
 
   it('marks the Roulette nav link active on /admin/roulette', () => {
@@ -116,6 +118,22 @@ describe('AdminLayout', () => {
     // DOCUMENT_POSITION_FOLLOWING (4) = b comes after a in the DOM.
     expect(slots.compareDocumentPosition(poker) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(poker.compareDocumentPosition(plinko) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('places the Craps nav entry between Poker and Plinko', () => {
+    renderLayoutAt('/admin');
+    const poker = screen.getByRole('link', { name: /^poker$/i });
+    const craps = screen.getByRole('link', { name: /^craps$/i });
+    const plinko = screen.getByRole('link', { name: /^plinko$/i });
+    expect(poker.compareDocumentPosition(craps) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(craps.compareDocumentPosition(plinko) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('marks the Craps nav link active on /admin/craps', () => {
+    renderLayoutAt('/admin/craps');
+    const link = screen.getByRole('link', { name: /^craps$/i });
+    expect(link).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByText('craps content')).toBeInTheDocument();
   });
 
   it('marks the active nav link with aria-current=page', () => {
