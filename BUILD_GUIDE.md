@@ -474,6 +474,12 @@ Phase 15 sub-project #12.v2 applies the MASQUER polish recipe to Five-Card Draw,
 
 Design spec: `docs/superpowers/specs/2026-05-27-phase-15-12-v2-five-card-draw-design.md`. Implementation plan: `docs/superpowers/plans/2026-05-27-phase-15-12-v2-five-card-draw-plan.md`.
 
+### Phase 15 #12.v3 polish amendments (2026-05-27)
+
+Phase 15 sub-project #12.v3 applies the MASQUER polish recipe to Omaha, inheriting the shared chrome shipped in #12.v1 (MasquerCard adapter, mask names, MaskAvatar, PokerOddsHeader, PokerRulesModal, brand-token pairings, 3s outcome banner, 15s leave-grace, post-hand AI reveal). Closes the poker trio. Pure logic (`omahaLogic.ts`, `machine.ts`, `_shared/handEvaluator.ts` incl. the `'omaha'` rule branch, `_shared/sidePots.ts`, `_shared/deck.ts`, `_shared/ai/{archetypes,decide,decideOmaha}.ts`) is byte-stable; changes are presentational + additive. `OmahaPage` chrome now mirrors `HoldemPage` (LobbyButton + variant odds + rules + h-full page root + mask plumbing via `assignMaskName` + sound + grace overlay + fallback grace trigger from idle). `OmahaTable` adopts the brass-edged felt backdrop + `isPostHand` reveal threading; the post-hand hand-rank computation uses `evaluateFrom(seat.holeCards, board, 'omaha')` — the 2+3 rule (exactly 2 of 4 hole + exactly 3 of 5 board) is load-bearing, never `evaluateBest5([...holeCards, ...board])` which would allow illegal 0/1/3/4-hole hands. `OmahaSeat` adopts `MaskAvatar` + brand tokens + `revealHoleCards` + `handRank` props while preserving the 4-card layout (`cardSize: 'mini'` at top positions). `PokerRulesModal` Omaha variant body now ships the full rules block (Object · Hand Rankings · Blinds · Betting Rounds · Showdown · Table) with the 2+3 rule called out in the Object section. Sound taxonomy mirrors Hold'em + Draw: `chip.place` on blinds + every player commit; `card.deal` stagger on per-seat 4-card initial deal (80 ms per seat, coalesces to ~12/sec at 6-max) + flop (3 staggered) + turn/river; `win.{tier}` / `loss` stinger on hand completion. Single PR (`phase-15-12-v3-omaha`).
+
+Design spec: `docs/superpowers/specs/2026-05-27-phase-15-12-v3-omaha-design.md`. Implementation plan: `docs/superpowers/plans/2026-05-27-phase-15-12-v3-omaha-plan.md`.
+
 ---
 
 ## 10.9 Craps

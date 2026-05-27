@@ -30,10 +30,18 @@ describe('PokerRulesModal', () => {
     expect(screen.getByText(/MASQUER · Five-Card Draw/)).toBeInTheDocument();
   });
 
-  it('renders Omaha placeholder when variant=omaha', () => {
-    render(<PokerRulesModal open={true} variant="omaha" onClose={vi.fn()} />);
-    expect(screen.getByText(/coming in #12.v3/)).toBeInTheDocument();
+  it('renders Omaha full rules when variant=omaha', () => {
+    const { container } = render(<PokerRulesModal open={true} variant="omaha" onClose={vi.fn()} />);
+    expect(screen.getByText('OBJECT')).toBeInTheDocument();
+    expect(screen.getByText(/HAND RANKINGS/)).toBeInTheDocument();
+    expect(screen.getByText('BETTING ROUNDS')).toBeInTheDocument();
+    expect(screen.getByText('BLINDS')).toBeInTheDocument();
+    expect(screen.getByText('SHOWDOWN')).toBeInTheDocument();
     expect(screen.getByText(/MASQUER · Omaha/)).toBeInTheDocument();
+    // 2+3 rule is the load-bearing Omaha content.
+    const objectSection = container.querySelector('[data-poker-rules-body="omaha"]');
+    expect(objectSection?.textContent).toContain('2 of your 4 hole cards');
+    expect(objectSection?.textContent).toContain('3 of the 5 community cards');
   });
 
   it("Hold'em body has data-poker-rules-body=holdem", () => {

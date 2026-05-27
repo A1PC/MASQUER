@@ -3,20 +3,24 @@
  *
  * Approach:
  *  - fake-indexeddb + wallet hydrated with 10_000 chips
- *  - useReducedMotion mocked → true (zeroes AI thinking delay to 0ms)
+ *  - useEffectiveReducedMotion mocked → true (zeroes AI 600-1200ms delay to 0ms
+ *    AND collapses the showdown stagger to instant so the auto-next-hand timer
+ *    fires immediately after each completed hand)
+ *  - useSound stubbed → no-op play
  *  - 2-player table (1 AI): minimal size to complete hands quickly
  *  - Player FOLDs preflop → AI wins uncontested → hand_complete → idle
  *  - Between hands LEAVE TABLE is enabled
  *
  * Assertions:
- *  1. SetupPanel shows "OMAHA HOLD'EM" heading
- *  2. SIT DOWN debits wallet + table renders (data-session-bar)
- *  3. 4 hole cards are shown for the player seat
- *  4. Player can fold → machine completes hand → LEAVE TABLE enabled
- *  5. LEAVE TABLE → rounds row: game='poker', details.variant='omaha',
- *     betAmount=totalBoughtIn, payout=finalStack
- *  6. SESSION OVER screen appears
- *  7. PLAY AGAIN returns to SetupPanel
+ *  1. MASQUER · Omaha title (h1) + LobbyButton + odds header + rules button
+ *  2. Page root uses h-full (NOT min-h-screen)
+ *  3. SIT DOWN debits wallet + table renders (data-session-bar)
+ *  4. 4 hole cards are shown for the player seat
+ *  5. AI seats display mask names (NOT archetype labels)
+ *  6. FOLD completes the hand → LEAVE TABLE enabled
+ *  7. LEAVE TABLE → rounds row: game='poker', details.variant='omaha'
+ *  8. SESSION OVER + PLAY AGAIN return path works
+ *  9. Between-hands grace overlay (banner + countdown + LEAVE NOW + DEAL NOW)
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import 'fake-indexeddb/auto';
@@ -28,13 +32,16 @@ import { db } from '@/db';
 import { resetDb } from '@/test/db-helpers';
 import { useSessionStore } from '@/store/sessionStore';
 import { useWalletStore } from '@/store/walletStore';
+import { MASK_NAME_POOL } from '../_shared/maskNames';
 
-// Zero AI thinking delay
-vi.mock('framer-motion', async (importOriginal) => {
-  // eslint-disable-next-line @typescript-eslint/consistent-type-imports
-  const actual = await importOriginal<typeof import('framer-motion')>();
-  return { ...actual, useReducedMotion: () => true };
-});
+// Zero AI thinking delay AND collapse showdown stagger to instant.
+vi.mock('@/motion/useEffectiveReducedMotion', () => ({
+  useEffectiveReducedMotion: () => true,
+}));
+// Stub useSound — no-op play.
+vi.mock('@/systems/sound/useSound', () => ({
+  useSound: () => ({ play: vi.fn() }),
+}));
 
 const INITIAL_BALANCE = 10_000;
 
@@ -111,10 +118,41 @@ async function waitForLeaveEnabled() {
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
-describe('OmahaPage', () => {
-  it("renders SetupPanel with Omaha Hold'em heading", () => {
+describe('OmahaPage — chrome', () => {
+  it('renders MASQUER · Omaha title', () => {
     renderPage();
-    expect(screen.getByText(/OMAHA HOLD/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/MASQUER/);
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/Omaha/);
+  });
+
+  it('renders LobbyButton (back to lobby)', () => {
+    renderPage();
+    expect(screen.getByRole('link', { name: /BACK TO LOBBY/i })).toBeInTheDocument();
+  });
+
+  it('renders the variant odds header', () => {
+    renderPage();
+    expect(screen.getByText(/No-Limit Omaha/)).toBeInTheDocument();
+  });
+
+  it('renders the rules button', () => {
+    renderPage();
+    expect(screen.getByRole('button', { name: /Show game rules/i })).toBeInTheDocument();
+  });
+
+  it('page root uses h-full (NOT min-h-screen)', () => {
+    const { container } = renderPage();
+    const root = container.firstElementChild as HTMLElement;
+    expect(root.className).toContain('h-full');
+    expect(root.className).not.toContain('min-h-screen');
+  });
+});
+
+describe('OmahaPage — setup', () => {
+  it('renders SetupPanel initially', () => {
+    renderPage();
+    // SetupPanel is imported from holdem/ and still labels itself "TEXAS HOLD'EM".
+    // The outer MASQUER · Omaha h1 is the variant-distinguishing chrome.
     expect(screen.getByRole('button', { name: /SIT DOWN/ })).toBeInTheDocument();
   });
 
@@ -124,7 +162,9 @@ describe('OmahaPage', () => {
     renderPage();
     expect(screen.getByRole('button', { name: /SIT DOWN/ })).toBeDisabled();
   });
+});
 
+describe('OmahaPage — gameplay', () => {
   it('SIT DOWN debits wallet and renders the table', async () => {
     renderPage();
     await sitDown2Players();
@@ -147,8 +187,6 @@ describe('OmahaPage', () => {
     await sitDown2Players();
     await waitForTable();
 
-    // The player seat renders face-up cards (not data-face-down)
-    // Wait for the hand to be dealt (cards appear)
     await waitFor(
       () => {
         const playerArea = document.querySelector('[data-player-area]');
@@ -162,6 +200,29 @@ describe('OmahaPage', () => {
     );
   }, 15_000);
 
+  it('AI seats show mask names (not archetype labels)', async () => {
+    renderPage();
+    await sitDown2Players();
+    await waitForTable();
+
+    // At least one mask name appears on the AI seat. We don't know which one
+    // because the assignment is RNG-seeded by the session id, so just check
+    // for any of the 12 mask names.
+    const seatName = await waitFor(() => {
+      for (const mask of MASK_NAME_POOL) {
+        if (screen.queryByText(mask)) return mask;
+      }
+      throw new Error('no mask name found in DOM');
+    });
+    expect(MASK_NAME_POOL).toContain(seatName);
+
+    // Archetype labels MUST NOT appear in the DOM.
+    expect(screen.queryByText('ROCK')).toBeNull();
+    expect(screen.queryByText('SHARK')).toBeNull();
+    expect(screen.queryByText('MANIAC')).toBeNull();
+    expect(screen.queryByText('STATION')).toBeNull();
+  });
+
   it('FOLD completes the hand and LEAVE TABLE becomes enabled', async () => {
     renderPage();
     await sitDown2Players();
@@ -172,7 +233,6 @@ describe('OmahaPage', () => {
     // Player folds → AI wins uncontested → hand_complete → idle
     await userEvent.click(screen.getByRole('button', { name: /FOLD/ }));
 
-    // LEAVE TABLE should become enabled within ~1.5s
     await waitForLeaveEnabled();
   }, 20_000);
 
@@ -181,16 +241,12 @@ describe('OmahaPage', () => {
     await sitDown2Players();
     await waitForTable();
 
-    // Fold once to complete a hand
     await waitForPlayerTurn();
     await userEvent.click(screen.getByRole('button', { name: /FOLD/ }));
-
-    // Wait for LEAVE to be enabled
     await waitForLeaveEnabled();
 
     await userEvent.click(screen.getByRole('button', { name: /LEAVE TABLE/ }));
 
-    // Wait for rounds row
     await waitFor(
       async () => {
         const rows = await db.rounds.toArray();
@@ -198,40 +254,13 @@ describe('OmahaPage', () => {
         const row = rows[0]!;
 
         expect(row.game).toBe('poker');
-        expect(row.betAmount).toBeGreaterThan(0); // stake = totalBoughtIn
-        expect(row.payout).toBeGreaterThanOrEqual(0); // payout = finalStack
+        expect(row.betAmount).toBeGreaterThan(0);
+        expect(row.payout).toBeGreaterThanOrEqual(0);
         expect(row.netChange).toBe(row.payout - row.betAmount);
 
         const details = row.details as Record<string, unknown>;
         expect(details.variant).toBe('omaha');
         expect(details.handsPlayed).toBeGreaterThanOrEqual(1);
-      },
-      { timeout: 8_000 },
-    );
-  }, 30_000);
-
-  it('betAmount equals totalBoughtIn and payout equals finalStack', async () => {
-    renderPage();
-    await sitDown2Players();
-    await waitForTable();
-
-    await waitForPlayerTurn();
-    await userEvent.click(screen.getByRole('button', { name: /FOLD/ }));
-    await waitForLeaveEnabled();
-
-    await userEvent.click(screen.getByRole('button', { name: /LEAVE TABLE/ }));
-
-    await waitFor(
-      async () => {
-        const rows = await db.rounds.toArray();
-        expect(rows.length).toBeGreaterThanOrEqual(1);
-        const row = rows[0]!;
-        // betAmount = totalBoughtIn (initial buy-in for 2-player low stakes)
-        expect(row.betAmount).toBeGreaterThan(0);
-        // payout is non-negative
-        expect(row.payout).toBeGreaterThanOrEqual(0);
-        // net change consistency
-        expect(row.netChange).toBe(row.payout - row.betAmount);
       },
       { timeout: 8_000 },
     );
@@ -288,7 +317,6 @@ describe('OmahaPage', () => {
     await sitDown2Players();
     await waitForTable();
 
-    // The CommunityBoard renders data-community-board
     await waitFor(
       () => {
         expect(document.querySelector('[data-community-board]')).toBeInTheDocument();
@@ -321,11 +349,44 @@ describe('OmahaPage', () => {
       () => {
         const aiSeats = document.querySelector('[data-ai-seats]');
         expect(aiSeats).toBeInTheDocument();
-        // AI cards should be face down during betting
         const faceDown = aiSeats?.querySelectorAll('[data-face-down]');
         expect(faceDown?.length).toBeGreaterThan(0);
       },
       { timeout: 5_000 },
     );
   }, 15_000);
+});
+
+describe('OmahaPage — between-hands grace', () => {
+  it('shows outcome banner + 15s countdown bar after the hand completes', async () => {
+    renderPage();
+    await sitDown2Players();
+    await waitForTable();
+
+    await waitForPlayerTurn();
+    await userEvent.click(screen.getByRole('button', { name: /FOLD/ }));
+
+    // After fold → uncontested win → hand_complete → revealComplete fires
+    // (instant under reduced motion). Grace overlay should mount with the
+    // outcome banner + countdown bar.
+    await waitFor(
+      () => {
+        expect(document.querySelector('[data-between-hands-bar]')).not.toBeNull();
+      },
+      { timeout: 8_000 },
+    );
+
+    const banner = document.querySelector('[data-outcome-banner]');
+    expect(banner).not.toBeNull();
+    expect(banner?.textContent?.toUpperCase()).toContain('BETTER LUCK');
+
+    const seconds = document.querySelector('[data-grace-seconds]');
+    expect(seconds).not.toBeNull();
+    expect(seconds?.textContent).toMatch(/^(15|14)s$/);
+
+    // LEAVE NOW button is present (distinct from OmahaTable's LEAVE TABLE)
+    expect(screen.getByRole('button', { name: /LEAVE NOW/ })).toBeInTheDocument();
+    // DEAL NOW lets the player skip the countdown
+    expect(screen.getByRole('button', { name: /DEAL NOW/ })).toBeInTheDocument();
+  }, 30_000);
 });
