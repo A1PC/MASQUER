@@ -370,7 +370,7 @@ export default function PlinkoPage(): JSX.Element | null {
             <motion.div
               animate={celebrationActive && !reduceMotion ? { x: [0, -2, 2, -1, 1, 0] } : { x: 0 }}
               transition={{ duration: 0.4 }}
-              className="relative"
+              className="relative mx-auto w-fit"
             >
               <Board>
                 <CoinShower active={celebrationActive} />

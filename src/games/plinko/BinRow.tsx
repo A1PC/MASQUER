@@ -67,8 +67,8 @@ export default function BinRow({ risk, flashedBinIdx = null }: Props): JSX.Eleme
           <div
             key={idx}
             className={[
-              'absolute flex h-5 -translate-x-1/2 items-center justify-center rounded-sm border px-0.5 text-center',
-              'font-mono text-[8px] tabular-nums leading-none',
+              'absolute flex h-5 -translate-x-1/2 items-center justify-center overflow-hidden rounded-sm border text-center',
+              'font-mono text-[7px] tabular-nums leading-none',
               tierClass(tier, isEdge),
               flash ? 'ring-2 ring-gold shadow-[0_0_8px_rgba(232,189,109,0.85)]' : '',
             ].join(' ')}
