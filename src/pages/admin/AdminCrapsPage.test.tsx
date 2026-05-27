@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach } from 'vitest';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { render, screen, waitFor, within, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import AdminCrapsPage from './AdminCrapsPage';
 import { resetDb } from '@/test/db-helpers';
@@ -314,5 +314,40 @@ describe('AdminCrapsPage', () => {
       const rows = container.querySelectorAll('[data-recent-sessions] tbody tr');
       expect(rows.length).toBe(20);
     });
+  });
+
+  // Phase 15 #14 PR B — shared DateRangeFilter integration.
+  it('renders the shared <DateRangeFilter> above the StatCards', async () => {
+    const { container } = render(
+      <MemoryRouter>
+        <AdminCrapsPage />
+      </MemoryRouter>,
+    );
+    await waitFor(() => {
+      expect(container.querySelector('[data-date-range-filter]')).not.toBeNull();
+    });
+    expect(container.querySelector('[data-range="7d"]')).not.toBeNull();
+    expect(container.querySelector('[data-range="30d"]')).not.toBeNull();
+    expect(container.querySelector('[data-range="90d"]')).not.toBeNull();
+    expect(container.querySelector('[data-range="all"]')).not.toBeNull();
+  });
+
+  it('persists the clicked preset to localStorage under admin.craps.range', async () => {
+    localStorage.removeItem('admin.craps.range');
+    const { container } = render(
+      <MemoryRouter>
+        <AdminCrapsPage />
+      </MemoryRouter>,
+    );
+    const btn = await waitFor(() => {
+      const b = container.querySelector('[data-range="90d"]');
+      expect(b).not.toBeNull();
+      return b as HTMLButtonElement;
+    });
+    fireEvent.click(btn);
+    await waitFor(() => {
+      expect(btn.getAttribute('aria-selected')).toBe('true');
+    });
+    expect(localStorage.getItem('admin.craps.range')).toBe('90d');
   });
 });

@@ -271,4 +271,32 @@ describe('AdminBingoPage — STATISTICS section (new)', () => {
     expect(screen.getByText(/BINGO \(PLAYER WINS\)/i)).toBeInTheDocument();
     expect(screen.getByText(/FAST BINGO KICKER/i)).toBeInTheDocument();
   });
+
+  // Phase 15 #14 PR B — shared DateRangeFilter integration.
+  it('renders the shared <DateRangeFilter> above the StatCards', async () => {
+    const { container } = renderPage();
+    await waitFor(() => {
+      expect(container.querySelector('[data-date-range-filter]')).not.toBeNull();
+    });
+    expect(container.querySelector('[data-range="7d"]')).not.toBeNull();
+    expect(container.querySelector('[data-range="30d"]')).not.toBeNull();
+    expect(container.querySelector('[data-range="90d"]')).not.toBeNull();
+    expect(container.querySelector('[data-range="all"]')).not.toBeNull();
+  });
+
+  it('persists the clicked preset to localStorage under admin.bingo.range', async () => {
+    localStorage.removeItem('admin.bingo.range');
+    const { container } = renderPage();
+    const btn = await waitFor(() => {
+      const b = container.querySelector('[data-range="30d"]');
+      expect(b).not.toBeNull();
+      return b as HTMLButtonElement;
+    });
+    const user = userEvent.setup();
+    await user.click(btn);
+    await waitFor(() => {
+      expect(btn.getAttribute('aria-selected')).toBe('true');
+    });
+    expect(localStorage.getItem('admin.bingo.range')).toBe('30d');
+  });
 });
