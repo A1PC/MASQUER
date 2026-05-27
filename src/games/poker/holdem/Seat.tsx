@@ -1,5 +1,6 @@
 import type { JSX } from 'react';
 import type { SeatState } from './machine';
+import type { HandRank, HandCategory } from '../_shared/types';
 import PlayingCard from '../_shared/PlayingCard';
 import MaskAvatar from '../_shared/MaskAvatar';
 
@@ -11,9 +12,27 @@ interface Props {
   isActing: boolean;
   /** Cards to highlight as part of the winning best-5 */
   highlightCards?: boolean;
+  /** When true, render the AI's hole cards face-up (post-hand reveal). Does
+   *  NOT add the winner ring — separate from `highlightCards`. */
+  revealHoleCards?: boolean;
+  /** If provided, render the hand category label below the cards. Only set
+   *  by the parent during post-hand reveal — never during play. */
+  handRank?: HandRank;
   /** Position label for layout orientation */
   position?: 'top' | 'bottom';
 }
+
+const HAND_CATEGORY_LABEL: Record<HandCategory, string> = {
+  'high-card': 'High Card',
+  pair: 'Pair',
+  'two-pair': 'Two Pair',
+  trips: 'Three of a Kind',
+  straight: 'Straight',
+  flush: 'Flush',
+  'full-house': 'Full House',
+  quads: 'Four of a Kind',
+  'straight-flush': 'Straight Flush',
+};
 
 export default function Seat({
   seat,
@@ -22,6 +41,8 @@ export default function Seat({
   isBb,
   isActing,
   highlightCards = false,
+  revealHoleCards = false,
+  handRank,
   position = 'top',
 }: Props): JSX.Element {
   const isYou = seat.occupant === 'you';
@@ -38,8 +59,9 @@ export default function Seat({
   const foldedDim = isFolded ? 'opacity-40' : '';
   const bustedDim = isBusted || isEmpty ? 'opacity-30' : '';
 
-  // For AI seats (seatId >= 1), show face-down unless showdown revealed them.
-  const showFaceUp = isYou || highlightCards;
+  // For AI seats (seatId >= 1), show face-down unless the post-hand reveal is
+  // active OR they were already shown as part of the showdown winner highlight.
+  const showFaceUp = isYou || highlightCards || revealHoleCards;
 
   return (
     <div
@@ -116,6 +138,17 @@ export default function Seat({
           </>
         )}
       </div>
+
+      {/* Hand category — only rendered post-hand (parent passes handRank only
+          during post-hand reveal). Never leaks during play. */}
+      {handRank && (
+        <span
+          className="font-display text-[9px] tracking-[0.18em] text-gold-bright"
+          data-seat-hand-category={handRank.category}
+        >
+          {HAND_CATEGORY_LABEL[handRank.category]}
+        </span>
+      )}
 
       {/* State badges */}
       {isAllIn && (
