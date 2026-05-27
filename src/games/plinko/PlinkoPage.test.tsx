@@ -84,13 +84,13 @@ describe('PlinkoPage', () => {
 
   it('bet input accepts up to MAX_BET (1,000,000) and clamps higher values', async () => {
     await setupUser(2_000_000);
-    render(
+    const { container } = render(
       <MemoryRouter>
         <PlinkoPage />
       </MemoryRouter>,
     );
-    const betInput = screen.getByDisplayValue('50');
-    // Use fireEvent indirectly via userEvent.clear + type — clear and set to over-limit.
+    const betInput = container.querySelector<HTMLInputElement>('[data-bet-input]')!;
+    expect(betInput).not.toBeNull();
     await userEvent.clear(betInput);
     await userEvent.type(betInput, '9999999');
     expect(Number(betInput.value)).toBe(1_000_000);
@@ -98,13 +98,14 @@ describe('PlinkoPage', () => {
 
   it('auto-balls input accepts up to MAX_AUTO_BALLS (1,000) and clamps higher values', async () => {
     await setupUser();
-    render(
+    const { container } = render(
       <MemoryRouter>
         <PlinkoPage />
       </MemoryRouter>,
     );
     await userEvent.click(screen.getByRole('radio', { name: /AUTO/ }));
-    const ballsInput = screen.getByDisplayValue('10');
+    const ballsInput = container.querySelector<HTMLInputElement>('[data-auto-balls-input]')!;
+    expect(ballsInput).not.toBeNull();
     await userEvent.clear(ballsInput);
     await userEvent.type(ballsInput, '99999');
     expect(Number(ballsInput.value)).toBe(1_000);
