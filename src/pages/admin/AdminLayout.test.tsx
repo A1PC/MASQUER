@@ -21,6 +21,7 @@ function renderLayoutAt(initial: string) {
           { path: 'sessions', element: <div>sessions content</div> },
           { path: 'roulette', element: <div>roulette content</div> },
           { path: 'slots', element: <div>slots content</div> },
+          { path: 'plinko', element: <div>plinko content</div> },
           { path: 'baccarat', element: <div>baccarat content</div> },
         ],
       },
@@ -60,6 +61,10 @@ describe('AdminLayout', () => {
       '/admin/roulette',
     );
     expect(screen.getByRole('link', { name: /^slots$/i })).toHaveAttribute('href', '/admin/slots');
+    expect(screen.getByRole('link', { name: /^plinko$/i })).toHaveAttribute(
+      'href',
+      '/admin/plinko',
+    );
     expect(screen.getByRole('link', { name: /^baccarat$/i })).toHaveAttribute(
       'href',
       '/admin/baccarat',
@@ -85,6 +90,13 @@ describe('AdminLayout', () => {
     const link = screen.getByRole('link', { name: /^baccarat$/i });
     expect(link).toHaveAttribute('aria-current', 'page');
     expect(screen.getByText('baccarat content')).toBeInTheDocument();
+  });
+
+  it('marks the Plinko nav link active on /admin/plinko', () => {
+    renderLayoutAt('/admin/plinko');
+    const link = screen.getByRole('link', { name: /^plinko$/i });
+    expect(link).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByText('plinko content')).toBeInTheDocument();
   });
 
   it('marks the active nav link with aria-current=page', () => {
