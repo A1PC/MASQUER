@@ -167,14 +167,11 @@ describe('AdminLayout', () => {
 
   it('logout button is rendered with data-admin-logout in the top-bar', async () => {
     const user = userEvent.setup();
-    renderLayoutAt('/admin');
-    const logout = screen.getByTestId
-      ? screen.queryByText(/log out/i)
-      : screen.getByText(/log out/i);
-    expect(logout).not.toBeNull();
-    const btn = document.querySelector('[data-admin-logout]');
+    const { container } = renderLayoutAt('/admin');
+    const btn = container.querySelector<HTMLButtonElement>('[data-admin-logout]');
     expect(btn).not.toBeNull();
     expect(btn?.tagName).toBe('BUTTON');
+    expect(btn?.textContent).toMatch(/log out/i);
     await user.click(btn!);
     expect(useSessionStore.getState().isAdmin).toBe(false);
   });
