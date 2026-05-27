@@ -1,7 +1,12 @@
 import type { JSX } from 'react';
+import { useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import StatCard from '@/pages/admin/StatCard';
 import PocketDistributionBar from '@/components/charts/PocketDistributionBar';
+import DateRangeFilter, {
+  rangeToSinceMs,
+  type RangePreset,
+} from '@/components/admin/DateRangeFilter';
 import {
   getRouletteAllTimeStats,
   getRouletteNumberDistribution,
@@ -76,7 +81,11 @@ function MiniBar({ label, count, total, fillClass }: MiniBarProps): JSX.Element 
 }
 
 export default function AdminRoulettePage(): JSX.Element {
-  const stats = useLiveQuery(() => getRouletteAllTimeStats(), [], EMPTY_STATS);
+  // Phase 15 #14 PR B — shared date-range filter persisted across mounts.
+  const [range, setRange] = useState<RangePreset>('all');
+  const sinceMs = useMemo(() => rangeToSinceMs(range), [range]);
+
+  const stats = useLiveQuery(() => getRouletteAllTimeStats(sinceMs), [sinceMs], EMPTY_STATS);
   const distribution = useLiveQuery(() => getRouletteNumberDistribution(), [], EMPTY_DIST);
   // Dexie's `.where(...).reverse()` iterates by the queried index (`game`),
   // and within the matching set it ties-break by primary key. Roulette
@@ -92,6 +101,10 @@ export default function AdminRoulettePage(): JSX.Element {
     [],
     EMPTY_ROUNDS,
   );
+  const filteredRecent = useMemo(
+    () => (sinceMs !== undefined ? recentRounds.filter((r) => r.playedAt > sinceMs) : recentRounds),
+    [recentRounds, sinceMs],
+  );
 
   const totalSpins = stats.ballsSpun;
   const redPct = withPct(stats.redCount, totalSpins);
@@ -100,6 +113,8 @@ export default function AdminRoulettePage(): JSX.Element {
   return (
     <div className="flex flex-col gap-6">
       <h1 className="font-display text-base tracking-wider text-gold-bright">ROULETTE</h1>
+
+      <DateRangeFilter value={range} onChange={setRange} storageKey="admin.roulette.range" />
 
       {/* Top row: 4 StatCards */}
       <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
@@ -247,7 +262,7 @@ export default function AdminRoulettePage(): JSX.Element {
         <h2 className="mb-2 font-display text-xs tracking-wider text-white/60">
           RECENT SPINS (LAST 20)
         </h2>
-        {recentRounds.length === 0 ? (
+        {filteredRecent.length === 0 ? (
           <p className="text-xs text-white/40">No spins yet.</p>
         ) : (
           <table className="w-full text-left text-xs">
@@ -261,7 +276,7 @@ export default function AdminRoulettePage(): JSX.Element {
               </tr>
             </thead>
             <tbody>
-              {recentRounds.map((r) => {
+              {filteredRecent.map((r) => {
                 const d = r.details as RouletteRoundDetails | undefined;
                 const n = d?.spin?.number ?? 0;
                 const color = d?.spin?.color ?? pocketColor(n);

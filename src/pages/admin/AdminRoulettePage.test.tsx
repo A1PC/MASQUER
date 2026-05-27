@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach } from 'vitest';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import AdminRoulettePage from './AdminRoulettePage';
 import { resetDb } from '@/test/db-helpers';
@@ -45,6 +45,7 @@ async function seedRouletteRow(opts: {
 describe('AdminRoulettePage', () => {
   beforeEach(async () => {
     await resetDb();
+    localStorage.removeItem('admin.roulette.range');
   });
 
   it('renders the four top stat-card labels even when there is no data', async () => {
@@ -174,5 +175,39 @@ describe('AdminRoulettePage', () => {
     await waitFor(() => {
       expect(container.querySelector('.recharts-responsive-container')).toBeInTheDocument();
     });
+  });
+
+  // Phase 15 #14 PR B — shared DateRangeFilter integration.
+  it('renders the shared <DateRangeFilter> above the StatCards', async () => {
+    const { container } = render(
+      <MemoryRouter>
+        <AdminRoulettePage />
+      </MemoryRouter>,
+    );
+    await waitFor(() => {
+      expect(container.querySelector('[data-date-range-filter]')).not.toBeNull();
+    });
+    expect(container.querySelector('[data-range="7d"]')).not.toBeNull();
+    expect(container.querySelector('[data-range="30d"]')).not.toBeNull();
+    expect(container.querySelector('[data-range="90d"]')).not.toBeNull();
+    expect(container.querySelector('[data-range="all"]')).not.toBeNull();
+  });
+
+  it('persists the clicked preset to localStorage under admin.roulette.range', async () => {
+    const { container } = render(
+      <MemoryRouter>
+        <AdminRoulettePage />
+      </MemoryRouter>,
+    );
+    const btn = await waitFor(() => {
+      const b = container.querySelector('[data-range="30d"]');
+      expect(b).not.toBeNull();
+      return b as HTMLButtonElement;
+    });
+    fireEvent.click(btn);
+    await waitFor(() => {
+      expect(btn.getAttribute('aria-selected')).toBe('true');
+    });
+    expect(localStorage.getItem('admin.roulette.range')).toBe('30d');
   });
 });
