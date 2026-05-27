@@ -1,6 +1,10 @@
 import type { JSX } from 'react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
+import DateRangeFilter, {
+  rangeToSinceMs,
+  type RangePreset,
+} from '@/components/admin/DateRangeFilter';
 import {
   getLeaderboardBiggestSingleWins,
   getLeaderboardLongestStreaks,
@@ -13,13 +17,13 @@ import {
 } from '@/systems/stats';
 
 /**
- * Cross-game admin leaderboard (Phase 15 #14 PR C).
+ * Cross-game admin leaderboard (Phase 15 #14 PR C + PR D wire-up).
  *
  * Four tabbed boards backed by per-tab `useLiveQuery` aggregations against
- * the shared `db.rounds` table. Each board shows 25 rows. A future date-
- * range filter (PR B) can be wired in by threading the `sinceMs` arg of the
- * underlying aggregators through a top-bar control — left out of this PR
- * because the `DateRangeFilter` primitive ships in PR B which is in flight.
+ * the shared `db.rounds` table. Each board shows 25 rows. The PR D follow-up
+ * threads the shared `<DateRangeFilter>` from PR B into the `sinceMs` arg of
+ * every aggregator, with a per-tab `localStorage` key so admins keep their
+ * preferred range per board.
  *
  * The tab bar mirrors the AdminPokerPage variant-tabs pattern; the body is a
  * single rounded card hosting whichever table matches the active tab.
@@ -49,19 +53,37 @@ function formatTimestamp(ms: number): string {
 
 export default function AdminLeaderboardPage(): JSX.Element {
   const [tab, setTab] = useState<TabKey>('winners');
+  // PR D follow-up — date-range filter threaded into every aggregator. Per-
+  // tab storage key so each board remembers its own preferred range across
+  // mounts (spec §4.4 caveat closed here once PR B's DateRangeFilter landed).
+  const [range, setRange] = useState<RangePreset>('all');
+  const sinceMs = useMemo(() => rangeToSinceMs(range), [range]);
 
   // Phase 9 lesson — let useLiveQuery infer T from the querier's Promise<T>
   // return; do NOT pass an explicit generic. All four boards load eagerly so
   // tab-switching is instant — the data is tiny (25 rows × 4 tables = 100
-  // rows max) and we want zero flash-of-empty on tab change.
-  const winners = useLiveQuery(() => getLeaderboardTopWinners(ROW_LIMIT), [], EMPTY_WINNERS);
-  const volume = useLiveQuery(() => getLeaderboardTopVolume(ROW_LIMIT), [], EMPTY_VOLUME);
+  // rows max) and we want zero flash-of-empty on tab change. `sinceMs` is in
+  // the dep array so a range change re-runs every aggregator.
+  const winners = useLiveQuery(
+    () => getLeaderboardTopWinners(ROW_LIMIT, sinceMs),
+    [sinceMs],
+    EMPTY_WINNERS,
+  );
+  const volume = useLiveQuery(
+    () => getLeaderboardTopVolume(ROW_LIMIT, sinceMs),
+    [sinceMs],
+    EMPTY_VOLUME,
+  );
   const singleWins = useLiveQuery(
-    () => getLeaderboardBiggestSingleWins(ROW_LIMIT),
-    [],
+    () => getLeaderboardBiggestSingleWins(ROW_LIMIT, sinceMs),
+    [sinceMs],
     EMPTY_SINGLE,
   );
-  const streaks = useLiveQuery(() => getLeaderboardLongestStreaks(ROW_LIMIT), [], EMPTY_STREAK);
+  const streaks = useLiveQuery(
+    () => getLeaderboardLongestStreaks(ROW_LIMIT, sinceMs),
+    [sinceMs],
+    EMPTY_STREAK,
+  );
 
   return (
     <div className="flex flex-col gap-6" data-admin-leaderboard>
@@ -95,6 +117,17 @@ export default function AdminLeaderboardPage(): JSX.Element {
           );
         })}
       </div>
+
+      {/* Date-range filter — per-tab storage key (PR D follow-up). Re-keying
+          on `tab` swap forces the hook to re-hydrate from the per-tab
+          localStorage entry rather than carrying the previous tab's range
+          across switches. */}
+      <DateRangeFilter
+        key={tab}
+        value={range}
+        onChange={setRange}
+        storageKey={`admin.leaderboard.${tab}.range`}
+      />
 
       {/* Tab body */}
       <div className="rounded-md border border-brass/60 bg-velvet-deep p-4">
