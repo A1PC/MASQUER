@@ -1,5 +1,6 @@
 import type { JSX } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { useMachine } from '@xstate/react';
 import { useCurrentUser } from '@/store/sessionStore';
 import { useBalance } from '@/store/walletStore';
@@ -24,10 +25,28 @@ import LeaveConfirmModal from './LeaveConfirmModal';
 
 // ── Constants ───────────────────────────────────────────────────────────────
 
-const FLASH_WIN_MS = 2_000;
-const FLASH_LOSS_MS = 1_500;
-const OUTCOME_BANNER_MS = 3_000;
-const BANNER_DEBOUNCE_MS = 1_000;
+/** Page-level timing + threshold tunables (cold-look G13 — phase 15 #15).
+ *  Grouped so future tuning passes can adjust the cadence in one place; the
+ *  per-field comments below preserve the original individual rationale. */
+const TIMING = {
+  /** Win-flash window applied to a `BetSpot` after a winning resolution.
+   *  Long enough to read the payout badge but short enough not to bleed into
+   *  the next roll's flash map. */
+  FLASH_WIN_MS: 2_000,
+  /** Loss-flash window — slightly shorter so dim spots clear quicker. */
+  FLASH_LOSS_MS: 1_500,
+  /** Outcome-banner dwell time (POINT MADE / SEVEN OUT / JACKPOT / streak). */
+  OUTCOME_BANNER_MS: 3_000,
+  /** Minimum time between two banner fires — prevents banner thrash on
+   *  rapid come-out streaks. */
+  BANNER_DEBOUNCE_MS: 1_000,
+  /** Banner crossfade duration when reduced-motion is OFF. When the user
+   *  prefers reduced motion the crossfade collapses to 0ms (instant). */
+  BANNER_CROSSFADE_MS: 220,
+} as const;
+
+/** Single-roll net-to-committed ratio that triggers the JACKPOT banner
+ *  (spec §4.5). Not a timing — kept beside TIMING for visual co-location. */
 const JACKPOT_RATIO = 20;
 
 type BannerKind = 'point-made' | 'seven-out' | 'jackpot' | 'natural-streak';
@@ -79,10 +98,10 @@ function CrapsSession({ session, onSessionOver, onReset }: CrapsSessionProps): J
   const { settle } = useGameRound('craps');
   const settledRef = useRef(false);
   const handleRef = useRef(session.handle);
-  // `reduce` is read for future motion-gated polish (banner crossfade etc.);
-  // referenced via void to satisfy `no-unused-vars` without disabling the rule.
+  // Drives the outcome-banner crossfade duration. When the user prefers
+  // reduced motion the AnimatePresence transition collapses to 0ms (no
+  // fade), matching the DiceDisplay reduced-motion contract.
   const reduce = useEffectiveReducedMotion();
-  void reduce;
   const { play } = useSound();
 
   const [snapshot, send] = useMachine(crapsMachine, { input: session.input });
@@ -246,7 +265,7 @@ function CrapsSession({ session, onSessionOver, onReset }: CrapsSessionProps): J
     // Defer state updates to a microtask so we land outside the effect body.
     const now = performance.now();
     const shouldFireBanner =
-      bannerKind !== null && now - lastBannerAtRef.current >= BANNER_DEBOUNCE_MS;
+      bannerKind !== null && now - lastBannerAtRef.current >= TIMING.BANNER_DEBOUNCE_MS;
     if (shouldFireBanner) lastBannerAtRef.current = now;
     const t = setTimeout(() => {
       setFlashMap(newFlashes);
@@ -276,7 +295,7 @@ function CrapsSession({ session, onSessionOver, onReset }: CrapsSessionProps): J
   // ── Banner auto-dismiss after 3s ─────────────────────────────────────────
   useEffect(() => {
     if (!outcomeBanner) return;
-    const t = setTimeout(() => setOutcomeBanner(null), OUTCOME_BANNER_MS);
+    const t = setTimeout(() => setOutcomeBanner(null), TIMING.OUTCOME_BANNER_MS);
     return () => clearTimeout(t);
   }, [outcomeBanner]);
 
@@ -284,7 +303,10 @@ function CrapsSession({ session, onSessionOver, onReset }: CrapsSessionProps): J
   //     also fade out cleanly without leaving stale entries in the map.
   useEffect(() => {
     if (Object.keys(flashMap).length === 0) return;
-    const t = setTimeout(() => setFlashMap({}), Math.max(FLASH_WIN_MS, FLASH_LOSS_MS) + 100);
+    const t = setTimeout(
+      () => setFlashMap({}),
+      Math.max(TIMING.FLASH_WIN_MS, TIMING.FLASH_LOSS_MS) + 100,
+    );
     return () => clearTimeout(t);
   }, [flashMap]);
 
@@ -416,26 +438,33 @@ function CrapsSession({ session, onSessionOver, onReset }: CrapsSessionProps): J
         />
       </div>
 
-      {outcomeBanner && (
-        <div
-          className="pointer-events-none absolute inset-x-0 top-24 z-40 flex justify-center"
-          data-outcome-banner
-        >
-          <div
-            className={[
-              'rounded-lg border-2 px-10 py-5 text-center shadow-2xl backdrop-blur-sm',
-              outcomeBanner.kind === 'seven-out'
-                ? 'border-casino-red bg-velvet-deep/95 text-casino-red'
-                : 'border-gold-bright bg-velvet-deep/95 text-gold-bright',
-            ].join(' ')}
-            data-outcome-banner-kind={outcomeBanner.kind}
+      <AnimatePresence>
+        {outcomeBanner && (
+          <motion.div
+            key={`banner-${outcomeBanner.kind}-${outcomeBanner.amount}`}
+            className="pointer-events-none absolute inset-x-0 top-24 z-40 flex justify-center"
+            data-outcome-banner
+            initial={reduce ? false : { opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={reduce ? { opacity: 0 } : { opacity: 0, y: -8 }}
+            transition={{ duration: reduce ? 0 : TIMING.BANNER_CROSSFADE_MS / 1000 }}
           >
-            <div className="font-display text-3xl tracking-[0.22em]">
-              {bannerCopy(outcomeBanner.kind, outcomeBanner.amount)}
+            <div
+              className={[
+                'rounded-lg border-2 px-10 py-5 text-center shadow-2xl backdrop-blur-sm',
+                outcomeBanner.kind === 'seven-out'
+                  ? 'border-casino-red bg-velvet-deep/95 text-casino-red'
+                  : 'border-gold-bright bg-velvet-deep/95 text-gold-bright',
+              ].join(' ')}
+              data-outcome-banner-kind={outcomeBanner.kind}
+            >
+              <div className="font-display text-3xl tracking-[0.22em]">
+                {bannerCopy(outcomeBanner.kind, outcomeBanner.amount)}
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <LeaveConfirmModal
         open={leaveConfirmOpen}
