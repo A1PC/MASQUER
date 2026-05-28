@@ -64,11 +64,11 @@ export default function AdjustCreditsModal({
         className="w-full max-w-md rounded-lg border border-gold/60 bg-felt-deep p-6 shadow-gold-glow"
       >
         <h2 className="mb-1 font-display text-base tracking-wider text-gold">ADJUST CREDITS</h2>
-        <p className="mb-4 text-xs text-white/50">User: {username}</p>
+        <p className="mb-4 text-xs text-ivory/50">User: {username}</p>
 
         <label
           htmlFor="adj-amount"
-          className="mb-1 block text-xs uppercase tracking-wider text-white/70"
+          className="mb-1 block text-xs uppercase tracking-wider text-ivory/70"
         >
           Amount (positive = credit, negative = debit)
         </label>
@@ -85,7 +85,7 @@ export default function AdjustCreditsModal({
 
         <label
           htmlFor="adj-reason"
-          className="mb-1 block text-xs uppercase tracking-wider text-white/70"
+          className="mb-1 block text-xs uppercase tracking-wider text-ivory/70"
         >
           Reason
         </label>
@@ -105,7 +105,7 @@ export default function AdjustCreditsModal({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-sm border border-white/20 px-3 py-2 text-xs uppercase tracking-wider text-white/70 hover:bg-white/5"
+            className="rounded-sm border border-white/20 px-3 py-2 text-xs uppercase tracking-wider text-ivory/70 hover:bg-white/5"
           >
             Cancel
           </button>

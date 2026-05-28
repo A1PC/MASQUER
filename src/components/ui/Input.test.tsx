@@ -12,7 +12,7 @@ describe('Input', () => {
   });
   it('applies the error border in the error state', () => {
     const { getByRole } = render(<Input aria-label="amount" state="error" />);
-    expect(getByRole('textbox').className).toContain('border-[#a3243a]');
+    expect(getByRole('textbox').className).toContain('border-casino-red');
   });
   it('merges className via cn', () => {
     const { getByRole } = render(<Input aria-label="amount" className="px-8" />);
@@ -35,6 +35,6 @@ describe('Textarea', () => {
   });
   it('applies the error border in the error state', () => {
     const { getByRole } = render(<Textarea aria-label="note" state="error" />);
-    expect(getByRole('textbox').className).toContain('border-[#a3243a]');
+    expect(getByRole('textbox').className).toContain('border-casino-red');
   });
 });

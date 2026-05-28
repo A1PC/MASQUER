@@ -37,6 +37,13 @@ export const colors = {
   win: '#e6c068',
   loss: '#7a1f2b',
   push: '#8a7a55',
+  /**
+   * Ink-on-gold colour for any chip/badge/button printed against the
+   * brass/gold gradient (Button primary variant, ProfilePage avatar check
+   * indicator). Audit §1.1 promoted this from raw `#241702` to a token so
+   * Button + ProfilePage swap together if the brass family ever retunes.
+   */
+  'velvet-ink': '#241702',
 } as const;
 
 export const fonts = {

@@ -218,7 +218,7 @@ export default function AdminPokerPage(): JSX.Element {
           renders all 3 variants regardless of the active tab so the
           operator sees the full picture at a glance. */}
       <section aria-label="Poker sessions by variant (last 30 days)">
-        <h2 className="mb-2 font-display text-xs tracking-wider text-white/60">
+        <h2 className="mb-2 font-display text-xs tracking-wider text-ivory/60">
           SESSIONS BY VARIANT (LAST 30 DAYS)
         </h2>
         <div className="rounded-md border border-gold/30 bg-felt-deep p-4">
@@ -228,16 +228,16 @@ export default function AdminPokerPage(): JSX.Element {
 
       {/* Biggest pots panel */}
       <section aria-label="Biggest poker pots">
-        <h2 className="mb-2 font-display text-xs tracking-wider text-white/60">
+        <h2 className="mb-2 font-display text-xs tracking-wider text-ivory/60">
           BIGGEST POTS WON (TOP 10)
         </h2>
         <div className="rounded-md border border-gold/30 bg-felt-deep p-4">
           {biggestPots.length === 0 ? (
-            <p className="py-4 text-center text-xs text-white/40">No pots recorded yet.</p>
+            <p className="py-4 text-center text-xs text-ivory/40">No pots recorded yet.</p>
           ) : (
             <table className="w-full text-left text-xs" data-biggest-pots>
               <thead>
-                <tr className="border-b border-gold/30 uppercase tracking-wider text-white/40">
+                <tr className="border-b border-gold/30 uppercase tracking-wider text-ivory/40">
                   <th className="py-2 pr-3 text-right">#</th>
                   <th className="py-2 pr-3 text-right">Amount</th>
                   <th className="py-2 pr-3">Variant</th>
@@ -247,12 +247,12 @@ export default function AdminPokerPage(): JSX.Element {
               <tbody>
                 {biggestPots.map((p, i) => (
                   <tr key={`${p.playedAt}-${i}`} className="border-b border-white/5">
-                    <td className="py-1.5 pr-3 text-right tabular-nums text-white/60">{i + 1}</td>
+                    <td className="py-1.5 pr-3 text-right tabular-nums text-ivory/60">{i + 1}</td>
                     <td className="py-1.5 pr-3 text-right font-mono tabular-nums text-gold-bright">
                       {p.amount.toLocaleString()}
                     </td>
                     <td className="py-1.5 pr-3 text-ivory">{VARIANT_LABEL[p.variant]}</td>
-                    <td className="py-1.5 tabular-nums text-white/70">
+                    <td className="py-1.5 tabular-nums text-ivory/70">
                       {formatTimestamp(p.playedAt)}
                     </td>
                   </tr>
@@ -265,15 +265,15 @@ export default function AdminPokerPage(): JSX.Element {
 
       {/* Recent sessions table (last 20, optionally tab-filtered) */}
       <section aria-label="Recent poker sessions">
-        <h2 className="mb-2 font-display text-xs tracking-wider text-white/60">
+        <h2 className="mb-2 font-display text-xs tracking-wider text-ivory/60">
           RECENT SESSIONS (LAST 20)
         </h2>
         {filteredRecent.length === 0 ? (
-          <p className="text-xs text-white/40">No sessions yet.</p>
+          <p className="text-xs text-ivory/40">No sessions yet.</p>
         ) : (
           <table className="w-full text-left text-xs" data-recent-sessions>
             <thead>
-              <tr className="border-b border-gold/30 uppercase tracking-wider text-white/40">
+              <tr className="border-b border-gold/30 uppercase tracking-wider text-ivory/40">
                 <th className="py-2 pr-3">Time</th>
                 <th className="py-2 pr-3">Variant</th>
                 <th className="py-2 pr-3 text-right">Table</th>
@@ -294,7 +294,7 @@ export default function AdminPokerPage(): JSX.Element {
                 const net = r.payout - r.betAmount;
                 return (
                   <tr key={r.id} className="border-b border-white/5">
-                    <td className="py-1.5 pr-3 tabular-nums text-white/70">
+                    <td className="py-1.5 pr-3 tabular-nums text-ivory/70">
                       {formatTimestamp(r.playedAt)}
                     </td>
                     <td className="py-1.5 pr-3 text-ivory">
@@ -314,7 +314,7 @@ export default function AdminPokerPage(): JSX.Element {
                     </td>
                     <td
                       className={`py-1.5 pr-3 text-right tabular-nums ${
-                        net > 0 ? 'text-chip-win' : net < 0 ? 'text-casino-red' : 'text-white/60'
+                        net > 0 ? 'text-chip-win' : net < 0 ? 'text-casino-red' : 'text-ivory/60'
                       }`}
                     >
                       {net > 0 ? '+' : ''}

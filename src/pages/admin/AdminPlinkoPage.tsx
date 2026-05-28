@@ -97,10 +97,10 @@ function MiniBar({ label, drops, rtp, total, fillClass }: MiniBarProps): JSX.Ele
   const rtpDisplay = rtp === null ? '—' : `${(rtp * 100).toFixed(1)}%`;
   return (
     <div className="flex flex-col gap-1" data-mini-bar={label}>
-      <div className="flex items-baseline justify-between text-[10px] tracking-wider text-white/60">
+      <div className="flex items-baseline justify-between text-[10px] tracking-wider text-ivory/60">
         <span className="font-display uppercase">{label}</span>
-        <span className="tabular-nums text-white/80">
-          {drops.toLocaleString()} drops <span className="text-white/40">({pct.toFixed(1)}%)</span>
+        <span className="tabular-nums text-ivory/80">
+          {drops.toLocaleString()} drops <span className="text-ivory/40">({pct.toFixed(1)}%)</span>
           <span className="ml-2 text-gold/80">RTP {rtpDisplay}</span>
         </span>
       </div>
@@ -136,7 +136,7 @@ function CurveSparkline({
       data-curve-risk={risk}
       className="flex flex-col gap-1 rounded-sm border border-gold/20 bg-black/30 p-2"
     >
-      <div className="flex items-baseline justify-between text-[10px] tracking-wider text-white/60">
+      <div className="flex items-baseline justify-between text-[10px] tracking-wider text-ivory/60">
         <span className="font-display uppercase">{panel.label}</span>
         <span className="font-mono tabular-nums text-gold-bright">
           edge {maxMult.toLocaleString()}×
@@ -253,12 +253,12 @@ export default function AdminPlinkoPage(): JSX.Element {
 
       {/* Hero chart — bin landing distribution */}
       <section aria-label="Plinko bin landing distribution">
-        <h2 className="mb-2 font-display text-xs tracking-wider text-white/60">
+        <h2 className="mb-2 font-display text-xs tracking-wider text-ivory/60">
           BIN LANDING DISTRIBUTION (0–26)
         </h2>
         <div className="rounded-md border border-gold/30 bg-felt-deep p-4">
           {ballsDropped === 0 ? (
-            <p className="py-8 text-center text-xs text-white/40">No plinko drops recorded yet.</p>
+            <p className="py-8 text-center text-xs text-ivory/40">No plinko drops recorded yet.</p>
           ) : (
             <PlinkoBinDistributionBar data={distribution} />
           )}
@@ -268,7 +268,7 @@ export default function AdminPlinkoPage(): JSX.Element {
       {/* Secondary panels: per-risk drops + multiplier curve viewer */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <section aria-label="Plinko per-risk drops and RTP">
-          <h2 className="mb-2 font-display text-xs tracking-wider text-white/60">
+          <h2 className="mb-2 font-display text-xs tracking-wider text-ivory/60">
             PER-RISK DROPS &amp; RTP
           </h2>
           <div className="flex flex-col gap-3 rounded-md border border-gold/30 bg-felt-deep p-4">
@@ -286,14 +286,14 @@ export default function AdminPlinkoPage(): JSX.Element {
                 />
               );
             })}
-            <p className="border-t border-gold/20 pt-3 text-[10px] tracking-wider text-white/40">
+            <p className="border-t border-gold/20 pt-3 text-[10px] tracking-wider text-ivory/40">
               Drops + realised return per risk vs the configured 95–98% target.
             </p>
           </div>
         </section>
 
         <section aria-label="Plinko multiplier curves">
-          <h2 className="mb-2 font-display text-xs tracking-wider text-white/60">
+          <h2 className="mb-2 font-display text-xs tracking-wider text-ivory/60">
             MULTIPLIER CURVES (READ-ONLY)
           </h2>
           <div className="grid grid-cols-2 gap-2 rounded-md border border-gold/30 bg-felt-deep p-4">
@@ -301,7 +301,7 @@ export default function AdminPlinkoPage(): JSX.Element {
               <CurveSparkline key={risk} risk={risk} curve={MULTIPLIER_CURVES[risk]} />
             ))}
           </div>
-          <p className="mt-2 text-[10px] tracking-wider text-white/40">
+          <p className="mt-2 text-[10px] tracking-wider text-ivory/40">
             Configured payout curves per risk (27 bins). Tunability deferred to Phase 15 #14.
           </p>
         </section>
@@ -309,15 +309,15 @@ export default function AdminPlinkoPage(): JSX.Element {
 
       {/* Recent drops table */}
       <section aria-label="Recent plinko drops">
-        <h2 className="mb-2 font-display text-xs tracking-wider text-white/60">
+        <h2 className="mb-2 font-display text-xs tracking-wider text-ivory/60">
           RECENT DROPS (LAST 20)
         </h2>
         {filteredRecent.length === 0 ? (
-          <p className="text-xs text-white/40">No drops yet.</p>
+          <p className="text-xs text-ivory/40">No drops yet.</p>
         ) : (
           <table className="w-full text-left text-xs">
             <thead>
-              <tr className="border-b border-gold/30 uppercase tracking-wider text-white/40">
+              <tr className="border-b border-gold/30 uppercase tracking-wider text-ivory/40">
                 <th className="py-2 pr-3">Played at</th>
                 <th className="py-2 pr-3">Risk</th>
                 <th className="py-2 pr-3 text-right">Bin</th>
@@ -338,7 +338,7 @@ export default function AdminPlinkoPage(): JSX.Element {
                 const isEdge = bin === 0 || bin === 26;
                 return (
                   <tr key={r.id} className="border-b border-white/5">
-                    <td className="py-1.5 pr-3 tabular-nums text-white/70">
+                    <td className="py-1.5 pr-3 tabular-nums text-ivory/70">
                       {new Date(r.playedAt).toISOString().slice(0, 19).replace('T', ' ')}
                     </td>
                     <td className="py-1.5 pr-3">
@@ -356,7 +356,7 @@ export default function AdminPlinkoPage(): JSX.Element {
                           isEdge
                             ? 'text-jewel-magenta'
                             : bin === 13
-                              ? 'text-white/50'
+                              ? 'text-ivory/50'
                               : 'text-ivory'
                         }
                       >
@@ -378,7 +378,7 @@ export default function AdminPlinkoPage(): JSX.Element {
                           ? 'text-chip-win'
                           : housePl < 0
                             ? 'text-casino-red'
-                            : 'text-white/60'
+                            : 'text-ivory/60'
                       }`}
                     >
                       {housePl > 0 ? '+' : ''}

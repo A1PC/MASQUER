@@ -85,9 +85,7 @@ function DialogShell({
         <RadixDialog.Description className="mb-3 font-body text-sm font-light leading-relaxed text-ivory/80">
           {description}
         </RadixDialog.Description>
-      ) : (
-        <RadixDialog.Description className="sr-only">{title}</RadixDialog.Description>
-      )}
+      ) : null}
       <div className="font-body text-sm text-ivory/90">{children}</div>
       <RadixDialog.Close aria-label="Close" className={closeButtonClass}>
         <Icon name="X" size={18} />
@@ -114,7 +112,15 @@ function DialogShell({
                 />
               )}
             </RadixDialog.Overlay>
-            <RadixDialog.Content forceMount className={positionClass}>
+            <RadixDialog.Content
+              forceMount
+              className={positionClass}
+              // When no description is provided, opt out of Radix's
+              // aria-describedby warning rather than duplicating the title
+              // into an sr-only Description (audit §1.1 — screen readers
+              // were hearing the title twice).
+              {...(description ? {} : { 'aria-describedby': undefined })}
+            >
               {reduce ? (
                 <div className={cn(panelClass, className)}>{body}</div>
               ) : (
@@ -139,9 +145,10 @@ function DialogShell({
 // Radix `Content` is the focus-trapped node; it owns positioning only (no
 // transform, so Framer's animated transform never fights a Tailwind translate).
 const modalPositionClass = 'fixed inset-0 z-50 grid place-items-center p-4 focus:outline-none';
-const modalPanelClass =
-  'relative w-[min(92vw,420px)] rounded-xl border border-brass bg-surface p-5 shadow-velvet-panel ' +
-  'before:pointer-events-none before:absolute before:inset-1.5 before:rounded-lg before:border before:border-brass/40';
+const modalPanelClass = cn(
+  'relative w-[min(92vw,420px)] rounded-xl border border-brass bg-surface p-5 shadow-velvet-panel',
+  'before:pointer-events-none before:absolute before:inset-1.5 before:rounded-lg before:border before:border-brass/40',
+);
 
 export function Modal(props: DialogShellProps): JSX.Element {
   return (
@@ -155,9 +162,10 @@ export function Modal(props: DialogShellProps): JSX.Element {
 }
 
 const drawerPositionClass = 'fixed inset-y-0 right-0 z-50 flex focus:outline-none';
-const drawerPanelClass =
-  'relative flex w-[min(90vw,360px)] flex-col border-l border-brass bg-surface p-5 shadow-velvet-panel ' +
-  'before:pointer-events-none before:absolute before:inset-1.5 before:rounded-lg before:border before:border-brass/40';
+const drawerPanelClass = cn(
+  'relative flex w-[min(90vw,360px)] flex-col border-l border-brass bg-surface p-5 shadow-velvet-panel',
+  'before:pointer-events-none before:absolute before:inset-1.5 before:rounded-lg before:border before:border-brass/40',
+);
 
 export function Drawer(props: DialogShellProps): JSX.Element {
   return (

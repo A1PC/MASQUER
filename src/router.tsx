@@ -54,13 +54,13 @@ const AdminBlackjackPage = lazy(() => import('@/pages/admin/AdminBlackjackPage')
 const AdminCoinFlipPage = lazy(() => import('@/pages/admin/AdminCoinFlipPage'));
 
 const adminFallback = (
-  <div className="flex min-h-screen items-center justify-center bg-felt-deep text-xs text-white/40">
+  <div className="flex h-full items-center justify-center bg-velvet-deep text-xs text-ivory/40">
     Loading admin…
   </div>
 );
 
 const statsFallback = (
-  <div className="flex min-h-screen items-center justify-center bg-felt-deep text-xs text-white/40">
+  <div className="flex h-full items-center justify-center bg-velvet-deep text-xs text-ivory/40">
     Loading stats…
   </div>
 );
@@ -159,7 +159,7 @@ export const router = createBrowserRouter([
         element: (
           <Suspense
             fallback={
-              <div className="flex min-h-screen items-center justify-center bg-felt-deep text-xs text-white/40">
+              <div className="flex h-full items-center justify-center bg-velvet-deep text-xs text-ivory/40">
                 Loading bingo…
               </div>
             }
@@ -173,7 +173,7 @@ export const router = createBrowserRouter([
         element: (
           <Suspense
             fallback={
-              <div className="flex min-h-screen items-center justify-center bg-felt-deep text-xs text-white/40">
+              <div className="flex h-full items-center justify-center bg-velvet-deep text-xs text-ivory/40">
                 Loading plinko…
               </div>
             }
@@ -187,7 +187,7 @@ export const router = createBrowserRouter([
         element: (
           <Suspense
             fallback={
-              <div className="flex min-h-screen items-center justify-center bg-felt-deep text-xs text-white/40">
+              <div className="flex h-full items-center justify-center bg-velvet-deep text-xs text-ivory/40">
                 Loading craps…
               </div>
             }
@@ -201,7 +201,7 @@ export const router = createBrowserRouter([
         element: (
           <Suspense
             fallback={
-              <div className="flex min-h-screen items-center justify-center bg-felt-deep text-xs text-white/40">
+              <div className="flex h-full items-center justify-center bg-velvet-deep text-xs text-ivory/40">
                 Loading poker…
               </div>
             }
@@ -215,7 +215,7 @@ export const router = createBrowserRouter([
         element: (
           <Suspense
             fallback={
-              <div className="flex min-h-screen items-center justify-center bg-felt-deep text-xs text-white/40">
+              <div className="flex h-full items-center justify-center bg-velvet-deep text-xs text-ivory/40">
                 Loading Hold&apos;em…
               </div>
             }
@@ -229,7 +229,7 @@ export const router = createBrowserRouter([
         element: (
           <Suspense
             fallback={
-              <div className="flex min-h-screen items-center justify-center bg-felt-deep text-xs text-white/40">
+              <div className="flex h-full items-center justify-center bg-velvet-deep text-xs text-ivory/40">
                 Loading Five-Card Draw…
               </div>
             }
@@ -243,7 +243,7 @@ export const router = createBrowserRouter([
         element: (
           <Suspense
             fallback={
-              <div className="flex min-h-screen items-center justify-center bg-felt-deep text-xs text-white/40">
+              <div className="flex h-full items-center justify-center bg-velvet-deep text-xs text-ivory/40">
                 Loading Omaha…
               </div>
             }

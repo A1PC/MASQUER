@@ -169,7 +169,7 @@ function MotionCard({ prefs, update }: { prefs: Prefs; update: UpdateFn }): JSX.
         <SettingRow
           htmlFor={motionId}
           label="Animations"
-          helper="“System” follows your operating system's reduced-motion setting."
+          helper={`"System" follows your operating system's reduced-motion setting.`}
         >
           <Select
             value={prefs.motionPref}
@@ -264,9 +264,11 @@ function AccountCard({ userId }: { userId: string | null }): JSX.Element {
             kept. This cannot be undone.
           </p>
           <Button
-            variant="ghost"
+            // `variant="danger"` matches the Delete account button below and
+            // gives proper hover/focus feedback (the previous `ghost +
+            // text-chip-loss` had no hover state). Audit §1.5.
+            variant="danger"
             size="sm"
-            className="text-chip-loss hover:text-chip-loss"
             onClick={() => setConfirmOpen(true)}
             disabled={!userId}
           >

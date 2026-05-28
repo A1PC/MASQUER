@@ -57,9 +57,7 @@ export default function RegisterPage(): JSX.Element {
               <h1 className="font-display text-2xl tracking-[0.18em] text-gold-bright">
                 Create an account
               </h1>
-              <p className="mt-1 font-body text-xs text-ivory/60">
-                Join the table. Chips are on the house.
-              </p>
+              <p className="mt-1 font-body text-xs text-ivory/60">Take a seat at MASQUER.</p>
             </div>
           </div>
 

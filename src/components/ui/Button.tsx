@@ -8,11 +8,12 @@ import { useSound } from '@/systems/sound/useSound';
 const button = cva(
   'inline-flex items-center justify-center gap-2 rounded-xl font-body font-semibold uppercase tracking-[0.12em] ' +
     'transition-transform duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold ' +
+    'focus-visible:ring-offset-2 focus-visible:ring-offset-felt-table-deep ' +
     'disabled:opacity-40 disabled:pointer-events-none motion-safe:active:scale-[0.97]',
   {
     variants: {
       variant: {
-        primary: 'bg-gradient-to-b from-gold to-gold-deep text-[#241702] shadow-gold-glow',
+        primary: 'bg-gradient-to-b from-gold to-gold-deep text-velvet-ink shadow-gold-glow',
         secondary: 'border border-brass text-gold bg-transparent',
         danger: 'border-2 border-casino-red bg-transparent text-casino-red hover:bg-casino-red/10',
         ghost: 'bg-transparent text-ivory/85 hover:text-ivory',

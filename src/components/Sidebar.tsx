@@ -59,6 +59,12 @@ export default function Sidebar({ collapsed }: Props): JSX.Element {
       transition={reduce ? { duration: 0 } : { duration: 0.2, ease: 'easeOut' }}
       className="flex-shrink-0 overflow-hidden border-r border-brass/40 bg-velvet-deep shadow-[inset_-8px_0_16px_-12px_rgba(0,0,0,0.6)]"
       aria-hidden={collapsed}
+      // `inert` removes the collapsed sidebar from the tab order entirely —
+      // `aria-hidden` alone doesn't prevent Tab-into-invisible-nav.
+      // React 18 typings don't yet include `inert`, but ReactDOM forwards
+      // unknown string attributes; spread to bypass the missing type until
+      // the React 19 upgrade. Audit §1.2 — sidebar collapsed-tab-leak.
+      {...(collapsed ? ({ inert: '' } as unknown as { inert?: string }) : {})}
     >
       <nav className="w-[200px] py-5">
         <SectionLabel>GAMES</SectionLabel>
@@ -106,7 +112,7 @@ function NavItem({
     <NavLink
       to={to}
       className={({ isActive }) =>
-        `group relative flex items-center justify-between px-4 py-2 font-display text-[12.5px] tracking-[0.05em] outline-none transition-colors focus-visible:bg-gold/10 ${
+        `group relative flex items-center justify-between px-4 py-2 font-display text-[12.5px] tracking-[0.05em] outline-none transition-colors focus-visible:bg-gold/10 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-gold/40 ${
           isActive
             ? 'bg-gradient-to-r from-gold/15 to-transparent text-gold-bright'
             : 'text-ivory/85 hover:bg-gold/5 hover:text-ivory'

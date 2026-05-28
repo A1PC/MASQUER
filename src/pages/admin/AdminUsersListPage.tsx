@@ -16,7 +16,7 @@ export default function AdminUsersListPage(): JSX.Element {
       </h1>
       <table className="w-full text-left text-sm">
         <thead>
-          <tr className="border-b border-gold/30 text-xs uppercase tracking-wider text-white/50">
+          <tr className="border-b border-gold/30 text-xs uppercase tracking-wider text-ivory/50">
             <th className="py-2 pr-3">Username</th>
             <th className="py-2 pr-3">Balance</th>
             <th className="py-2 pr-3">Net change</th>
@@ -40,7 +40,7 @@ export default function AdminUsersListPage(): JSX.Element {
                     ? 'text-chip-win'
                     : r.totalNetChange < 0
                       ? 'text-casino-red'
-                      : 'text-white/70'
+                      : 'text-ivory/70'
                 }`}
               >
                 {r.totalNetChange > 0 ? '+' : ''}
@@ -54,14 +54,14 @@ export default function AdminUsersListPage(): JSX.Element {
                     Banned
                   </span>
                 ) : (
-                  <span className="text-xs text-white/40">active</span>
+                  <span className="text-xs text-ivory/40">active</span>
                 )}
               </td>
             </tr>
           ))}
           {rows.length === 0 && (
             <tr>
-              <td colSpan={6} className="py-6 text-center text-xs text-white/40">
+              <td colSpan={6} className="py-6 text-center text-xs text-ivory/40">
                 No users registered yet.
               </td>
             </tr>

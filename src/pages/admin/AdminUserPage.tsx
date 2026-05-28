@@ -60,10 +60,10 @@ export default function AdminUserPage(): JSX.Element {
   );
 
   if (stats === undefined) {
-    return <div className="text-sm text-white/60">Loading…</div>;
+    return <div className="text-sm text-ivory/60">Loading…</div>;
   }
   if (stats === null) {
-    return <div className="text-sm text-white/60">User not found.</div>;
+    return <div className="text-sm text-ivory/60">User not found.</div>;
   }
 
   return (
@@ -83,7 +83,7 @@ export default function AdminUserPage(): JSX.Element {
             onClick={() => {
               void (stats.isBanned ? unbanUser(stats.userId) : banUser(stats.userId));
             }}
-            className="rounded-sm border border-white/20 px-3 py-2 text-xs uppercase tracking-wider text-white/70 hover:bg-white/5"
+            className="rounded-sm border border-white/20 px-3 py-2 text-xs uppercase tracking-wider text-ivory/70 hover:bg-white/5"
           >
             {stats.isBanned ? 'Unban' : 'Ban'}
           </button>
@@ -116,20 +116,20 @@ export default function AdminUserPage(): JSX.Element {
       </div>
 
       <section>
-        <h2 className="mb-2 font-display text-xs tracking-wider text-white/60">ACTIVITY</h2>
+        <h2 className="mb-2 font-display text-xs tracking-wider text-ivory/60">ACTIVITY</h2>
         <UserActivityLine data={series} />
       </section>
 
       <section className="grid gap-6 md:grid-cols-2">
         <div>
-          <h2 className="mb-2 font-display text-xs tracking-wider text-white/60">ROUNDS BY GAME</h2>
+          <h2 className="mb-2 font-display text-xs tracking-wider text-ivory/60">ROUNDS BY GAME</h2>
           <GameDistributionDonut data={dist} />
         </div>
         <div>
-          <h2 className="mb-2 font-display text-xs tracking-wider text-white/60">TIME BY GAME</h2>
-          <ul className="text-sm text-white/80">
+          <h2 className="mb-2 font-display text-xs tracking-wider text-ivory/60">TIME BY GAME</h2>
+          <ul className="text-sm text-ivory/80">
             {times.length === 0 && (
-              <li className="text-xs text-white/40">No game visits recorded yet.</li>
+              <li className="text-xs text-ivory/40">No game visits recorded yet.</li>
             )}
             {times.map((t) => (
               <li key={t.game} className="flex justify-between border-b border-white/5 py-1">
@@ -142,15 +142,15 @@ export default function AdminUserPage(): JSX.Element {
       </section>
 
       <section>
-        <h2 className="mb-2 font-display text-xs tracking-wider text-white/60">
+        <h2 className="mb-2 font-display text-xs tracking-wider text-ivory/60">
           ADJUSTMENT HISTORY
         </h2>
         {adjustments.length === 0 ? (
-          <p className="text-xs text-white/40">No admin adjustments yet.</p>
+          <p className="text-xs text-ivory/40">No admin adjustments yet.</p>
         ) : (
           <table className="w-full text-left text-sm">
             <thead>
-              <tr className="border-b border-gold/30 text-xs uppercase tracking-wider text-white/50">
+              <tr className="border-b border-gold/30 text-xs uppercase tracking-wider text-ivory/50">
                 <th className="py-2 pr-3">When</th>
                 <th className="py-2 pr-3">Amount</th>
                 <th className="py-2 pr-3">Reason</th>
@@ -159,7 +159,7 @@ export default function AdminUserPage(): JSX.Element {
             <tbody>
               {adjustments.map((a) => (
                 <tr key={a.id} className="border-b border-white/5">
-                  <td className="py-2 pr-3 text-white/60">
+                  <td className="py-2 pr-3 text-ivory/60">
                     {new Date(a.adjustedAt).toISOString().slice(0, 19).replace('T', ' ')}
                   </td>
                   <td className={`py-2 pr-3 ${a.amount > 0 ? 'text-chip-win' : 'text-casino-red'}`}>

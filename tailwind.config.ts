@@ -47,6 +47,7 @@ export default {
           tie: t['scoreboard-tie'],
         },
         state: { win: t.win, loss: t.loss, push: t.push },
+        'velvet-ink': t['velvet-ink'],
       },
       fontFamily: {
         display: [...fonts.display],

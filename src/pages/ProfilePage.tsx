@@ -169,12 +169,14 @@ export default function ProfilePage({ edit = false }: ProfilePageProps): JSX.Ele
                     style={{ backgroundColor: color }}
                     className={cn(
                       'h-9 w-9 rounded-full border-2 border-transparent outline-none transition-transform',
-                      'focus-visible:ring-2 focus-visible:ring-gold/50 motion-safe:hover:scale-110',
+                      // Standardised to ring-gold/40 across the system (matches
+                      // Modal close + Sidebar NavLink — audit §1.1 + §1.5).
+                      'focus-visible:ring-2 focus-visible:ring-gold/40 motion-safe:hover:scale-110',
                       'data-[state=checked]:border-gold data-[state=checked]:scale-110',
                     )}
                   >
                     <RadixRadioGroup.Indicator className="flex h-full w-full items-center justify-center">
-                      <Icon name="Check" size={16} className="text-[#241702]" />
+                      <Icon name="Check" size={16} className="text-velvet-ink" />
                     </RadixRadioGroup.Indicator>
                   </RadixRadioGroup.Item>
                 ))}

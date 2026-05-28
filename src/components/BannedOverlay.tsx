@@ -1,6 +1,7 @@
 import type { JSX } from 'react';
 import { useNavigate } from 'react-router';
 import { useSessionStore } from '@/store/sessionStore';
+import { Button } from '@/components/ui';
 
 /**
  * Full-screen overlay shown to banned users instead of any in-app route.
@@ -31,6 +32,9 @@ export default function BannedOverlay(): JSX.Element {
       aria-modal="true"
     >
       <div className="flex flex-col items-center gap-3 text-center">
+        {/* TODO(#15-followup): centralise the casino-red drop-shadow as a
+            `shadow-casino-glow` token so this headline + the FROZEN pill below
+            + the Sidebar unread-dot share one source of truth. Audit §1.4. */}
         <h1
           id="banned-headline"
           className="font-display text-6xl tracking-[0.22em] text-casino-red drop-shadow-[0_0_24px_rgba(220,38,38,0.45)]"
@@ -59,14 +63,18 @@ export default function BannedOverlay(): JSX.Element {
           FROZEN
         </span>
       </div>
-      <button
-        type="button"
+      <Button
+        variant="danger"
+        size="lg"
         onClick={handleLogout}
-        className="rounded-md border-2 border-casino-red bg-velvet px-8 py-3 font-display text-sm tracking-[0.18em] text-casino-red hover:bg-casino-red/10"
         data-banned-logout
+        // Match the BANNED chrome's wider spacing + velvet undertone (the
+        // base danger variant has a transparent bg; this overlay reads better
+        // with the felt-on-velvet pairing).
+        className="bg-velvet px-8 tracking-[0.18em]"
       >
         LOG OUT
-      </button>
+      </Button>
     </div>
   );
 }

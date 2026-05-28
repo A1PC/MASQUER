@@ -2,6 +2,8 @@ import type { JSX } from 'react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useSessionStore } from '@/store/sessionStore';
+import { Card, Field, Input, Button } from '@/components/ui';
+import MaskMark from '@/components/brand/MaskMark';
 
 export default function AdminLoginPage(): JSX.Element {
   const navigate = useNavigate();
@@ -21,56 +23,58 @@ export default function AdminLoginPage(): JSX.Element {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-felt-deep px-4">
-      <form
-        onSubmit={handleSubmit}
-        className="w-full max-w-sm rounded-lg border border-gold/60 bg-felt-deep p-6 shadow-gold-glow"
-      >
-        <h1 className="mb-1 font-display text-lg tracking-[0.18em] text-gold">ADMIN ACCESS</h1>
-        <p className="mb-6 text-xs text-white/50">Restricted — staff only.</p>
+    // min-h-full + Card/Field/Input/Button aligns admin auth to the player
+    // LoginPage chrome; see audit §1.3 — was previously min-h-screen +
+    // bg-felt-deep with bespoke <input>s that bypassed the design system.
+    <main className="mx-auto grid min-h-full max-w-md place-items-center p-6">
+      <Card surface="velvet" className="w-full">
+        <form onSubmit={handleSubmit} noValidate className="space-y-5">
+          <div className="flex flex-col items-center gap-3 text-center">
+            <MaskMark size={64} />
+            <div>
+              <h1 className="font-display text-2xl tracking-[0.18em] text-gold-bright">
+                Admin access
+              </h1>
+              <p className="mt-1 font-body text-xs text-ivory/60">Restricted to staff.</p>
+            </div>
+          </div>
 
-        <label
-          htmlFor="admin-username"
-          className="mb-1 block text-xs uppercase tracking-wider text-white/70"
-        >
-          Username
-        </label>
-        <input
-          id="admin-username"
-          type="text"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          autoComplete="off"
-          autoFocus
-          required
-          className="mb-4 w-full rounded-sm border border-white/20 bg-felt-deep px-3 py-2 text-sm text-white focus:border-gold focus:outline-none"
-        />
+          <Field id="admin-username" label="Username">
+            <Input
+              id="admin-username"
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              autoComplete="off"
+              autoFocus
+              required
+              state={error ? 'error' : 'default'}
+            />
+          </Field>
 
-        <label
-          htmlFor="admin-password"
-          className="mb-1 block text-xs uppercase tracking-wider text-white/70"
-        >
-          Password
-        </label>
-        <input
-          id="admin-password"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          autoComplete="off"
-          required
-          className="mb-4 w-full rounded-sm border border-white/20 bg-felt-deep px-3 py-2 text-sm text-white focus:border-gold focus:outline-none"
-        />
+          <Field id="admin-password" label="Password">
+            <Input
+              id="admin-password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="off"
+              required
+              state={error ? 'error' : 'default'}
+            />
+          </Field>
 
-        {error && <p className="mb-3 text-xs text-casino-red">{error}</p>}
+          {error ? (
+            <p role="alert" className="text-[11px] text-casino-red">
+              {error}
+            </p>
+          ) : null}
 
-        <button
-          type="submit"
-          className="w-full rounded-sm bg-gold py-2 font-display text-sm tracking-wider text-felt-deep hover:bg-gold-bright"
-        >
-          SIGN IN
-        </button>
-      </form>
-    </div>
+          <Button type="submit" variant="primary" className="w-full">
+            Sign in
+          </Button>
+        </form>
+      </Card>
+    </main>
   );
 }
