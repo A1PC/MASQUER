@@ -18,7 +18,7 @@ Close out the Phase 15 MASQUER overhaul with a comprehensive launch-prep sweep t
 4. **Produces a manual smoke-test checklist** the user runs themselves before tagging, covering every game + admin + zero/empty-state combinations.
 5. **Tags `v1.0`** on the closing-pass merge commit once the smoke checklist passes.
 
-Outcome: localGamble feels like one designed product end-to-end, the main JS bundle no longer ships every game upfront, every empty state is intentional, and we have a written launch checklist captured in-repo for future releases.
+Outcome: MASQUER feels like one designed product end-to-end, the main JS bundle no longer ships every game upfront, every empty state is intentional, and we have a written launch checklist captured in-repo for future releases.
 
 ---
 
@@ -38,7 +38,7 @@ Outcome: localGamble feels like one designed product end-to-end, the main JS bun
 - **Game-logic changes.** All `logic.ts` / `machine.ts` / `_shared/*` pure modules under `src/games/**` and all existing ADRs (0001–0047) are byte-stable through this sub-project.
 - **New features from the deferred-features docket** (subscription tickets, admin tuning consoles for plinko/poker, ball-trail effects, etc.). User explicitly chose "Polish only (per the umbrella spec)" for #15.
 - **CLAUDE.md edits.** User-owned per the existing rule.
-- **Brand re-design.** `project_localgamble_rebrand` is its own deferred chore — name/logo/palette stay as-is for v1.0.
+- **Brand re-design.** `project_masquer_rebrand` is its own deferred chore — name/logo/palette stay as-is for v1.0.
 - **Cross-tab sync, multi-user prize pools, real-money paths.** Not in scope for this app's design.
 
 ---
@@ -77,7 +77,7 @@ All PRs follow `subagent-driven-development`: one fresh implementer subagent per
 
 ### 3.2 Commit-scope mapping (commitlint)
 
-Per `reference_localgamble_commitlint_scopes` and `feedback_localgamble_commitlint_scope_additions` — DO NOT expand the enum. Use the closest existing scope:
+Per `reference_masquer_commitlint_scopes` and `feedback_masquer_commitlint_scope_additions` — DO NOT expand the enum. Use the closest existing scope:
 
 - PR A → `docs(build-guide)` (or `chore` if appropriate — see §10)
 - PR B → `chore` for cross-cutting + `ui` if changes are mostly in `src/components/ui`
@@ -86,7 +86,7 @@ Per `reference_localgamble_commitlint_scopes` and `feedback_localgamble_commitli
 - PR D → `docs` for the checklist, `chore` for leftovers
 - PR E → `chore` for version bump + tag
 
-Subject ≤ 100 chars (commitlint header-max-length, per `feedback_localgamble_commit_subject_limit`).
+Subject ≤ 100 chars (commitlint header-max-length, per `feedback_masquer_commit_subject_limit`).
 
 ---
 
@@ -252,7 +252,7 @@ The audit subagent runs through every screen with Playwright + manual reads, loo
 ### 4.4 Audit subagent brief (verbatim, to be passed)
 
 ```text
-Run a read-only consistency audit of localGamble in preparation for v1.0 launch.
+Run a read-only consistency audit of MASQUER in preparation for v1.0 launch.
 Produce the audit doc at the exact path below. NO code changes. NO tests changes.
 Spec: docs/superpowers/specs/2026-05-28-phase-15-15-final-integration-design.md §4.
 Use Playwright at 1440×900 to visually inspect every route after starting `pnpm dev`.
@@ -496,7 +496,7 @@ Write the canonical manual smoke-test checklist for v1.0 and beyond. Catches any
 **File 1: `docs/MANUAL_SMOKE_v1.md`** — exhaustive checklist with checkbox markdown items, structured as:
 
 ```markdown
-# localGamble — Manual Smoke Checklist (v1.0)
+# MASQUER — Manual Smoke Checklist (v1.0)
 
 > Run before every release tag. Update with any new flow that ships afterwards.
 
@@ -650,7 +650,7 @@ Final administrative pass that prepares the repo for the v1.0 launch tag. **No f
 
   ```bash
   git fetch origin main
-  git tag -a v1.0 -m "localGamble v1.0 — MASQUER · Velvet Deco launch" origin/main
+  git tag -a v1.0 -m "MASQUER v1.0 — MASQUER · Velvet Deco launch" origin/main
   git push origin v1.0
   ```
 
@@ -752,7 +752,7 @@ None — scope, decomposition, rubric, and tagging policy are all locked via the
 - ✅ User runs `docs/MANUAL_SMOKE_v1.md` end-to-end and ticks every item.
 - ✅ User pushes the `v1.0` annotated tag.
 
-When all the above are true, Phase 15 is complete and localGamble has shipped v1.0.
+When all the above are true, Phase 15 is complete and MASQUER has shipped v1.0.
 
 ---
 
@@ -765,12 +765,12 @@ When all the above are true, Phase 15 is complete and localGamble has shipped v1
 - Memories referenced (per the `~/.claude` index):
   - `feedback_planning_depth` — exhaustive upfront planning.
   - `feedback_phase15_game_sub_project_order` — sequential per-game release order; wait for "start next" prompt.
-  - `feedback_localgamble_commit_subject_limit` — commit subject ≤ 100 chars.
-  - `feedback_localgamble_commitlint_scope_additions` — don't expand the enum.
-  - `feedback_localgamble_min_h_screen_in_pages` — page roots under AppLayout use `h-full`, not `min-h-screen`.
-  - `feedback_localgamble_screenshot_before_pushing_ui` — Playwright screenshot before pushing visual changes.
-  - `reference_localgamble_commitlint_scopes` — allowed enum.
-  - `project_localgamble_status` — Phase 15 status snapshot.
-  - `project_localgamble_design_philosophy` — old-school Vegas + modern-web execution.
-  - `project_localgamble_rebrand` — brand redesign deferred; do NOT do it in #15.
-  - `project_localgamble_deferred_features` — feature docket; explicitly out-of-scope for #15.
+  - `feedback_masquer_commit_subject_limit` — commit subject ≤ 100 chars.
+  - `feedback_masquer_commitlint_scope_additions` — don't expand the enum.
+  - `feedback_masquer_min_h_screen_in_pages` — page roots under AppLayout use `h-full`, not `min-h-screen`.
+  - `feedback_masquer_screenshot_before_pushing_ui` — Playwright screenshot before pushing visual changes.
+  - `reference_masquer_commitlint_scopes` — allowed enum.
+  - `project_masquer_status` — Phase 15 status snapshot.
+  - `project_masquer_design_philosophy` — old-school Vegas + modern-web execution.
+  - `project_masquer_rebrand` — brand redesign deferred; do NOT do it in #15.
+  - `project_masquer_deferred_features` — feature docket; explicitly out-of-scope for #15.

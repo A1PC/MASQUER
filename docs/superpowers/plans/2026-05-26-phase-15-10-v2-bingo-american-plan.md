@@ -19,7 +19,7 @@
 3. **British variant visually unchanged** — headers gated on `variant === 'american'`.
 4. **Games sandbox** preserved.
 5. **No `Math.random()`. Integer money.**
-6. **Commit subject ≤ 100 chars** (`feedback-localgamble-commit-subject-limit`).
+6. **Commit subject ≤ 100 chars** (`feedback-masquer-commit-subject-limit`).
 7. **No `--no-verify`. No `--amend`.**
 8. **DoD:**
    ```

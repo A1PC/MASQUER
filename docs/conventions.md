@@ -1,5 +1,9 @@
 # Code conventions
 
+This is the in-repo coding standard for MASQUER. It mirrors what CI enforces
+(`pnpm lint`, `pnpm typecheck`, ESLint rules) plus a handful of conventions
+that are reviewer-enforced. Last refreshed at v1.0 (2026-05-28).
+
 ## Imports
 
 - Use the `@/` alias for everything under `src/`. No deep relative paths
@@ -7,7 +11,10 @@
 - Type-only imports MUST use `import type`. Enforced by ESLint.
 - Within `src/games/**`: no imports from `src/db` or `src/store`. Use
   `src/systems/*` only. Enforced by ESLint.
-- localStorage access is allowed in `src/systems/auth.ts` AND `src/store/uiStore.ts` ONLY.
+- localStorage access is allowed in `src/systems/auth.ts`,
+  `src/systems/admin-auth.ts`, `src/systems/lottery-unread.ts`,
+  `src/systems/lottery.ts`, and `src/store/uiStore.ts` ONLY. All keys live
+  under the `masquer.*` prefix (renamed from `localGamble.*` at v1.0).
 
 ## File naming
 
@@ -61,10 +68,27 @@
 
 ## Styling
 
+- **Tokens only — no hard-coded hex** in components. Colors, type, and
+  spacing come from `src/theme/tokens.ts` + the tailwind config. Acceptable
+  exceptions: variant-intrinsic colours (e.g. Bingo's 5-column BINGO
+  palette, lottery ball-pool colours) and the SVG mask emblem — comment why
+  the literal is there.
 - Tailwind utilities only. No `style={{...}}` for colors/spacing.
-- Theme colors must reference Tailwind tokens (`bg-felt`, `text-gold`),
-  never hex literals.
-- Animations: prefer Framer Motion for anything beyond a CSS transition.
+- Theme colors must reference Tailwind brand tokens (e.g. `bg-felt-table`,
+  `text-gold`, `border-brass`, `text-ivory`), never hex literals.
+- Animations: prefer Framer Motion for anything beyond a CSS transition;
+  reuse the shared variant library rather than bespoke transitions.
+- Every animated surface MUST gate on `useEffectiveReducedMotion` from
+  `@/motion/useEffectiveReducedMotion` and provide an instant /
+  eased-down fallback. No exceptions.
+
+## Sound
+
+- The hook `useSound` (`src/systems/sound/useSound.ts`) is the **only**
+  sound integration point — never embed `<audio>` directly. Volume + mute
+  live in the Settings page and persist (`masquer.ui.*` localStorage keys).
+- Reduced-motion users hear no audio (sound is gated on
+  `useEffectiveReducedMotion`).
 
 ## Money
 
@@ -84,9 +108,17 @@
 - **One round, one row.** Every settled round writes exactly one `rounds` row via
   `wallet.settleRound` (ADR-0016). The poker buy-in/cash-out session is the
   documented exception (ADR-0041): one row per session, with multiple `placeBet`
-  debits (buy-in + rebuys) accumulating into the session's stake.
+  debits (buy-in + rebuys) accumulating into the session's stake. Craps follows
+  the same session pattern (ADR-0042-adjacent).
 - **Seeded RNG everywhere.** Inline `mulberry32` + `stringSeed` in a game's pure
   module when it needs determinism without importing a system; never `Math.random`.
+- **Page roots under `AppLayout` use `h-full`, not `min-h-screen`** — TopBar
+  above main makes 100vh always overflow (user memory
+  `feedback-localgamble-min-h-screen-in-pages`).
+- **Lazy-load game routes via React Router's `lazy` option.** Each game's
+  `<GamePage>` is loaded on demand with a shared `<RouteFallback>` and an
+  idle-time prefetch hint fired after auth. Main bundle is budgeted at
+  ~222 KB gzipped post-v1.0 (down from 477 KB pre-PR-C).
 
 ## Commits and branches
 

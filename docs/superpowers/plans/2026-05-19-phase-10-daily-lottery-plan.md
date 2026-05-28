@@ -311,7 +311,7 @@ export class LocalGambleDB extends Dexie {
   lotteryLines!: EntityTable<LotteryLine, 'id'>;
   lotteryFavorites!: EntityTable<LotteryFavorite, 'id'>;
 
-  constructor(name = 'localGamble') {
+  constructor(name = 'MASQUER') {
     super(name);
     this.version(1).stores({
       users: 'id, &usernameLower, createdAt',
@@ -379,7 +379,7 @@ const BONUS_POOL_SIZE = 10;
 /** Deterministic seed derived from the date string. djb2-ish hash for speed. */
 function dateSeed(date: string): number {
   let h = 5381;
-  const prefix = 'localGamble.lottery.';
+  const prefix = 'masquer.lottery.';
   const input = prefix + date;
   for (let i = 0; i < input.length; i += 1) {
     h = ((h << 5) + h + input.charCodeAt(i)) | 0; // | 0 → keep i32
@@ -1688,7 +1688,7 @@ git commit -m "feat(stats): add 'lottery' to game-key consumers exposed by Round
 
 - Status: Accepted
 - Date: 2026-05-19
-- Deciders: @adamzspare
+- Deciders: Developer
 
 ## Context
 
@@ -3979,7 +3979,7 @@ import { useCurrentUser } from '@/store/sessionStore';
 
 // inside the Sidebar component:
 const user = useCurrentUser();
-const seenKey = user ? `localGamble.lottery.lastSeenDraw.${user.id}` : null;
+const seenKey = user ? `masquer.lottery.lastSeenDraw.${user.id}` : null;
 const lastDrawId = useLiveQuery(async () => (await db.lotteryDraws.orderBy('id').last())?.id ?? null, [], null);
 const seen = seenKey ? localStorage.getItem(seenKey) : null;
 const hasUnread = lastDrawId !== null && lastDrawId !== seen;
@@ -5112,9 +5112,9 @@ EOF
 
 (Fill in PR numbers as you go through the phase.)
 
-- [ ] **Step 3: Update `project_localgamble_status` memory**
+- [ ] **Step 3: Update `project_masquer_status` memory**
 
-Open `/Users/adam/.claude/projects/-Users-adam/memory/project_localgamble_status.md`. Add `v0.10-lottery` at the top of the tagged-releases list and mark Phase 10 ✅ in the roadmap section. Update the "stable, releasable state" line at the bottom.
+Open `/Users/adam/.claude/projects/-Users-adam/memory/project_masquer_status.md`. Add `v0.10-lottery` at the top of the tagged-releases list and mark Phase 10 ✅ in the roadmap section. Update the "stable, releasable state" line at the bottom.
 
 ---
 
@@ -5129,6 +5129,6 @@ After PR F merges:
 - [ ] /admin and existing /stats /leaderboard pages still work (no regressions from `Round.game` union extension).
 - [ ] Manual smoke walkthrough (per the Definition of Done at the top of this plan) passes.
 - [ ] GitHub Release `v0.10-lottery` published with the actual PR numbers filled in.
-- [ ] `[[localgamble-status]]` and `[[localgamble-deferred-features]]` memories updated.
+- [ ] `[[masquer-status]]` and `[[masquer-deferred-features]]` memories updated.
 
 If anything fails, hot-fix on `main` with a `fix/lottery-*` branch.

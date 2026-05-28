@@ -20,7 +20,7 @@
 4. **Integer money. No `Math.random()`.** Existing ESLint enforces.
 5. **Spec-first per CLAUDE.md.** Any ADR amendment commits before code.
 6. **No CLAUDE.md edits.**
-7. **Commit subject ≤ 100 chars** (commitlint Meta files fails otherwise — `feedback-localgamble-commit-subject-limit`).
+7. **Commit subject ≤ 100 chars** (commitlint Meta files fails otherwise — `feedback-masquer-commit-subject-limit`).
 8. **No skipping git hooks.** No `--no-verify`. No `--amend` — soft-reset + new commit if you need to rewrite.
 9. **DoD before opening each PR:**
    ```

@@ -37,7 +37,7 @@ function mulberry32(initialSeed: number): () => number {
 /** Deterministic seed derived from the date string. djb2-ish hash for speed. */
 function dateSeed(date: string): number {
   let h = 5381;
-  const prefix = 'localGamble.lottery.';
+  const prefix = 'masquer.lottery.';
   const input = prefix + date;
   for (let i = 0; i < input.length; i += 1) {
     h = ((h << 5) + h + input.charCodeAt(i)) | 0; // | 0 → keep i32

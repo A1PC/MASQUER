@@ -1,7 +1,7 @@
 # Phase 15 sub-project #12.v2 — Five-Card Draw upgrade
 
 **Status:** Spec
-**Author:** Adam + Claude (assistant)
+**Author:** Developer + Claude (assistant)
 **Date:** 2026-05-27
 **Phase:** 15 (Polish & Overhaul) · MASQUER per-game upgrade · poker trio #12.v2 of 3
 **Game:** Five-Card Draw (`src/games/poker/five-card-draw/`) — inherits shared chrome from `src/games/poker/_shared/`
@@ -18,7 +18,7 @@ This is a smaller, mechanical sub-project — single PR.
 
 ## 2. Non-goals
 
-Out of scope (deferred per `localgamble-deferred-features.md`):
+Out of scope (deferred per `masquer-deferred-features.md`):
 
 - Multi-table / tournament mode
 - Hand-history viewer
@@ -161,8 +161,8 @@ Drop the pure logic untouched rule (per `PHASE_15_PATTERNS.md §2`): `drawLogic.
 10. **No `--no-verify`, no `--amend`.**
 11. **DoD:** `pnpm lint && pnpm typecheck && pnpm exec vitest run && pnpm build && pnpm build-storybook && pnpm exec prettier --check .`
 12. **Tokens-only Tailwind** in rebuilt files.
-13. **Page root MUST be `flex h-full flex-col`, NEVER `min-h-screen`** (per `localgamble-min-h-screen-in-pages` memory).
-14. **Visual verification via Playwright at 1440×900 before pushing** (per `localgamble-screenshot-before-pushing-ui` memory).
+13. **Page root MUST be `flex h-full flex-col`, NEVER `min-h-screen`** (per `masquer-min-h-screen-in-pages` memory).
+14. **Visual verification via Playwright at 1440×900 before pushing** (per `masquer-screenshot-before-pushing-ui` memory).
 
 ## 7. Risks + watch-outs
 

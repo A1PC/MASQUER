@@ -2,7 +2,7 @@
 
 - Status: Accepted (amended 2026-05-25 — zero-bet spin now writes a row)
 - Date: 2026-05-25
-- Deciders: @adamzspare
+- Deciders: Developer
 - Supersedes: the legacy explicit `SPIN` event in the original
   Phase-4 roulette machine.
 - Amends: ADR-0031 (spin animation contract — spin trigger only;

@@ -1,4 +1,4 @@
-# localGamble — Manual Smoke Checklist (v1.0)
+# MASQUER — Manual Smoke Checklist (v1.0)
 
 > Run before every release tag. Update with any new flow that ships afterwards.
 >
@@ -17,7 +17,7 @@
 
 - [ ] Open the app in a private/incognito window **OR** sign in as admin and click `/admin/users` → **DANGER ZONE** → type the confirmation phrase → **WIPE LOCAL DATA**.
 - [ ] After wipe (or in a fresh private window), navigate to `/` → confirm the router lands on `/login` (no auto-restore from a stale session).
-- [ ] Open DevTools → Application → IndexedDB → confirm the `localGamble` database is either absent (private window) or contains zero rows in `users` and `rounds`.
+- [ ] Open DevTools → Application → IndexedDB → confirm the `masquer` database is either absent (private window) or contains zero rows in `users` and `rounds`.
 - [ ] Open `/lobby` directly in the URL bar → confirm `RequireAuth` redirects back to `/login` instead of rendering a half-empty shell.
 - [ ] Open `/admin` directly → confirm redirect to `/admin/login`.
 
@@ -291,6 +291,6 @@ For each route, confirm: page loads inside admin chrome, KPI cards render with n
 
   ```bash
   git fetch origin main
-  git tag -a v1.0 -m "localGamble v1.0 — MASQUER · Velvet Deco launch" origin/main
+  git tag -a v1.0 -m "MASQUER v1.0 — Velvet Deco launch" origin/main
   git push origin v1.0
   ```

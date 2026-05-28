@@ -9,7 +9,7 @@
 
 const ADMIN_USERNAME = 'admin';
 const ADMIN_PASSWORD = 'admin12345';
-const ADMIN_KEY = 'localGamble.session.admin';
+const ADMIN_KEY = 'masquer.session.admin';
 
 export type LoginAdminError = 'invalid_credentials';
 

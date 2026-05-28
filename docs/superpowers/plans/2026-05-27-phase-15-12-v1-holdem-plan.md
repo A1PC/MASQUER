@@ -25,7 +25,7 @@ PR A is the heavy one (~12 files touched, ~6 new). PR B is the standard admin-pa
 4. **Integer money. No `Math.random()`.** ESLint enforces.
 5. **Spec-first.** BUILD_GUIDE §13a amendment in the first commit.
 6. **No CLAUDE.md edits.**
-7. **Commit subject ≤ 100 chars** (`feedback-localgamble-commit-subject-limit`).
+7. **Commit subject ≤ 100 chars** (`feedback-masquer-commit-subject-limit`).
 8. **Conventional Commits.** Scopes for this work: `poker` (game-side), `admin` (NOT `admin-poker` — PR B), `stats` (aggregations), `routing` (router/nav), `ui` (shared primitives), `docs` (spec/ADR/BUILD_GUIDE).
 9. **No `--no-verify`. No `--amend`.** Reset + new commit if needed.
 10. **TS strict + exactOptionalPropertyTypes.** Optional fields via `{...(cond ? {key: val} : {})}` spread.
@@ -34,8 +34,8 @@ PR A is the heavy one (~12 files touched, ~6 new). PR B is the standard admin-pa
     ```
     pnpm lint && pnpm typecheck && pnpm exec vitest run && pnpm build && pnpm build-storybook && pnpm exec prettier --check .
     ```
-13. **Page root MUST be `flex h-full flex-col`, NEVER `min-h-screen`** (see `feedback-localgamble-min-h-screen-in-pages` memory; this trap fired on Plinko, will fire on poker if not handled).
-14. **For visual UI changes, screenshot via Playwright before pushing** (`feedback-localgamble-screenshot-before-pushing-ui` memory). Dev server + screenshot recipe in §"Visual verification" below.
+13. **Page root MUST be `flex h-full flex-col`, NEVER `min-h-screen`** (see `feedback-masquer-min-h-screen-in-pages` memory; this trap fired on Plinko, will fire on poker if not handled).
+14. **For visual UI changes, screenshot via Playwright before pushing** (`feedback-masquer-screenshot-before-pushing-ui` memory). Dev server + screenshot recipe in §"Visual verification" below.
 
 ---
 
@@ -122,7 +122,7 @@ Current `HoldemPage.tsx:108-126` schedules `START_HAND` 1,200 ms after entering 
 - [ ] **Step 3: Read existing `src/games/poker/`** files — note `_shared/types.ts` for `Card` shape, all `holdem/*.tsx` to size the brand-token pass, `_shared/PlayingCard.tsx` for the existing adapter surface area.
 - [ ] **Step 4: Read `@/components/brand/PlayingCard`** end-to-end so the adapter (A.3) produces correct props.
 - [ ] **Step 5: Read `docs/PHASE_15_PATTERNS.md` §1.1-§1.7** for the standard chrome recipe.
-- [ ] **Step 6: Read `feedback-localgamble-min-h-screen-in-pages` + `feedback-localgamble-screenshot-before-pushing-ui` memories** — both will fire during this PR.
+- [ ] **Step 6: Read `feedback-masquer-min-h-screen-in-pages` + `feedback-masquer-screenshot-before-pushing-ui` memories** — both will fire during this PR.
 
 ### Task A.1 — `maskNames.ts` + `MaskAvatar.tsx` (build the new shared bits first)
 
@@ -713,7 +713,7 @@ Bulk brand-token pass. Replace every raw colour class with the standard pairings
   git commit -m "feat(poker): lobby + variant modal brand pass; BUILD_GUIDE §13a amend"
   ```
 
-### Task A.8 — Visual verification (per `feedback-localgamble-screenshot-before-pushing-ui`)
+### Task A.8 — Visual verification (per `feedback-masquer-screenshot-before-pushing-ui`)
 
 **Why:** Plinko taught us — verify visually BEFORE pushing. The chrome rewrite touches many surfaces; layout regressions are easy to miss in tests.
 

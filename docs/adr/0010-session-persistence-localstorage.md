@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-05-15
-- Deciders: @adamzspare
+- Deciders: Developer
 
 ## Context
 
@@ -11,7 +11,7 @@ just the userId, not credentials)." We need a place to put it.
 
 ## Decision
 
-Use `localStorage` with the key `localGamble.session.userId`. Read
+Use `localStorage` with the key `masquer.session.userId`. Read
 synchronously on app boot (in the Zustand store's `bootstrap()` action).
 Wrap all access in try/catch (Safari private mode has historically thrown).
 
@@ -34,3 +34,12 @@ Wrap all access in try/catch (Safari private mode has historically thrown).
 
 - BUILD_GUIDE.md §7 (Accounts)
 - Phase 1 spec section 6.8 (auth.ts session helpers)
+
+## Amendments
+
+- **2026-05-28 (v1.0 brand rename).** Storage key prefix `localGamble.*` →
+  `masquer.*` as part of the working-title-to-final-brand rename. The
+  mechanism (single key, synchronous boot read, try/catch wrapper, ESLint
+  allow-list) is unchanged. Pre-1.0 sessions stored under
+  `localGamble.session.userId` do **not** migrate. See `CHANGELOG.md`
+  1.0.0 Migration notes.

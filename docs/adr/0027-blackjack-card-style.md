@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-05-17
-- Deciders: @adamzspare
+- Deciders: Developer
 
 ## Context
 
@@ -43,4 +43,17 @@ in the project. The cards must feel "casino" but stay in the project's
 
 - Phase 3 spec §3 decisions #11, #12, #13
 - `src/games/blackjack/Card.tsx`, `src/games/blackjack/HandView.tsx`, `src/games/blackjack/PIP_LAYOUT.ts`
-- Project design philosophy (memory: project-localgamble-design-philosophy)
+- Project design philosophy (memory: project-masquer-design-philosophy)
+
+## Amendments
+
+- **2026-05-24 (Phase 15 #5 — Blackjack upgrade).** Card visual rebuilt
+  for the MASQUER · Velvet Deco brand: ivory face stock, gold-leaf
+  pip + court treatment, oxblood-velvet pinstripe back with the
+  Venetian mask emblem (`MaskMark`) replacing the "LG" monogram.
+  Pip arrangements (the load-bearing decision in this ADR) are
+  preserved. Card style is now shared across all card games — see
+  `MasquerCard` in `src/components/brand/` and the per-poker-variant
+  adapters (`PlayingCard` in `src/games/poker/_shared/`).
+- **2026-05-28 (v1.0 launch).** Velvet Duel variant (ADR-0045) ships
+  alongside the standard Blackjack; both use the same card style.

@@ -3,8 +3,8 @@ import { db } from '@/db';
 import { resetDb } from '@/test/db-helpers';
 import { useSessionStore } from './sessionStore';
 
-const SESSION_KEY = 'localGamble.session.userId';
-const ADMIN_KEY = 'localGamble.session.admin';
+const SESSION_KEY = 'masquer.session.userId';
+const ADMIN_KEY = 'masquer.session.admin';
 
 function resetStore() {
   useSessionStore.setState({

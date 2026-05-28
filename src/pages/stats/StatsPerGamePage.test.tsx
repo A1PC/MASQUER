@@ -18,7 +18,7 @@ function renderAt(game: string) {
 describe('StatsPerGamePage', () => {
   beforeEach(async () => {
     await resetDb();
-    localStorage.removeItem('localGamble.session.userId');
+    localStorage.removeItem('masquer.session.userId');
     useSessionStore.setState({
       currentUser: null,
       isAdmin: false,

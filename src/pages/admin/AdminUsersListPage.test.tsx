@@ -21,7 +21,7 @@ function renderPage(initial = '/admin/users') {
 describe('AdminUsersListPage', () => {
   beforeEach(async () => {
     await resetDb();
-    localStorage.removeItem('localGamble.session.userId');
+    localStorage.removeItem('masquer.session.userId');
   });
 
   it('lists registered users with username + balance + net + logins + status columns', async () => {

@@ -7,7 +7,7 @@ import { resetDb } from '@/test/db-helpers';
 import { db } from '@/db';
 import { register } from '@/systems/auth';
 
-const SESSION_KEY = 'localGamble.session.userId';
+const SESSION_KEY = 'masquer.session.userId';
 
 /**
  * Seeds 3 users × 5 rounds across 3 games — small enough to keep the test

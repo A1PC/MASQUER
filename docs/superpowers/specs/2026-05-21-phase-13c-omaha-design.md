@@ -136,7 +136,7 @@ Community board + 4 hole cards. Cards reuse `_shared/PlayingCard`.
 
 ## 9. Out of scope
 
-→ append to `localgamble-deferred-features`:
+→ append to `masquer-deferred-features`:
 
 - **Pot-Limit betting** (the authentic PLO structure — we chose No-Limit for consistency).
 - 5-card / 6-card Omaha.

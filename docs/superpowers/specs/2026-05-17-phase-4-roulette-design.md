@@ -1,7 +1,7 @@
 # Phase 4 — Roulette: design spec
 
 **Date:** 2026-05-17
-**Author:** Claude (collaborative session with adamzspare)
+**Author:** Claude (collaborative session with Developer)
 **Status:** Approved by user 2026-05-17 → implementation
 **BUILD_GUIDE refs:** §8.2 (game rules), §3 (file layout), §12 row 4 (phase DoD)
 **Tagged release this builds on:** `v0.4-blackjack` (Phase 3)
@@ -46,7 +46,7 @@ Blackjack, Roulette, plus the stubs for Slots and Baccarat).
 - Statistics specific to Roulette (the global stats page already covers it via
   the rounds table from Phase 1)
 - Visual chip stacking physics (chips render as numerical stacks, not 3D piles)
-- Sound effects (all of localGamble is silent; Phase 8 polish if at all)
+- Sound effects (all of MASQUER is silent; Phase 8 polish if at all)
 
 ## 3. Game rules (canonical reference)
 

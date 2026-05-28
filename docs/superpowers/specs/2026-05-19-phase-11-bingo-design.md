@@ -23,7 +23,7 @@ Add a 90-ball British bingo game at `/play/bingo` as a peer to the existing tabl
 
 ## 3. Out of scope
 
-Moved to `[[localgamble-deferred-features]]` memory for re-evaluation before Phase 15 Polish.
+Moved to `[[masquer-deferred-features]]` memory for re-evaluation before Phase 15 Polish.
 
 - Multiplayer / shared-call games across local users
 - Power-ups / lucky charms / bonus mechanics beyond fast-FH
@@ -381,7 +381,7 @@ No new ADR needed. Bingo follows the existing games-sandbox pattern; no architec
    - BUILD_GUIDE §12 Phase 11 row marked ✅; §10.6 Bingo section
    - Tag `v0.11-bingo`
    - GitHub Release notes
-   - Update `[[project_localgamble_status]]` memory
+   - Update `[[project_masquer_status]]` memory
 
 **Total estimate**: **~110 new tests** across 5 PRs.
 

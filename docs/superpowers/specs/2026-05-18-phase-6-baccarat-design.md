@@ -1,7 +1,7 @@
 # Phase 6 — Baccarat (design spec)
 
 **Status:** Approved 2026-05-18.
-**Owner:** @adamzspare.
+**Owner:** Developer.
 **Implements:** BUILD_GUIDE §8.4.
 **Related:** ADR-0016 (every round writes one row via wallet.settleRound), ADR-0028 (multi-handle wallet pattern), ADR-0033 (tiered win celebration).
 

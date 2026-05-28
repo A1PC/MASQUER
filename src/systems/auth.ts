@@ -11,7 +11,7 @@ import {
 import { pickRandomAvatarColor } from '@/systems/avatar';
 import { WALLET_CONFIG } from '@/systems/wallet';
 
-const SESSION_KEY = 'localGamble.session.userId';
+const SESSION_KEY = 'masquer.session.userId';
 
 export type RegisterError = 'username_taken' | 'reserved_username' | 'unknown';
 export type LoginError = 'invalid_credentials' | 'unknown';

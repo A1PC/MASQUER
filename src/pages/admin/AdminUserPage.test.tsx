@@ -17,7 +17,7 @@ function renderAt(userId: string) {
 describe('AdminUserPage', () => {
   beforeEach(async () => {
     await resetDb();
-    localStorage.removeItem('localGamble.session.userId');
+    localStorage.removeItem('masquer.session.userId');
   });
 
   it('renders username + stats + ban + adjust buttons for an existing user', async () => {

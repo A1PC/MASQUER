@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-05-22
-- Deciders: @adamzspare
+- Deciders: Developer
 
 ## Context
 

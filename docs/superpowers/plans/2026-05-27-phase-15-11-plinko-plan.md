@@ -25,7 +25,7 @@ PR A is the big one — geometry rebuild is genuine engineering work, not just v
 4. **Integer money. No `Math.random()`.** Existing ESLint enforces.
 5. **Spec-first.** BUILD_GUIDE §8.5 amendment first if needed (bet ceiling note).
 6. **No CLAUDE.md edits.**
-7. **Commit subject ≤ 100 chars** (`feedback-localgamble-commit-subject-limit`). `admin` scope (NOT `admin-plinko`).
+7. **Commit subject ≤ 100 chars** (`feedback-masquer-commit-subject-limit`). `admin` scope (NOT `admin-plinko`).
 8. **No `--no-verify`. No `--amend`.**
 9. **DoD per PR:**
    ```

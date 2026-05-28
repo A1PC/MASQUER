@@ -10,7 +10,7 @@ import { WALLET_CONFIG } from '@/systems/wallet';
 describe('AdjustCreditsModal', () => {
   beforeEach(async () => {
     await resetDb();
-    localStorage.removeItem('localGamble.session.userId');
+    localStorage.removeItem('masquer.session.userId');
   });
 
   it('does not render when open is false', () => {

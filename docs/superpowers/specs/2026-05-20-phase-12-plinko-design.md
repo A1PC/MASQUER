@@ -547,7 +547,7 @@ Defer to Phase 15 polish or future enhancement:
 - **Persistent history beyond rolling 50.** Stats page covers the longer view.
 - **Pre-funded batch multi-ball with single rounds row.** Per-ball rows is simpler and matches Lottery.
 
-These will be appended to `localgamble-deferred-features` memory.
+These will be appended to `masquer-deferred-features` memory.
 
 ---
 

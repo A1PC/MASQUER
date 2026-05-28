@@ -20,7 +20,7 @@ import {
   getNumberFrequency,
 } from './lottery';
 
-const SESSION_KEY = 'localGamble.session.userId';
+const SESSION_KEY = 'masquer.session.userId';
 
 describe('drawForDate', () => {
   it('is deterministic for the same date', () => {

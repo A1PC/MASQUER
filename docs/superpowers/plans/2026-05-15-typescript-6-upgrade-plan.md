@@ -15,7 +15,7 @@
 ## File Structure
 
 ```
-localGamble/
+MASQUER/
 ├── tsconfig.app.json          # MODIFIED: drop "baseUrl" line
 ├── package.json               # MODIFIED: typescript ^5.6.3 → ^6.x
 ├── pnpm-lock.yaml             # AUTO-REGENERATED
@@ -244,7 +244,7 @@ Verbatim content (from spec section 5.4):
 
 - Status: Accepted
 - Date: 2026-05-15
-- Deciders: @adamzspare
+- Deciders: Developer
 
 ## Context
 

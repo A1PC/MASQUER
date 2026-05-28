@@ -1,7 +1,7 @@
 # Phase 15 sub-project #12.v3 — Omaha upgrade
 
 **Status:** Spec
-**Author:** Adam + Claude (assistant)
+**Author:** Developer + Claude (assistant)
 **Date:** 2026-05-27
 **Phase:** 15 (Polish & Overhaul) · MASQUER per-game upgrade · poker trio #12.v3 of 3 (final)
 **Game:** Omaha (`src/games/poker/omaha/`) — inherits shared chrome from `src/games/poker/_shared/`
@@ -18,7 +18,7 @@ Closing this sub-project completes the poker trio.
 
 ## 2. Non-goals
 
-Out of scope (deferred per `localgamble-deferred-features.md`):
+Out of scope (deferred per `masquer-deferred-features.md`):
 
 - Multi-table / tournament mode
 - Hand-history viewer
@@ -153,8 +153,8 @@ Per `PHASE_15_PATTERNS.md §2` — same as #12.v2.
 10. No `--no-verify`, no `--amend`.
 11. DoD: `pnpm lint && pnpm typecheck && pnpm exec vitest run && pnpm build && pnpm build-storybook && pnpm exec prettier --check .`
 12. Tokens-only Tailwind.
-13. Page root MUST be `flex h-full flex-col`, NEVER `min-h-screen` (per `localgamble-min-h-screen-in-pages` memory).
-14. Visual verification via Playwright at 1440×900 before pushing (per `localgamble-screenshot-before-pushing-ui` memory).
+13. Page root MUST be `flex h-full flex-col`, NEVER `min-h-screen` (per `masquer-min-h-screen-in-pages` memory).
+14. Visual verification via Playwright at 1440×900 before pushing (per `masquer-screenshot-before-pushing-ui` memory).
 
 ## 7. Risks + watch-outs
 

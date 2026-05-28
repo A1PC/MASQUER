@@ -905,7 +905,7 @@ git checkout -b phase-13a-poker-pr-c
 
 - Status: Accepted
 - Date: 2026-05-20
-- Deciders: @adamzspare
+- Deciders: Developer
 
 ## Context
 
@@ -1321,7 +1321,7 @@ git push origin v0.13a-texas-holdem
 ```
 
 - [ ] **Step 3: GitHub Release** `v0.13a-texas-holdem` — highlights: configurable 2-6 NLHE, tiered stakes, buy-in/cash-out session + rebuy, 4-archetype AI, shared poker infra (deck/handEvaluator/sidePots/ai) for 13b/13c, ADR-0041, cards match blackjack/baccarat. List PRs A-E + test delta.
-- [ ] **Step 4: Memory snapshot** — update `project_localgamble_status.md`: top entry `v0.13a-texas-holdem`, "where we are", next phase 13b (Five-Card Draw — reuses `_shared/` + adds a draw/discard street), architectural milestones (shared poker infra, buy-in/cash-out session per ADR-0041, brute-force hand evaluator, archetype AI engine). Append Phase 13a deferred items to `localgamble-deferred-features`.
+- [ ] **Step 4: Memory snapshot** — update `project_masquer_status.md`: top entry `v0.13a-texas-holdem`, "where we are", next phase 13b (Five-Card Draw — reuses `_shared/` + adds a draw/discard street), architectural milestones (shared poker infra, buy-in/cash-out session per ADR-0041, brute-force hand evaluator, archetype AI engine). Append Phase 13a deferred items to `masquer-deferred-features`.
 
 ---
 

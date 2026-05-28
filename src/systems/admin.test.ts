@@ -5,7 +5,7 @@ import { db } from '@/db';
 import { resetDb } from '@/test/db-helpers';
 import { WALLET_CONFIG } from '@/systems/wallet';
 
-const SESSION_KEY = 'localGamble.session.userId';
+const SESSION_KEY = 'masquer.session.userId';
 
 describe('admin.banUser / admin.unbanUser', () => {
   beforeEach(async () => {

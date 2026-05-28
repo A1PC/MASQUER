@@ -1,7 +1,7 @@
 # Phase 0 — Scaffold + Project Meta-Setup — Design Spec
 
 - **Status:** Approved (2026-05-15)
-- **Author:** @adamzspare (with Claude Opus 4.7)
+- **Author:** Developer (with Claude Opus 4.7)
 - **Phase:** 0 of 9 (BUILD_GUIDE.md §12)
 - **Supersedes:** —
 - **Related ADRs:** 0001–0007 (created as part of this phase)
@@ -11,7 +11,7 @@
 
 ## 1. Goal
 
-Establish the complete development substrate for `localGamble` — a local, offline,
+Establish the complete development substrate for `MASQUER` — a local, offline,
 play-money casino app — so that every subsequent phase (Auth → Wallet → four games
 → Stats → Polish) lands into a repository with consistent rules, working CI,
 enforced conventions, tracking, and a runnable Vite + React + TypeScript shell.
@@ -215,7 +215,7 @@ the CHANGELOG entry; tag is then created on `main`.
 ### 6.1 `CLAUDE.md`
 
 ```markdown
-# Claude / Agent Instructions for localGamble
+# Claude / Agent Instructions for MASQUER
 
 You are working in a TypeScript/React/Vite codebase that implements a local,
 offline, play-money casino. The single source of truth is `BUILD_GUIDE.md`
@@ -275,7 +275,7 @@ ambiguous, raise it — don't pick silently.
 ### 6.2 `CONTRIBUTING.md`
 
 ````markdown
-# Contributing to localGamble
+# Contributing to MASQUER
 
 ## Local setup
 
@@ -472,7 +472,7 @@ pnpm-debug.log*
 ### 6.7 `README.md` (replacement)
 
 ````markdown
-# localGamble
+# MASQUER
 
 A local, offline, play-money casino app. Single-machine, no real money,
 no internet. Browser-based.
@@ -689,7 +689,7 @@ updates:
 
 ```json
 {
-  "name": "localgamble",
+  "name": "masquer",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -834,7 +834,7 @@ export default defineConfig({
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>localGamble</title>
+    <title>MASQUER</title>
   </head>
   <body>
     <div id="root"></div>
@@ -1223,7 +1223,7 @@ What becomes easier? What becomes harder? What did we lock ourselves into?
 
 - Status: Accepted
 - Date: 2026-05-15
-- Deciders: @adamzspare
+- Deciders: Developer
 
 ## Context
 
@@ -1358,7 +1358,7 @@ Pin both: `packageManager: "pnpm@9.12.0"` in `package.json`; `20` in
 3. **Clone and install:**
    ```bash
    git clone https://github.com/A1PC/localGamble.git
-   cd localGamble
+   cd MASQUER
    pnpm install --frozen-lockfile
    ```
 4. **Run the dev server:**
@@ -1386,7 +1386,7 @@ Install the workspace-recommended extensions when prompted (see
 | Dev server port 5173 busy                      | Another Vite running        | `lsof -i :5173`; kill or change `vite.config.ts` port              |
 | ESLint complains about every file              | Wrong Node / pnpm version   | `nvm use && corepack enable && pnpm install`                       |
 | Husky hook didn't fire on commit               | `prepare` script didn't run | `pnpm install` re-runs it; or `pnpm exec husky` manually           |
-| IndexedDB shows stale data after schema change | Old DB version              | DevTools → Application → IndexedDB → delete `localGamble`          |
+| IndexedDB shows stale data after schema change | Old DB version              | DevTools → Application → IndexedDB → delete `MASQUER`              |
 
 ## Browser support matrix
 
@@ -1575,7 +1575,7 @@ merge-gate for the `v0.1-scaffold` tag.
 
 - **Bad merge to `main`:** revert via PR (`git revert -m 1`), do not force-push.
 - **Bad release tag:** add a follow-up tag (`v0.1.1-scaffold`) that supersedes; mark old in CHANGELOG.
-- **Dev IndexedDB corrupted:** DevTools → Application → IndexedDB → delete `localGamble`; document in issue.
+- **Dev IndexedDB corrupted:** DevTools → Application → IndexedDB → delete `MASQUER`; document in issue.
 - **CI stuck red transiently:** re-run failed jobs; if persistent non-code cause, file `chore(ci):` PR with workaround.
 - **Lockfile drift:** `pnpm install` regenerates; if still broken, `rm pnpm-lock.yaml node_modules -rf && pnpm install`.
 

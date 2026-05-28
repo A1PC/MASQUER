@@ -114,7 +114,7 @@ describe('schema v2', () => {
 
 describe('schema v5 → v6 wipes the four lottery tables (Phase 15 #9)', () => {
   it('clears lotteryDraws/Tickets/Lines/Favorites while preserving other tables', async () => {
-    const dbName = 'localGamble-v5-to-v6-test';
+    const dbName = 'masquer-v5-to-v6-test';
     // Seed a v5 database with rows in every relevant table.
     const v5 = new Dexie(dbName);
     v5.version(5).stores({
@@ -261,7 +261,7 @@ describe('schema v5 → v6 wipes the four lottery tables (Phase 15 #9)', () => {
 
 describe('schema v1 → v2 upgrade preserves existing data', () => {
   it('a user row created under v1 is still readable under v2', async () => {
-    const tmp = new Dexie('localGamble-upgrade-test');
+    const tmp = new Dexie('masquer-upgrade-test');
     tmp.version(1).stores({
       users: 'id, &usernameLower, createdAt',
       balances: 'userId',
@@ -280,7 +280,7 @@ describe('schema v1 → v2 upgrade preserves existing data', () => {
     });
     tmp.close();
 
-    const upgraded = new Dexie('localGamble-upgrade-test');
+    const upgraded = new Dexie('masquer-upgrade-test');
     upgraded.version(1).stores({
       users: 'id, &usernameLower, createdAt',
       balances: 'userId',
@@ -302,6 +302,6 @@ describe('schema v1 → v2 upgrade preserves existing data', () => {
     expect(row.loginCount).toBeUndefined();
     expect(row.lastLoginAt).toBeUndefined();
     upgraded.close();
-    await Dexie.delete('localGamble-upgrade-test');
+    await Dexie.delete('masquer-upgrade-test');
   });
 });

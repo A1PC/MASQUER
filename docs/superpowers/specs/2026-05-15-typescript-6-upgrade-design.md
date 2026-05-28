@@ -1,7 +1,7 @@
 # TypeScript 6 Upgrade — Design Spec
 
 - **Status:** Approved (2026-05-15)
-- **Author:** @adamzspare (with Claude Opus 4.7)
+- **Author:** Developer (with Claude Opus 4.7)
 - **Type:** Chore (dependency upgrade) — not a BUILD_GUIDE phase
 - **Related ADRs:** 0013 (created as part of this chore)
 - **Implementation plan:** `docs/superpowers/plans/2026-05-15-typescript-6-upgrade-plan.md` (to be written next)
@@ -88,7 +88,7 @@ Create `docs/adr/0013-typescript-6-upgrade.md`:
 
 - Status: Accepted
 - Date: 2026-05-15
-- Deciders: @adamzspare
+- Deciders: Developer
 
 ## Context
 

@@ -20,7 +20,7 @@
 4. **Spec-first.** BUILD_GUIDE §10.5 + ADR-0040 amendment note commit BEFORE code.
 5. **Dexie v3 → v4 destructive migration** of the four lottery tables. `rounds` rows for past lottery wins stay (no impact).
 6. **No CLAUDE.md edits.**
-7. **Commit subject ≤ 100 chars** (commitlint header-max-length; `feedback-localgamble-commit-subject-limit`).
+7. **Commit subject ≤ 100 chars** (commitlint header-max-length; `feedback-masquer-commit-subject-limit`).
 8. **No `--no-verify`. No `--amend`** — soft-reset + new commit if needed.
 9. **DoD per task batch:**
    ```

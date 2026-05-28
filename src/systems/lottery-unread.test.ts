@@ -29,7 +29,7 @@ afterEach(async () => {
 
 describe('lotterySeenKey', () => {
   it('returns a namespaced key for the user', () => {
-    expect(lotterySeenKey('u-abc')).toBe('localGamble.lottery.lastSeenDraw.u-abc');
+    expect(lotterySeenKey('u-abc')).toBe('masquer.lottery.lastSeenDraw.u-abc');
   });
 });
 

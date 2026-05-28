@@ -12,7 +12,7 @@ Lock the product brand and a token-level design language so the design-system li
 
 ## 2. Brand decisions (LOCKED via visual brainstorming)
 
-- **Product name:** **MASQUER** (replaces the working title "localGamble" in all user-facing surfaces; the git repo + internal docs may keep `localGamble`).
+- **Product name:** **MASQUER** (replaces the working title "MASQUER" in all user-facing surfaces; the git repo + internal docs may keep `MASQUER`).
 - **Aesthetic:** **"Velvet Deco"** — old-school Vegas/Monte-Carlo content (felt, velvet, brass, masquerade) executed with modern web craft (art-deco geometry, centered scaling, smooth Framer Motion, no jank). Warm, immersive, refined; **no neon**.
 - **Emblem:** a **Venetian Colombina half-mask** in porcelain white with gold-leaf filigree (top crest, temple flourishes, gold eye rims/liner, nose-bridge diamond, cheek scrollwork). It is the through-line motif of the whole product.
 
@@ -98,7 +98,7 @@ Built in #2; a single `useSound` hook is the **only** integration point (no inli
 5. **Name in shell (light touch only):** product name → **MASQUER** in `index.html` `<title>`/meta, the manifest, and the primary logo/wordmark lockup component. Deep per-screen string/visual rebrand happens in the **Shell (#3)** and per-screen sub-projects, not here.
 6. **Brand doc:** `docs/brand/MASQUER.md` capturing this spec's decisions (palette, type, emblem, voice) as the living brand reference.
 
-**Out of scope for #0:** the component library (#1), any game/screen rebuild, the full "localGamble→MASQUER" string sweep, sound/motion _code_ (#2). #0 ships decisions + tokens + the emblem asset + the brand doc, and proves them on the logo lockup.
+**Out of scope for #0:** the component library (#1), any game/screen rebuild, the full "MASQUER→MASQUER" string sweep, sound/motion _code_ (#2). #0 ships decisions + tokens + the emblem asset + the brand doc, and proves them on the logo lockup.
 
 ## 10. Invariants (inherited from the umbrella)
 

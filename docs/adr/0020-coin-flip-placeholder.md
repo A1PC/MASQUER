@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-05-17
-- Deciders: @adamzspare
+- Deciders: Developer
 
 ## Context
 
@@ -44,3 +44,13 @@ splash with links back to the lobby and Coin Flip.
 - BUILD_GUIDE.md §12 row 2
 - Phase 2 spec §6.23 (logic.ts), §6.24 (CoinFlipPage.tsx)
 - ADR-0015 (RNG)
+
+## Amendments
+
+- **2026-05-23 (Phase 15 #4 — Coin-flip upgrade).** Coin Flip received
+  the full MASQUER · Velvet Deco polish recipe (mask emblem heads / Cinzel
+  "M" tails per `docs/brand/MASQUER.md`, `useSound` for the flip stinger,
+  `useEffectiveReducedMotion`-gated reveal animation, brand-token chrome).
+  Logic + payout (1:1) + min/max (1/500) + `'coin-flip'` Round.game
+  enum value are unchanged. Coin Flip remains the canonical reference
+  template for new games.

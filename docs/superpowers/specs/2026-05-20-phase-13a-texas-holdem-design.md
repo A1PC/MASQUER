@@ -439,7 +439,7 @@ Defer to Phase 15 / future:
 - Sound effects.
 - Insurance / side bets.
 
-These append to `localgamble-deferred-features`.
+These append to `masquer-deferred-features`.
 
 ---
 

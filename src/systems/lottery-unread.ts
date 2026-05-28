@@ -3,7 +3,7 @@ import { db } from '@/db';
 
 /** Per-user localStorage key that stores the draw ID the user last saw. */
 export function lotterySeenKey(userId: string): string {
-  return `localGamble.lottery.lastSeenDraw.${userId}`;
+  return `masquer.lottery.lastSeenDraw.${userId}`;
 }
 
 /** Read the stored "last seen" draw ID from localStorage. Returns null when

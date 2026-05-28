@@ -64,7 +64,7 @@ async function seedAdjustments(): Promise<{ users: string[] }> {
 describe('AdminAuditPage', () => {
   beforeEach(async () => {
     await resetDb();
-    localStorage.removeItem('localGamble.session.userId');
+    localStorage.removeItem('masquer.session.userId');
   });
 
   it('renders empty-state when no adjustments exist', async () => {

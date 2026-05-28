@@ -25,13 +25,13 @@
 2. **Games sandbox preserved.** Admin code under `src/pages/admin/**` may read from `src/db/**` / `src/store/**` / `src/systems/**`.
 3. **Integer money. No `Math.random()`.** ESLint enforces.
 4. **No CLAUDE.md edits.**
-5. **Commit subject ≤ 100 chars** ([[localgamble-commit-subject-limit]]).
+5. **Commit subject ≤ 100 chars** ([[masquer-commit-subject-limit]]).
 6. **Conventional Commits.** Scopes: `admin` (page-level), `stats` (aggregations), `routing` (router/nav), `ui` (shared admin primitives in `src/components/admin/`), `docs` (BUILD_GUIDE). Never `admin-leaderboard` / `admin-audit` etc — flat enum only.
 7. **No `--no-verify`. No `--amend`.** Reset + new commit on hook failure.
 8. **TS strict + exactOptionalPropertyTypes.** Optional fields via spread.
 9. **Tokens-only Tailwind** in rebuilt files. Pairings from [`PHASE_15_PATTERNS.md §1.4`](../../PHASE_15_PATTERNS.md#14-brand-tokens-velvet-deco).
-10. **AdminLayout root MUST be `flex h-full flex-col`, NEVER `min-h-screen`** ([[localgamble-min-h-screen-in-pages]]).
-11. **Visual verification via Playwright at 1440×900 before pushing each PR** ([[localgamble-screenshot-before-pushing-ui]]).
+10. **AdminLayout root MUST be `flex h-full flex-col`, NEVER `min-h-screen`** ([[masquer-min-h-screen-in-pages]]).
+11. **Visual verification via Playwright at 1440×900 before pushing each PR** ([[masquer-screenshot-before-pushing-ui]]).
 12. **DoD per PR:**
     ```
     pnpm lint && pnpm typecheck && pnpm exec vitest run && pnpm build && pnpm build-storybook && pnpm exec prettier --check .
@@ -160,7 +160,7 @@ git checkout main && git pull origin main && git checkout -b phase-15-14-pr-a
 - [ ] **Step 4:** Read `src/db/schema.ts` `Adjustment` interface — confirm fields `{id, userId, amount, reason, adjustedAt}`. No `adminId`.
 - [ ] **Step 5:** Read 3 reference admin pages for the brand-token pattern: `AdminPokerPage.tsx`, `AdminPlinkoPage.tsx`, `AdminBingoPage.tsx`.
 - [ ] **Step 6:** Read `src/components/charts/ChartTooltip.tsx` for the `ChartTooltipShell` pattern.
-- [ ] **Step 7:** Read memories `feedback-localgamble-min-h-screen-in-pages` + `feedback-localgamble-screenshot-before-pushing-ui`.
+- [ ] **Step 7:** Read memories `feedback-masquer-min-h-screen-in-pages` + `feedback-masquer-screenshot-before-pushing-ui`.
 
 ### Task A.1 — `AdminLayout.tsx` chrome retrofit
 

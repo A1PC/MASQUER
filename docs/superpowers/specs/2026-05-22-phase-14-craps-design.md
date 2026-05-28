@@ -238,7 +238,7 @@ Authentic half-table layout (single-player — only one player's betting area). 
 
 ## 9. Out of scope
 
-→ append to `localgamble-deferred-features`:
+→ append to `masquer-deferred-features`:
 
 - Put / Buy / Lay bets.
 - "Place bets working on come-out" toggle.

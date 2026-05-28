@@ -2987,7 +2987,7 @@ EOF
 
 - [ ] **Step 4: Update memory snapshot**
 
-Update `~/.claude/projects/-Users-adam/memory/project_localgamble_status.md`:
+Update `~/.claude/projects/-Users-adam/memory/project_masquer_status.md`:
 
 - Top entry: `v0.12-plinko` with summary
 - "Where we are" + "latest release" lines

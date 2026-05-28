@@ -9,7 +9,7 @@ import { resetDb } from '@/test/db-helpers';
 describe('AdminOverviewPage', () => {
   beforeEach(async () => {
     await resetDb();
-    localStorage.removeItem('localGamble.session.userId');
+    localStorage.removeItem('masquer.session.userId');
   });
 
   it('renders the four stat cards and chart sections when data exists', async () => {

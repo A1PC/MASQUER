@@ -18,15 +18,19 @@ polish) without touching the engine — only the files in this directory change.
 
 ## Files
 
-| File                  | Sound          | Category |
-| --------------------- | -------------- | -------- |
-| `chip-place.wav`      | chip placed    | game     |
-| `card-deal.wav`       | card dealt     | game     |
-| `dice-roll.wav`       | dice clatter   | game     |
-| `reel-spin.wav`       | slot reel spin | game     |
-| `reel-stop.wav`       | slot reel stop | game     |
-| `win-small.wav`       | small win      | game     |
-| `win-medium.wav`      | medium win     | game     |
-| `win-jackpot.wav`     | jackpot win    | game     |
-| `loss.wav`            | loss           | game     |
-| `ambience-lounge.wav` | lounge pad     | ambience |
+| File                  | Sound                                  | Category |
+| --------------------- | -------------------------------------- | -------- |
+| `chip-place.wav`      | chip placed on table                   | game     |
+| `card-deal.wav`       | card dealt                             | game     |
+| `coin-flip.wav`       | coin flip whir                         | game     |
+| `dice-roll.wav`       | dice clatter (craps)                   | game     |
+| `reel-spin.wav`       | slot reel spin start                   | game     |
+| `reel-stop.wav`       | slot reel stop                         | game     |
+| `wheel-spin.wav`      | roulette wheel spin                    | game     |
+| `ball-drop.wav`       | lottery / bingo ball drop              | game     |
+| `peg-ping.wav`        | plinko ball-on-peg ping                | game     |
+| `win-small.wav`       | small win stinger (≤ 2× bet)           | game     |
+| `win-medium.wav`      | medium win stinger (2-20×)             | game     |
+| `win-jackpot.wav`     | jackpot win stinger (tier-3 / natural) | game     |
+| `loss.wav`            | loss / bust                            | game     |
+| `ambience-lounge.wav` | low lounge ambience pad (toggleable)   | ambience |

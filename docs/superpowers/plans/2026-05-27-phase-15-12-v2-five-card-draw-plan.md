@@ -19,13 +19,13 @@
 3. **One `rounds` row per poker session** (ADR-0041). No change to wallet model.
 4. **Integer money. No `Math.random()`.** ESLint enforces.
 5. **No CLAUDE.md edits.**
-6. **Commit subject ≤ 100 chars** (`feedback-localgamble-commit-subject-limit`).
+6. **Commit subject ≤ 100 chars** (`feedback-masquer-commit-subject-limit`).
 7. **Conventional Commits.** Scopes for this PR: `poker`, `docs`. Never `admin` (no admin work). Never `sound` (reverted earlier this phase).
 8. **No `--no-verify`. No `--amend`.** Reset + new commit if hook fails.
 9. **TS strict + exactOptionalPropertyTypes.** Optional fields via spread.
 10. **Tokens-only Tailwind** in rebuilt files.
-11. **Page root MUST be `flex h-full flex-col`, NEVER `min-h-screen`** (per `localgamble-min-h-screen-in-pages` memory).
-12. **Visual verification via Playwright at 1440×900 before pushing** (per `localgamble-screenshot-before-pushing-ui` memory).
+11. **Page root MUST be `flex h-full flex-col`, NEVER `min-h-screen`** (per `masquer-min-h-screen-in-pages` memory).
+12. **Visual verification via Playwright at 1440×900 before pushing** (per `masquer-screenshot-before-pushing-ui` memory).
 13. **DoD per PR:**
     ```
     pnpm lint && pnpm typecheck && pnpm exec vitest run && pnpm build && pnpm build-storybook && pnpm exec prettier --check .
@@ -93,7 +93,7 @@ git checkout main && git pull origin main && git checkout -b phase-15-12-v2-draw
   - Their `.test.tsx` siblings to find pinned assertions that need flipping
 - [ ] **Step 5:** Read the shared variant-aware shell:
   - `src/games/poker/_shared/{PokerOddsHeader,PokerRulesModal,MaskAvatar,maskNames}.{ts,tsx}` and tests
-- [ ] **Step 6:** Read project memories `feedback-localgamble-min-h-screen-in-pages` + `feedback-localgamble-screenshot-before-pushing-ui` if not already in your working context — both will fire during this PR.
+- [ ] **Step 6:** Read project memories `feedback-masquer-min-h-screen-in-pages` + `feedback-masquer-screenshot-before-pushing-ui` if not already in your working context — both will fire during this PR.
 
 ---
 

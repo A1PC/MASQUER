@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build the localGamble Roulette game end-to-end — pure logic + XState v5 round machine + numbered wheel with spin animation + horizontal betting layout + page wiring + lobby flip — so it's fully playable from the lobby with all 10 bet types from BUILD_GUIDE §8.2 paying out correctly.
+**Goal:** Build the MASQUER Roulette game end-to-end — pure logic + XState v5 round machine + numbered wheel with spin animation + horizontal betting layout + page wiring + lobby flip — so it's fully playable from the lobby with all 10 bet types from BUILD_GUIDE §8.2 paying out correctly.
 
 **Architecture:** Mirrors the Phase 3 (Blackjack) split-by-responsibility: `wheel.ts`/`bets.ts`/`logic.ts` are pure with ≥90% test coverage, `machine.ts` is a 3-state XState v5 machine, the visual components are isolated and individually testable, and `RoulettePage.tsx` is the only place wallet I/O happens. Result is decided by `rng.randomInt(0, 36)` before any animation starts; the wheel + ball spin are deterministic from the result. The ADR-0028 multi-handle wallet pattern is reused: one `wallet.placeBet` per bet position, one `wallet.settleRound` per round aggregating all outcomes.
 
@@ -2047,7 +2047,7 @@ git commit -m "test(roulette): coverage thresholds (≥90% on src/games/roulette
 
 - Status: Accepted
 - Date: 2026-05-17
-- Deciders: @adamzspare
+- Deciders: Developer
 
 ## Context
 
@@ -2131,7 +2131,7 @@ git commit -m "docs(adr): 0029 — Roulette European single-zero wheel order"
 
 - Status: Accepted
 - Date: 2026-05-17
-- Deciders: @adamzspare
+- Deciders: Developer
 
 ## Context
 
@@ -2239,7 +2239,7 @@ git commit -m "docs(adr): 0030 — Roulette bet position model + 10-position cap
 
 - Status: Accepted
 - Date: 2026-05-17
-- Deciders: @adamzspare
+- Deciders: Developer
 
 ## Context
 

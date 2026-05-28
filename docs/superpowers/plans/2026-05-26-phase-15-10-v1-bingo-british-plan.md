@@ -19,7 +19,7 @@
 3. **One `rounds` row per game** (ADR-0016). Bonus accumulation pattern unchanged.
 4. **Integer money. No `Math.random()`.** ESLint enforces.
 5. **Spec-first.** No new ADRs expected. No CLAUDE.md edits.
-6. **Commit subject ≤ 100 chars** (`feedback-localgamble-commit-subject-limit`). Use scope `admin` (NOT `admin-bingo`) per `reference-localgamble-commitlint-scopes`.
+6. **Commit subject ≤ 100 chars** (`feedback-masquer-commit-subject-limit`). Use scope `admin` (NOT `admin-bingo`) per `reference-masquer-commitlint-scopes`.
 7. **No `--no-verify`. No `--amend`** — soft-reset + new commit if needed.
 8. **DoD per batch:**
    ```

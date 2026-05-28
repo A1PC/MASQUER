@@ -3,11 +3,149 @@
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
-and this project versions by BUILD_GUIDE.md phase (`v0.PHASE-name`).
+and this project versions by BUILD_GUIDE.md phase (`v0.PHASE-name`). From v1.0
+onward, versions follow [Semantic Versioning](https://semver.org/).
+
+## 1.0.0 — 2026-05-28 (MASQUER · Velvet Deco launch)
+
+The first non-development release. Phase 15 closes with the working-title
+`localGamble` retired in favour of the final brand **MASQUER**, and the entire
+app — 13 games, admin, design system — shipped as one cohesive product.
+
+> **First-launch reset.** The IndexedDB database name and `localStorage` key
+> prefixes both change in this release (`localGamble` → `masquer`). Existing
+> local profiles, balances, rounds, lottery tickets, and admin audit rows from
+> any pre-1.0 build do **not** migrate. This is intentional — v1.0 is a clean
+> launch.
+
+### Added
+
+- **Phase 15 Polish & Overhaul** — 16 of 16 sub-projects shipped. See
+  `BUILD_GUIDE.md` §12 row 15 and the Phase 15 progress block, the umbrella
+  roadmap (`docs/superpowers/specs/2026-05-22-phase-15-umbrella-roadmap-design.md`),
+  and `docs/PHASE_15_PATTERNS.md` for the per-game recipe.
+  - **Foundation** — #0 Brand & Design Language (Velvet Deco, mask emblem,
+    tokens) · #1 Design-system component library (25 primitives) · #2 Motion &
+    Sound infrastructure (`useSound`, `useEffectiveReducedMotion`, shared
+    Framer-Motion variants) · #3 Shell & navigation overhaul (TopBar, Sidebar,
+    AppLayout, route transitions).
+  - **Per-game upgrades** — #4 Coin-flip · #5 Blackjack (Velvet Duel variant +
+    ADR-0045) · #6 Roulette (auto-spin betting windows + ADR-0046) · #7 Slots
+    (SVG symbols + sticky bet + admin) · #8 Baccarat · #9 Lottery (Pick-6+1 UK
+    tier table + ADR-0040 amend) · #10.v1 British Bingo · #10.v2 American
+    Bingo · #11 Plinko (rebuilt 26-row triangular peg pyramid + ADR-0047 +
+    RTP retune) · #12.v1 Texas Hold'em · #12.v2 Five-Card Draw · #12.v3 Omaha
+    (poker trio closed with MasquerCard + MaskAvatar + post-hand reveal +
+    grace overlay) · #13 Craps (continuous-table polish, reduced-motion
+    banner, `TIMING` constants, a11y on BetSpot).
+  - **Admin overhaul** — #14 expanded admin: brand-tokened AdminLayout, new
+    overview sections (top games by sessions, 14-day activity sparkline,
+    recent adjustments), per-game admin tabs for all 13 games, banned-user
+    overlay, audit-trail rotation policy notes.
+  - **Final integration & launch polish** — #15 closes the project:
+    - **PR A** (#310, audit): full-product audit doc enumerating cross-cutting
+      regressions, broken-link sweeps, console-warning census, image/audio
+      file census, lobby-page seen-state, lottery-hero match highlighting,
+      bundle budget, wallet sync gaps.
+    - **PR B** (#311, cross-cutting): banned-user overlay, lottery hero
+      seen-state + winning-number match highlighting, wallet sync hardening
+      after each settle.
+    - **PRs G1–G13** (#312–#325): per-game closing-pass fixes (the small
+      polish bugs surfaced by the PR-A audit; one PR per game).
+    - **PR C** (#326, lazy splitting): every game route lazy-loaded with a
+      shared `<RouteFallback>` and an idle-prefetch hint after auth — main
+      bundle **477 KB → 222 KB gzipped (−53.5%)**, well inside the launch
+      budget.
+    - **PR D** (#327, manual smoke): `docs/MANUAL_SMOKE_v1.md` checklist
+      (reset, auth, shell, every game golden path, admin, pre-tag DoD).
+    - **PR E** (this PR, close): v1.0 retrospective doc sweep across
+      README/BUILD_GUIDE/CHANGELOG/CONTRIBUTING/risks/conventions/dev-setup/
+      brand/PHASE_15_PATTERNS/audio CREDITS + GitHub templates; ADR status
+      footers + amendments; brand rename of `localGamble` → `MASQUER` across
+      source comments, storage keys, IndexedDB name, package name, test
+      fixtures, and current-state docs; contributor identity → `Developer`;
+      `package.json` `version` → `1.0.0`.
+- **Manual smoke checklist** — `docs/MANUAL_SMOKE_v1.md` — single
+  pre-tag verification doc covering every surface.
+- **Brand reference** — `docs/brand/MASQUER.md` documents the Velvet Deco
+  palette, typography, mask emblem, motion principles, sound principles.
+
+### Changed
+
+- **Brand rename** — `localGamble` → `MASQUER` across:
+  - Source comments and JSDoc.
+  - `localStorage` key prefixes: `localGamble.*` → `masquer.*` (session,
+    admin session, lottery last-seen-draw, lottery state, UI sidebar
+    preference, UI stats view mode).
+  - Dexie IndexedDB database name: `localGamble` → `masquer`.
+  - `package.json` `name`: `localgamble` → `masquer`.
+  - All current-state docs (README, BUILD_GUIDE, CONTRIBUTING, dev-setup,
+    conventions, risks, PHASE_15_PATTERNS, brand reference, audio CREDITS,
+    GitHub PR + issue templates).
+  - All test fixtures asserting on key/db-name strings.
+  - **Preserved verbatim** (intentional): `A1PC/localGamble` GitHub URLs
+    (the repo rename is a manual user step) and `/Users/adam/localGamble`
+    absolute paths (user's local checkout).
+- **Bundle splitting** — game routes now lazy-loaded via React Router's
+  `lazy` option, with a single shared `<RouteFallback>` and an idle-time
+  prefetch hint after first auth so the lobby tile click feels instant.
+- **CLAUDE.md** — untouched. Authorship attribution in ADRs / specs / plans
+  changed from a personal handle to `Developer`; git history co-author
+  trailers untouched.
+
+### Fixed
+
+- **Wallet sync** after each `settleRound` — covered cases where a settle in
+  one tab could leave another tab's `walletStore` stale (PR B).
+- **Banned-user overlay** — banned profiles no longer silently fail at the
+  shell; a clear overlay explains the state (PR B).
+- **Lottery hero match highlighting** — when a draw matches the player's
+  ticket, the matching balls glow gold; the seen-state dot clears once the
+  result is acknowledged (PR B).
+- **Per-game closing-pass fixes** — small bugs caught by the PR-A audit
+  (lobby title formatting, scroll-overflow on rules modals at narrow
+  viewports, residual emoji/all-caps headings, etc.) shipped one PR per game
+  (G1–G13).
+- **Markdown lint MD028 + MD055/MD056/MD058** trips documented in
+  `docs/PHASE_15_PATTERNS.md` §5 — recurring issue patterns now codified.
+
+### Removed
+
+- **Working-title brand** `localGamble` from all user-facing surfaces.
+- **Pre-1.0 IndexedDB data** on launch (intentional reset — see top note).
+
+### Migration notes (for anyone reopening a tab after upgrading to v1.0)
+
+- Existing local profiles, balances, rounds, lottery tickets, and admin
+  audit-trail rows are **not migrated** — they live under the old
+  `localGamble` DB and the old `localGamble.*` storage keys. Register a fresh
+  profile after upgrading.
+- DevTools → Application → IndexedDB → the old `localGamble` database can
+  be deleted by hand if you want to reclaim the disk space.
+
+### References
+
+- BUILD_GUIDE Phase 15 progress: `BUILD_GUIDE.md` §12 row 15 + "v1.0 launch
+  (2026-05-28)" sub-section.
+- Umbrella roadmap: `docs/superpowers/specs/2026-05-22-phase-15-umbrella-roadmap-design.md`.
+- Final integration spec + plan:
+  `docs/superpowers/specs/2026-05-28-phase-15-15-final-integration-design.md` +
+  `docs/superpowers/plans/2026-05-28-phase-15-15-final-integration-plan.md`.
+- Manual smoke checklist: `docs/MANUAL_SMOKE_v1.md`.
+
+### Post-merge tag commands (manual)
+
+After this PR merges and the manual smoke passes:
+
+```bash
+git fetch origin main
+git tag -a v1.0 -m "MASQUER v1.0 — Velvet Deco launch" origin/main
+git push origin v1.0
+```
 
 ## [Unreleased]
 
-**Phase 15 (Polish & Overhaul) — in progress.** A complete UI/UX overhaul across every screen plus real animation and sound, per-game feature additions, an expanded + re-skinned admin area, and a final brand rename. Decomposed into 18 dependency-ordered sub-projects (foundation: brand → design system → motion/sound infra → shell; then per-game upgrades incl. the poker trio, admin overhaul + expansion, and a closing integration pass), each with its own spec → plan → PRs cycle. See `docs/superpowers/specs/2026-05-22-phase-15-umbrella-roadmap-design.md` for the full plan and shared principles.
+(no unreleased entries — all work merged into v1.0.0 above)
 
 ## [v0.14-craps] — 2026-05-22
 

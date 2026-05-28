@@ -17,7 +17,7 @@ function resetStore() {
 describe('useGameVisit', () => {
   beforeEach(async () => {
     await resetDb();
-    localStorage.removeItem('localGamble.session.userId');
+    localStorage.removeItem('masquer.session.userId');
     resetStore();
   });
   afterEach(() => {

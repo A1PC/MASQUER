@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-05-18
-- Deciders: @adamzspare
+- Deciders: Developer
 
 ## Context
 
@@ -23,8 +23,8 @@ by design — the local-only architecture makes secrecy impossible regardless.
 
 **Synthetic admin session.** No row in the `users` table. The admin session
 is recorded as a flag in `localStorage` under the key
-`localGamble.session.admin = '1'`, separate from the regular user session
-key `localGamble.session.userId`. Both keys can be set independently but a
+`masquer.session.admin = '1'`, separate from the regular user session
+key `masquer.session.userId`. Both keys can be set independently but a
 single tab will only ever have one or the other active in the UI (the
 route guards enforce this).
 
@@ -68,3 +68,13 @@ any other login failure, so we don't leak the reserved-name fact).
 - `src/systems/admin-auth.ts`
 - `src/components/RequireAdmin.tsx`
 - Phase 9 spec §3
+
+## Amendments
+
+- **2026-05-27 (Phase 15 #14 — Admin overhaul).** Admin chrome relayouted
+  with brand-tokened AdminLayout + per-game admin tabs for all 13 games.
+  The auth model (synthetic session, hardcoded credentials, reserved
+  username, `RequireAdmin` guard) is unchanged.
+- **2026-05-28 (v1.0 brand rename).** Admin session storage key
+  `localGamble.session.admin` → `masquer.session.admin`. Reserved
+  username (`admin`) and the password (`admin12345`) are unchanged.

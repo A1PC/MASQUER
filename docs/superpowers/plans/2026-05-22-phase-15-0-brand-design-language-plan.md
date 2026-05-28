@@ -558,7 +558,7 @@ git commit -m "feat(theme): add MASQUER wordmark lockup"
 - [ ] **Step 1: Find tests asserting the old wordmark**
 
 ```bash
-grep -rn "LOCALGAMBLE\|localGamble" src/components/*.test.tsx
+grep -rn "LOCALGAMBLE\|MASQUER" src/components/*.test.tsx
 ```
 
 If `src/components/AppLayout.test.tsx` (or another) asserts the TopBar text `LOCALGAMBLE`, update that assertion to `MASQUER` in Step 3.

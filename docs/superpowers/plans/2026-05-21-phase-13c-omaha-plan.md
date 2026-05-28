@@ -582,7 +582,7 @@ gh pr create --title "phase-13c(poker): PR D — activate Omaha + BUILD_GUIDE" -
 - [ ] **Step 1:** `git checkout main && git pull origin main`
 - [ ] **Step 2:** `git tag -a v0.13c-omaha -m "Phase 13c: No-Limit Omaha Hold'em" && git push origin v0.13c-omaha`
 - [ ] **Step 3:** `gh release create v0.13c-omaha` — highlights: NLHE Omaha 2-6 vs archetype AI, 4 hole cards, mandatory exactly-2+3 showdown (reuses `evaluateFrom 'omaha'` from 13a), new `decideOmaha` AI, reuses the whole poker `_shared/` core + Hold'em UI. Completes the poker trio (Hold'em + Five-Card Draw + Omaha). List PRs A-D + test delta.
-- [ ] **Step 4: Memory** — update `project_localgamble_status.md`: top entry `v0.13c-omaha`; **next phase 14 (Craps)** — the last game phase before Polish; note the poker trio (13a/b/c) is complete and the `_shared/` reuse validated (Omaha shipped as a near-clone in 4 PRs). Append 13c deferred items (Pot-Limit, Hi-Lo, 5/6-card Omaha) to `localgamble-deferred-features`.
+- [ ] **Step 4: Memory** — update `project_masquer_status.md`: top entry `v0.13c-omaha`; **next phase 14 (Craps)** — the last game phase before Polish; note the poker trio (13a/b/c) is complete and the `_shared/` reuse validated (Omaha shipped as a near-clone in 4 PRs). Append 13c deferred items (Pot-Limit, Hi-Lo, 5/6-card Omaha) to `masquer-deferred-features`.
 
 ---
 

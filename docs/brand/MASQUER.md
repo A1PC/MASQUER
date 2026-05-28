@@ -1,13 +1,18 @@
 # MASQUER — Brand Reference
 
-> Living brand reference for **MASQUER**, the Velvet Deco play-money casino. Derived
-> from `docs/superpowers/specs/2026-05-22-phase-15-0-brand-design-language-design.md`.
+> **Shipped 2026-05-28 — v1.0.** Living brand reference for **MASQUER**, the
+> Velvet Deco play-money casino. Derived from
+> `docs/superpowers/specs/2026-05-22-phase-15-0-brand-design-language-design.md`.
 > Update this doc whenever a brand decision changes.
 
 ## Name & Tagline
 
-- **Product name:** **MASQUER** — replaces the working title "localGamble" in all
-  user-facing surfaces (the git repo and internal docs may keep `localGamble`).
+- **Product name:** **MASQUER** — replaces the working title `localGamble` in
+  all user-facing surfaces. As of v1.0 the source comments, storage key
+  prefixes, IndexedDB name, and package name all use `masquer` /
+  `MASQUER`. The GitHub repository may still be called `A1PC/localGamble`
+  until renamed in GitHub repo settings (manual user step — GitHub redirects
+  preserve the old URL transparently).
 - **Tagline:** _A local, offline, play-money casino._
 - **Aesthetic:** **"Velvet Deco"** — old-school Vegas / Monte-Carlo content (felt,
   velvet, brass, masquerade) executed with modern web craft (art-deco geometry,

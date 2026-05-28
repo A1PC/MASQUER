@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Stand up the complete development substrate for `localGamble` — repo conventions, GitHub project tracking, CI pipeline, Vite + React 18 + TypeScript scaffold, and quality tooling — so every subsequent BUILD_GUIDE phase lands into a working environment with enforced rules.
+**Goal:** Stand up the complete development substrate for `MASQUER` — repo conventions, GitHub project tracking, CI pipeline, Vite + React 18 + TypeScript scaffold, and quality tooling — so every subsequent BUILD_GUIDE phase lands into a working environment with enforced rules.
 
 **Architecture:** Three sequential PRs, each adding one layer (PR #1 = process/meta, PR #2 = app scaffold, PR #3 = quality gates), then a release PR that tags `v0.1-scaffold`. CI evolves alongside so each PR's pipeline tests against its own additions.
 
@@ -15,7 +15,7 @@
 ## File Structure (after all three PRs merge)
 
 ```
-localGamble/
+MASQUER/
 ├── .github/
 │   ├── ISSUE_TEMPLATE/
 │   │   ├── bug.md
@@ -159,7 +159,7 @@ Expected: `Switched to a new branch 'phase-0-meta'`.
 Create `CLAUDE.md` with the exact content below:
 
 ```markdown
-# Claude / Agent Instructions for localGamble
+# Claude / Agent Instructions for MASQUER
 
 You are working in a TypeScript/React/Vite codebase that implements a local,
 offline, play-money casino. The single source of truth is `BUILD_GUIDE.md`
@@ -236,7 +236,7 @@ Expected: 1 file changed, ~50 insertions.
 Create `CONTRIBUTING.md`. Note that the inner `bash` blocks use triple-backticks and the file itself uses normal markdown — copy the content between the leading and trailing markers verbatim.
 
 ````markdown
-# Contributing to localGamble
+# Contributing to MASQUER
 
 ## Local setup
 
@@ -313,7 +313,7 @@ git commit -m "docs(repo): add CONTRIBUTING.md with branch and commit convention
 Overwrite `README.md` with:
 
 ````markdown
-# localGamble
+# MASQUER
 
 A local, offline, play-money casino app. Single-machine, no real money,
 no internet. Browser-based.
@@ -804,7 +804,7 @@ Note: contains nested triple-backtick code blocks. Copy verbatim.
 3. **Clone and install:**
    ```bash
    git clone https://github.com/A1PC/localGamble.git
-   cd localGamble
+   cd MASQUER
    pnpm install --frozen-lockfile
    ```
 4. **Run the dev server:**
@@ -832,7 +832,7 @@ Install the workspace-recommended extensions when prompted (see
 | Dev server port 5173 busy                      | Another Vite running        | `lsof -i :5173`; kill or change `vite.config.ts` port              |
 | ESLint complains about every file              | Wrong Node / pnpm version   | `nvm use && corepack enable && pnpm install`                       |
 | Husky hook didn't fire on commit               | `prepare` script didn't run | `pnpm install` re-runs it; or `pnpm exec husky` manually           |
-| IndexedDB shows stale data after schema change | Old DB version              | DevTools → Application → IndexedDB → delete `localGamble`          |
+| IndexedDB shows stale data after schema change | Old DB version              | DevTools → Application → IndexedDB → delete `MASQUER`              |
 
 ## Browser support matrix
 
@@ -956,7 +956,7 @@ git commit -m "docs(adr): add ADR template"
 
 - Status: Accepted
 - Date: 2026-05-15
-- Deciders: @adamzspare
+- Deciders: Developer
 
 ## Context
 
@@ -1014,7 +1014,7 @@ git commit -m "docs(adr): ADR-0001 tech stack"
 
 - Status: Accepted
 - Date: 2026-05-15
-- Deciders: @adamzspare
+- Deciders: Developer
 
 ## Context
 
@@ -1073,7 +1073,7 @@ git commit -m "docs(adr): ADR-0002 pnpm + Node 20 LTS"
 
 - Status: Accepted
 - Date: 2026-05-15
-- Deciders: @adamzspare
+- Deciders: Developer
 
 ## Context
 
@@ -1133,7 +1133,7 @@ git commit -m "docs(adr): ADR-0003 strict CI with coverage gate"
 
 - Status: Accepted
 - Date: 2026-05-15
-- Deciders: @adamzspare
+- Deciders: Developer
 
 ## Context
 
@@ -1195,7 +1195,7 @@ git commit -m "docs(adr): ADR-0004 three-PR sequence for Phase 0"
 
 - Status: Accepted
 - Date: 2026-05-15
-- Deciders: @adamzspare
+- Deciders: Developer
 
 ## Context
 
@@ -1255,7 +1255,7 @@ git commit -m "docs(adr): ADR-0005 no branch protection (convention only)"
 
 - Status: Accepted
 - Date: 2026-05-15
-- Deciders: @adamzspare
+- Deciders: Developer
 
 ## Context
 
@@ -1315,7 +1315,7 @@ git commit -m "docs(adr): ADR-0006 pre-commit hooks via Husky + lint-staged"
 
 - Status: Accepted
 - Date: 2026-05-15
-- Deciders: @adamzspare
+- Deciders: Developer
 
 ## Context
 
@@ -1674,7 +1674,7 @@ git checkout -b phase-0-scaffold
 
 ```json
 {
-  "name": "localgamble",
+  "name": "masquer",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -1808,7 +1808,7 @@ export default defineConfig({
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>localGamble</title>
+    <title>MASQUER</title>
   </head>
   <body>
     <div id="root"></div>
@@ -2200,7 +2200,7 @@ git checkout -b phase-0-tooling
 
 ```json
 {
-  "name": "localgamble",
+  "name": "masquer",
   "private": true,
   "version": "0.0.0",
   "type": "module",

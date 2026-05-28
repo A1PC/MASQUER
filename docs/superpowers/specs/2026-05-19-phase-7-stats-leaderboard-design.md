@@ -1,7 +1,7 @@
 # Phase 7 — Stats + Leaderboard (design spec)
 
 **Status:** Approved 2026-05-19.
-**Owner:** @adamzspare.
+**Owner:** Developer.
 **Implements:** BUILD_GUIDE §9 (Stats) and §10 (Leaderboard).
 **Related:** ADR-0016 (every round writes one row via wallet.settleRound — the rounds table is the single source for derived stats), ADR-0035 (Phase 9 tracking schema — sessions and gameVisits are the source for time-played and per-session stats).
 
@@ -59,7 +59,7 @@ Replace the two stub pages at `/stats` and `/leaderboard` with playable, data-dr
 ```
 
 - Title uses display font, gold-bright. Includes current tab name.
-- Toggle is a two-segment pill (Cards default, Graphs alternative). Sets the `viewMode` slice in `uiStore`. Persisted to `localStorage` under `localGamble.ui.statsViewMode`.
+- Toggle is a two-segment pill (Cards default, Graphs alternative). Sets the `viewMode` slice in `uiStore`. Persisted to `localStorage` under `masquer.ui.statsViewMode`.
 
 ### 4.3 Empty state
 
@@ -233,7 +233,7 @@ interface UiState {
 }
 ```
 
-Persisted to `localStorage` under `localGamble.ui.statsViewMode` (matches the existing `localGamble.ui.sidebarCollapsed` pattern). Default: `'cards'`.
+Persisted to `localStorage` under `masquer.ui.statsViewMode` (matches the existing `masquer.ui.sidebarCollapsed` pattern). Default: `'cards'`.
 
 ## 9. Recharts shared lazy chunk
 

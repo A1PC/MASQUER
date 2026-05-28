@@ -1,8 +1,18 @@
-# localGamble
+# MASQUER
 
-A **local, offline, play-money casino** that runs entirely in your browser on a single machine. No internet, no real money, no remote server — just a polished retro-Vegas casino with a growing lineup of games, a shared chip wallet, persistent stats, and a local leaderboard.
+> _A local, offline, play-money casino._
+>
+> **v1.0 (Velvet Deco launch) — 2026-05-28.**
 
-> **Play money only.** Chips are simulated. There is no payment processing, no crypto, no cash-out, and no online multiplayer. The login system separates local profiles for fun — it is **not** a security boundary.
+A **local, offline, play-money casino** that runs entirely in your browser on a
+single machine. No internet, no real money, no remote server — just a polished
+**Velvet Deco** casino (old-school Vegas / Monte-Carlo content rendered with
+modern web craft) with **13 games**, a shared chip wallet, persistent stats,
+a local leaderboard, and a brand-tokened hidden admin dashboard.
+
+> **Play money only.** Chips are simulated. There is no payment processing, no
+> crypto, no cash-out, and no online multiplayer. The login system separates
+> local profiles for fun — it is **not** a security boundary.
 
 ---
 
@@ -26,11 +36,29 @@ A **local, offline, play-money casino** that runs entirely in your browser on a 
 
 ## What it is
 
-localGamble is a browser-based casino for one machine. You register a local profile, get a starting stack of **1,000 chips**, and play. Every game settles into one shared wallet; every completed round is recorded; stats and a leaderboard aggregate across all local profiles. A daily top-up keeps you in the game.
+MASQUER is a browser-based casino for one machine. You register a local
+profile, get a starting stack of **1,000 chips**, and play. Every game settles
+into one shared wallet; every completed round is recorded; stats and a
+leaderboard aggregate across all local profiles. A daily +50-chip top-up keeps
+you in the game.
 
-The visual style is **Retro Vegas**: neon signage, deep velvet reds, gold trim, dark felt-green backgrounds, chunky display fonts for headings, clean sans-serif for numbers. Animations are tasteful and respect `prefers-reduced-motion`.
+The visual style is **Velvet Deco**: deep midnight felt, oxblood velvet, brass
+hairlines, **gold**-leaf filigree, a Venetian Colombina mask emblem
+(`MaskMark`) as the through-line motif. Cinzel-Decorative wordmark / Cinzel
+section headings / Montserrat for body and tabular figures. Animations are
+tasteful, signature, and **respect `prefers-reduced-motion` everywhere** via
+`useEffectiveReducedMotion` (sound is gated on it too).
 
-The single source of truth for the project's design is [`BUILD_GUIDE.md`](./BUILD_GUIDE.md).
+The single source of truth for the project's design is
+[`BUILD_GUIDE.md`](./BUILD_GUIDE.md); the brand reference is
+[`docs/brand/MASQUER.md`](./docs/brand/MASQUER.md); the per-game polish
+recipe lives in [`docs/PHASE_15_PATTERNS.md`](./docs/PHASE_15_PATTERNS.md).
+
+> **Migrating from a pre-1.0 build?** v1.0 renames the IndexedDB database
+> (`localGamble` → `masquer`) and all `localStorage` keys
+> (`localGamble.*` → `masquer.*`). Your pre-1.0 profile / rounds / lottery
+> tickets do **not** migrate. Register a fresh profile — see
+> [`CHANGELOG.md`](./CHANGELOG.md) 1.0.0 "Migration notes".
 
 ---
 
@@ -95,7 +123,8 @@ The guiding principle: **shared systems live in one place; each game is self-con
 - **Money is integers.** All chip amounts are integers — no floats, no `parseFloat`.
 - **Wallet-bridge-async / machine-pure.** For games with state machines (Blackjack, Roulette, Baccarat, Bingo, Plinko, Craps, Poker), the page component does the async work (`placeBet`, RNG, payout math) and sends fully-resolved events into a synchronous, deterministic XState machine. This keeps machines trivially testable.
 
-See [`docs/adr/`](./docs/adr/) for the 42 architecture decision records and [`docs/conventions.md`](./docs/conventions.md) for code conventions.
+See [`docs/adr/`](./docs/adr/) for the **47 architecture decision records**
+and [`docs/conventions.md`](./docs/conventions.md) for code conventions.
 
 ---
 
@@ -141,7 +170,7 @@ The **Definition of Done** before any merge is: `pnpm lint && pnpm typecheck && 
 - **Integration tests** register → bet → settle and assert both balance and the `rounds` row.
 - **State machines** are tested by feeding scripted events with fixed seeds (the machine never does async work itself).
 
-As of `v0.14-craps` the suite is ~1,968 tests.
+As of **v1.0** the suite is **~2,400+ tests** passing.
 
 ---
 
@@ -169,7 +198,10 @@ src/
       ├─ five-card-draw/     Five-Card Draw machine + UI
       └─ omaha/              Omaha Hold'em machine + UI
 docs/
-├─ adr/                      architecture decision records (0001–0042)
+├─ adr/                      architecture decision records (0001–0047)
+├─ brand/MASQUER.md          Velvet Deco brand reference
+├─ MANUAL_SMOKE_v1.md        pre-tag manual smoke checklist
+├─ PHASE_15_PATTERNS.md      per-game polish recipe (Phase 15)
 ├─ conventions.md            code conventions
 ├─ dev-setup.md              environment setup + troubleshooting
 ├─ risks.md                  risk register
@@ -216,8 +248,29 @@ A hidden admin area lives at `/admin/login`. Credentials are **`admin` / `admin1
 
 ## Project status
 
-Latest release: **`v0.14-craps`** (full-table single-player Craps) — completing **all 14 gameplay phases**.
+**Latest release: `v1.0` — MASQUER · Velvet Deco launch (2026-05-28).** The
+first non-development release. All 14 gameplay phases plus all 16 Phase-15
+sub-projects are merged.
 
-Shipped phases: Scaffold, Data + Auth, Wallet + Lobby + Game shell, Blackjack, Roulette, Slots, Baccarat, Stats + Leaderboard, Admin Dashboard, Daily Lottery, Bingo (competitive), Plinko, Texas Hold'em, Five-Card Draw, Omaha, Craps.
+**Shipped phases:** Scaffold · Data + Auth · Wallet + Lobby + Game shell ·
+Blackjack · Roulette · Slots · Baccarat · Stats + Leaderboard · Admin
+Dashboard · Daily Lottery · Bingo (competitive) · Plinko · Texas Hold'em ·
+Five-Card Draw · Omaha · Craps · **Polish & Overhaul (16 sub-projects)**.
 
-Underway: **Phase 15 — Polish & Overhaul.** A complete UI/UX overhaul + polish + per-game feature additions + admin expansion + brand rename, decomposed into 18 dependency-ordered sub-projects (foundation → per-game upgrades → admin → final integration). See the [umbrella roadmap](./docs/superpowers/specs/2026-05-22-phase-15-umbrella-roadmap-design.md) and [`BUILD_GUIDE.md` §12](./BUILD_GUIDE.md) for the full plan. Progress is also tracked via [Milestones](../../milestones).
+**Phase 15 highlights:** complete UI/UX overhaul (Velvet Deco), brand rename
+to MASQUER, per-game polish (rules modals, brand tokens, dramatic reveals,
+sound), admin expansion (per-game admin tabs for all 13 games), lazy-loaded
+game routes (main bundle **477 → 222 KB gzipped, −53.5%**), manual smoke
+checklist, and 47 ADRs preserved + amended where necessary. Full launch
+notes: [`CHANGELOG.md`](./CHANGELOG.md) 1.0.0 + [`BUILD_GUIDE.md` §12 row
+15 + v1.0 launch note](./BUILD_GUIDE.md). Per-game recipe:
+[`docs/PHASE_15_PATTERNS.md`](./docs/PHASE_15_PATTERNS.md). Pre-tag
+verification: [`docs/MANUAL_SMOKE_v1.md`](./docs/MANUAL_SMOKE_v1.md).
+
+## License
+
+This project is unlicensed source code published for personal-use
+demonstration. No license is granted to redistribute or build on it. Audio
+samples in `src/assets/audio/` are project-authored and released as **CC0**
+(public domain dedication) — see
+[`src/assets/audio/CREDITS.md`](./src/assets/audio/CREDITS.md).
