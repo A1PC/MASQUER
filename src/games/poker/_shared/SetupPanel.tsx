@@ -1,7 +1,7 @@
 import type { JSX } from 'react';
 import { useState } from 'react';
-import type { StakesTier } from './stakesConfig';
-import { STAKES } from './stakesConfig';
+import type { StakesTier } from '../holdem/stakesConfig';
+import { STAKES } from '../holdem/stakesConfig';
 
 type TableSize = 2 | 3 | 4 | 5 | 6;
 

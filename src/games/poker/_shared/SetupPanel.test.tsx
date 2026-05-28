@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import SetupPanel from './SetupPanel';
-import { STAKES } from './stakesConfig';
+import { STAKES } from '../holdem/stakesConfig';
 
 describe('SetupPanel', () => {
   it('renders table size options 2-6', () => {
