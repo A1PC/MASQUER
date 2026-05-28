@@ -161,12 +161,13 @@ describe('AdminRoulettePage', () => {
     );
     await waitFor(() => expect(screen.getByText(/recent spins \(last 20\)/i)).toBeInTheDocument());
     // Number 17 is black on a European wheel — assert both the number cell and colour cell.
-    // Use findAllByText so we wait for the recent-row "Black" cell to render;
-    // since #14.5 PR B added a hot-number KPI StatCard that also renders "17",
-    // the sync getAllByText pre-#14.5 raced against the recent-table mount on CI.
+    // Since #14.5 PR B added a hot-number KPI StatCard that ALSO renders "17",
+    // there are now two "17" matches (the KPI div + the recent-table pocket span).
+    // findAllByText awaits the recent table render + accommodates both.
     const blackCells = await screen.findAllByText(/^black$/i);
     expect(blackCells.length).toBeGreaterThan(0);
-    expect(await screen.findByText('17')).toBeInTheDocument();
+    const seventeens = await screen.findAllByText('17');
+    expect(seventeens.length).toBeGreaterThan(0);
   });
 
   it('renders the distribution chart wrapper once data exists', async () => {
