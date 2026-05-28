@@ -9,77 +9,24 @@ import RulesButton from '@/games/_shared/RulesButton';
 import { useSound } from '@/systems/sound/useSound';
 import { useEffectiveReducedMotion } from '@/motion/useEffectiveReducedMotion';
 import type { BetHandle } from '@/systems/wallet';
-import type { Archetype } from '../_shared/ai/archetypes';
 import { decide } from '../_shared/ai/decide';
 import { decideDiscard } from '../_shared/ai/decideDiscard';
 import { assignMaskName } from '../_shared/maskNames';
 import PokerOddsHeader from '../_shared/PokerOddsHeader';
 import PokerRulesModal from '../_shared/PokerRulesModal';
+import {
+  mulberry32,
+  stringSeed,
+  pickArchetype,
+  buildMachineInput,
+  makeSessionId,
+  pickWinTier,
+} from '../_shared/sessionBootstrap';
 import { drawMachine, type DrawContext, type MachineInput } from './machine';
 import { STAKES } from '../holdem/stakesConfig';
 import type { StakesTier } from '../holdem/stakesConfig';
 import DrawTable from './DrawTable';
 import type { WinTier } from '../holdem/ShowdownReveal';
-
-// ── Seeded mulberry32 (same algo as deck.ts, but per-session) ────────────────
-
-function mulberry32(seed: number): () => number {
-  let a = seed >>> 0;
-  return () => {
-    a = (a + 0x6d2b79f5) >>> 0;
-    let t = a;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4_294_967_296;
-  };
-}
-
-function stringSeed(s: string): number {
-  let h = 5381;
-  for (let i = 0; i < s.length; i += 1) {
-    h = ((h << 5) + h + s.charCodeAt(i)) | 0;
-  }
-  return h >>> 0;
-}
-
-function pickArchetype(rng: () => number): Archetype {
-  const archetypes: Archetype[] = ['rock', 'station', 'maniac', 'shark'];
-  return archetypes[Math.floor(rng() * archetypes.length)]!;
-}
-
-function buildMachineInput(
-  sessionId: string,
-  buyIn: number,
-  tableSize: number,
-  stakes: { sb: number; bb: number },
-  rng: () => number,
-): MachineInput {
-  // Mask names hide the AI archetype from the player — `decide()` still
-  // gets the real archetype internally; the UI only ever sees the mask name.
-  const maskNames = assignMaskName(rng, tableSize);
-  const aiArchetypes = Array.from({ length: tableSize - 1 }, (_, i) => {
-    const archetype = pickArchetype(rng);
-    const name = maskNames[i]!;
-    const stack = stakes.bb * 80;
-    return { archetype, name, stack };
-  });
-  return { sessionId, buyIn, tableSize, stakes, aiArchetypes };
-}
-
-function makeSessionId(): string {
-  const seedBuf = new Uint32Array(1);
-  crypto.getRandomValues(seedBuf);
-  return `draw-${Date.now()}-${seedBuf[0]!}`;
-}
-
-/** Win-tier classification per spec §4.4 (mirrors HoldemPage). */
-function pickWinTier(wonAmount: number, committed: number): WinTier {
-  if (wonAmount <= 0) return 'loss';
-  const ratio = wonAmount / Math.max(1, committed);
-  if (ratio >= 20) return 'jackpot';
-  if (ratio >= 2) return 'medium';
-  return 'small';
-}
 
 interface SitDownConfig {
   tableSize: number;
@@ -762,7 +709,7 @@ export default function FiveCardDrawPage(): JSX.Element | null {
         const result = await placeBet(config.buyIn, { min: config.buyIn, max: config.buyIn * 3 });
         if (!result.ok) return;
 
-        const sessionId = makeSessionId();
+        const sessionId = makeSessionId('draw');
         const rng = mulberry32(stringSeed(sessionId));
         const input = buildMachineInput(
           sessionId,
