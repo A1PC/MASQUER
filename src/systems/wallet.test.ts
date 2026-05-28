@@ -86,6 +86,24 @@ describe('placeBet', () => {
     const r = await placeBet({ userId: u, game: 'coin-flip', amount: 600, min: 1, max: 500 });
     expect(r).toEqual({ ok: false, error: 'above_maximum' });
   });
+  it('returns banned when the user is flagged isBanned (chips frozen)', async () => {
+    await seedUser(1_000);
+    await db.users.put({
+      id: u,
+      username: 'BannedUser',
+      usernameLower: 'banneduser',
+      passwordHash: '',
+      passwordSalt: '',
+      pbkdf2Iterations: 600_000,
+      avatarColor: '#a3122a',
+      createdAt: Date.now(),
+      isBanned: true,
+    });
+    const r = await placeBet({ userId: u, game: 'coin-flip', amount: 10, min: 1, max: 500 });
+    expect(r).toEqual({ ok: false, error: 'banned' });
+    // Balance unchanged
+    expect(await getBalance(u)).toBe(1_000);
+  });
   it('returns insufficient_chips when amount > balance', async () => {
     await seedUser(5);
     const r = await placeBet({ userId: u, game: 'coin-flip', amount: 10, min: 1, max: 500 });

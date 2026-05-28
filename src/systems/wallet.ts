@@ -36,6 +36,7 @@ export type PlaceBetError =
   | 'above_maximum'
   | 'not_integer'
   | 'no_user'
+  | 'banned'
   | 'unknown';
 
 export type PlaceBetResult =
@@ -74,6 +75,12 @@ export async function placeBet(input: {
   max: number;
 }): Promise<PlaceBetResult> {
   if (!input.userId) return { ok: false, error: 'no_user' };
+  // Banned users' chips are frozen — the BannedOverlay covers the whole app
+  // and stops game UIs from mounting, but this is the defense-in-depth path
+  // in case any code path bypasses the overlay (direct URL nav, race condition
+  // between ban + in-flight bet, etc.).
+  const userRow = await db.users.get(input.userId);
+  if (userRow?.isBanned === true) return { ok: false, error: 'banned' };
   if (!Number.isInteger(input.amount) || input.amount <= 0) {
     return { ok: false, error: 'not_integer' };
   }

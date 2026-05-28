@@ -14,7 +14,7 @@ import { WALLET_CONFIG } from '@/systems/wallet';
 const SESSION_KEY = 'localGamble.session.userId';
 
 export type RegisterError = 'username_taken' | 'reserved_username' | 'unknown';
-export type LoginError = 'invalid_credentials' | 'banned' | 'unknown';
+export type LoginError = 'invalid_credentials' | 'unknown';
 
 export type RegisterResult = { ok: true; user: User } | { ok: false; error: RegisterError };
 
@@ -83,10 +83,11 @@ export async function login(input: { username: string; password: string }): Prom
     return { ok: false, error: 'invalid_credentials' };
   }
 
-  if (user.isBanned === true) {
-    return { ok: false, error: 'banned' };
-  }
-
+  // Banned users are allowed to log in so they can see the in-app BANNED
+  // overlay (rendered by AppLayout) with a single LOGOUT option. The overlay
+  // covers every route, and wallet.placeBet refuses to debit chips when
+  // `currentUser.isBanned === true`. This is deliberate UX — silent
+  // "invalid credentials" was confusing for users who knew their password.
   setStoredSession(user.id);
   return { ok: true, user };
 }

@@ -189,15 +189,20 @@ describe('auth.login — banned user', () => {
     localStorage.removeItem(SESSION_KEY);
   });
 
-  it('rejects login when isBanned=true with error "banned"', async () => {
+  it('allows login when isBanned=true (overlay handles in-app suspension)', async () => {
     const reg = await register({ username: 'alice', password: 'password123' });
     expect(reg.ok).toBe(true);
     if (!reg.ok) return;
     await db.users.update(reg.user.id, { isBanned: true });
     localStorage.removeItem(SESSION_KEY);
 
+    // Banned users log in successfully so they reach the in-app BANNED
+    // overlay (AppLayout renders it when currentUser.isBanned). Wallet.placeBet
+    // refuses to debit chips while banned, so no chip movement is possible.
     const r = await login({ username: 'alice', password: 'password123' });
-    expect(r).toEqual({ ok: false, error: 'banned' });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.user.isBanned).toBe(true);
   });
 
   it('allows login when isBanned=false (or undefined)', async () => {
