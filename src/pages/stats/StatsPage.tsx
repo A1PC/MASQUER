@@ -20,17 +20,19 @@ export default function StatsPage(): JSX.Element {
   const { game } = useParams<{ game?: string }>();
   const title = TITLES[game ?? ''] ?? 'OVERVIEW';
   return (
-    <div className="flex min-h-screen bg-felt-deep text-white">
-      <StatsLeftRail basePath="/stats" />
-      <main className="flex-1 overflow-auto p-6">
-        <header className="mb-4 flex items-center justify-between">
-          <h1 className="font-display text-base tracking-wider text-gold-bright">
-            STATS · {title}
-          </h1>
-          <ViewModeToggle />
-        </header>
-        <Outlet />
-      </main>
+    <div className="flex h-full flex-col bg-felt-table text-ivory" data-stats-page>
+      <div className="flex flex-1 overflow-hidden">
+        <StatsLeftRail basePath="/stats" />
+        <main className="flex flex-1 flex-col overflow-auto p-6" data-stats-main>
+          <header className="mb-4 flex items-center justify-between">
+            <h1 className="font-display text-2xl tracking-[0.18em] text-gold-bright">
+              STATS · {title}
+            </h1>
+            <ViewModeToggle />
+          </header>
+          <Outlet />
+        </main>
+      </div>
     </div>
   );
 }
