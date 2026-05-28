@@ -2050,6 +2050,272 @@ export async function getLeaderboardLongestStreaks(
   return streaks.sort((a, b) => b.streakLength - a.streakLength).slice(0, limit);
 }
 
+// ─── Phase 15 #14.5 PR B — Blackjack admin stats ──────────────────────────
+//
+// New admin page for Blackjack (the game shipped pre-Phase 15 so it never
+// got an admin page on the original /admin sidebar). Aggregations read the
+// `BlackjackRoundDetails` shape persisted by BlackjackPage.tsx's
+// `wallet.settleRound` calls; outcomes are derived from each hand's
+// `outcome` field (`player-blackjack` / `player-win` / `push` /
+// `player-loss` / `player-bust`).
+//
+// Multi-hand rounds (splits) — a single round can contain N hands. We
+// expand each hand into its own outcome tally so the chart bar counts
+// hands, not rounds. Win-rate / bust-rate / split-rate KPIs are computed
+// from the same expansion.
+
+export type BlackjackOutcomeKey = 'blackjack' | 'win' | 'lose' | 'push' | 'bust';
+
+interface PersistedBlackjackHand {
+  readonly bet: number;
+  readonly doubled: boolean;
+  readonly fromSplit: boolean;
+  readonly outcome: 'player-blackjack' | 'player-win' | 'push' | 'player-loss' | 'player-bust';
+  readonly payout: number;
+}
+
+interface PersistedBlackjackDetails {
+  readonly hands: readonly PersistedBlackjackHand[];
+}
+
+function isBlackjackDetails(d: unknown): d is PersistedBlackjackDetails {
+  if (typeof d !== 'object' || d === null) return false;
+  const obj = d as Record<string, unknown>;
+  return Array.isArray(obj.hands);
+}
+
+function mapBlackjackOutcome(outcome: PersistedBlackjackHand['outcome']): BlackjackOutcomeKey {
+  switch (outcome) {
+    case 'player-blackjack':
+      return 'blackjack';
+    case 'player-win':
+      return 'win';
+    case 'push':
+      return 'push';
+    case 'player-bust':
+      return 'bust';
+    case 'player-loss':
+      return 'lose';
+  }
+}
+
+export interface BlackjackAllTimeStats {
+  /** Settled blackjack rounds (multi-hand rounds count as one round). */
+  hands: number;
+  totalWagered: number;
+  totalPaid: number;
+  /** `totalWagered - totalPaid` (positive = house won). */
+  netHouseChips: number;
+  netPlayerChips: number;
+  actualRtp: number | null;
+  /** Win rate over decisive (non-push) hands. null when no decisive hands. */
+  winRate: number | null;
+  /** Player-bust rate over all hands. null when no hands. */
+  bustRate: number | null;
+  /** Fraction of rounds that involved a split (one round contributes >= 2
+   *  hands when at least one of them has `fromSplit === true`). */
+  splitRate: number | null;
+  /** Biggest net win on a single round (sum across that round's hands). */
+  biggestHandWon: number;
+  /** Average bet across all hands (rounded). 0 when no hands. */
+  avgHandValue: number;
+}
+
+export interface BlackjackHandOutcome {
+  outcome: BlackjackOutcomeKey;
+  count: number;
+}
+
+const BLACKJACK_OUTCOME_ORDER: readonly BlackjackOutcomeKey[] = [
+  'blackjack',
+  'win',
+  'push',
+  'lose',
+  'bust',
+];
+
+export async function getBlackjackAllTimeStats(sinceMs?: number): Promise<BlackjackAllTimeStats> {
+  let rows = await db.rounds.where('game').equals('blackjack').toArray();
+  if (sinceMs !== undefined) rows = rows.filter((r) => r.playedAt > sinceMs);
+  let roundsCounted = 0;
+  let totalWagered = 0;
+  let totalPaid = 0;
+  let handCount = 0;
+  let handBetSum = 0;
+  let wins = 0;
+  let busts = 0;
+  let decisiveHands = 0;
+  let splitRounds = 0;
+  let biggestHandWon = 0;
+
+  for (const r of rows) {
+    roundsCounted += 1;
+    totalWagered += r.betAmount;
+    totalPaid += r.payout;
+    if (r.netChange > biggestHandWon) biggestHandWon = r.netChange;
+    if (!isBlackjackDetails(r.details)) continue;
+    let roundHadSplit = false;
+    for (const h of r.details.hands) {
+      handCount += 1;
+      handBetSum += h.bet;
+      const key = mapBlackjackOutcome(h.outcome);
+      if (key === 'bust') busts += 1;
+      if (key !== 'push') decisiveHands += 1;
+      if (key === 'win' || key === 'blackjack') wins += 1;
+      if (h.fromSplit) roundHadSplit = true;
+    }
+    if (roundHadSplit) splitRounds += 1;
+  }
+
+  const netHouseChips = totalWagered - totalPaid;
+  return {
+    hands: roundsCounted,
+    totalWagered,
+    totalPaid,
+    netHouseChips,
+    // Add zero to normalise `-0` to `+0` for strict assertions.
+    netPlayerChips: -netHouseChips + 0,
+    actualRtp: totalWagered > 0 ? totalPaid / totalWagered : null,
+    winRate: decisiveHands > 0 ? wins / decisiveHands : null,
+    bustRate: handCount > 0 ? busts / handCount : null,
+    splitRate: roundsCounted > 0 ? splitRounds / roundsCounted : null,
+    biggestHandWon,
+    avgHandValue: handCount > 0 ? Math.round(handBetSum / handCount) : 0,
+  };
+}
+
+export async function getBlackjackHandOutcomeDistribution(
+  sinceMs?: number,
+): Promise<BlackjackHandOutcome[]> {
+  let rows = await db.rounds.where('game').equals('blackjack').toArray();
+  if (sinceMs !== undefined) rows = rows.filter((r) => r.playedAt > sinceMs);
+  const counts: Record<BlackjackOutcomeKey, number> = {
+    blackjack: 0,
+    win: 0,
+    push: 0,
+    lose: 0,
+    bust: 0,
+  };
+  for (const r of rows) {
+    if (!isBlackjackDetails(r.details)) {
+      // Fallback for legacy rows: classify by netChange / payout ratio.
+      if (r.netChange === 0) counts.push += 1;
+      else if (r.netChange > 0) {
+        if (r.payout >= r.betAmount * 2.4) counts.blackjack += 1;
+        else counts.win += 1;
+      } else counts.lose += 1;
+      continue;
+    }
+    for (const h of r.details.hands) {
+      counts[mapBlackjackOutcome(h.outcome)] += 1;
+    }
+  }
+  return BLACKJACK_OUTCOME_ORDER.map((outcome) => ({ outcome, count: counts[outcome] }));
+}
+
+// ─── Phase 15 #14.5 PR B — Coin-flip admin stats ──────────────────────────
+
+export type CoinSide = 'heads' | 'tails';
+
+interface PersistedCoinFlipDetails {
+  readonly call: CoinSide;
+  readonly landed: CoinSide;
+}
+
+function isCoinFlipDetails(d: unknown): d is PersistedCoinFlipDetails {
+  if (typeof d !== 'object' || d === null) return false;
+  const obj = d as Record<string, unknown>;
+  return (
+    (obj.call === 'heads' || obj.call === 'tails') &&
+    (obj.landed === 'heads' || obj.landed === 'tails')
+  );
+}
+
+export interface CoinFlipAllTimeStats {
+  flips: number;
+  totalWagered: number;
+  totalPaid: number;
+  netHouseChips: number;
+  netPlayerChips: number;
+  actualRtp: number | null;
+  /** Longest consecutive run of any single landed face. */
+  longestStreak: number;
+  /** Fraction of all flips where the call was heads. null when no flips. */
+  headsCallRate: number | null;
+  /** Fraction of all flips where the call was tails. null when no flips. */
+  tailsCallRate: number | null;
+  /** Average bet across all flips (rounded). 0 when no flips. */
+  avgBet: number;
+  /** Biggest net single-flip win. 0 when no positive flips. */
+  biggestSingleWin: number;
+}
+
+export interface CoinFlipFaceCount {
+  outcome: CoinSide;
+  count: number;
+}
+
+const COIN_FLIP_FACES: readonly CoinSide[] = ['heads', 'tails'];
+
+export async function getCoinFlipAllTimeStats(sinceMs?: number): Promise<CoinFlipAllTimeStats> {
+  let rows = await db.rounds.where('game').equals('coin-flip').toArray();
+  if (sinceMs !== undefined) rows = rows.filter((r) => r.playedAt > sinceMs);
+  rows.sort((a, b) => a.playedAt - b.playedAt);
+  let flips = 0;
+  let totalWagered = 0;
+  let totalPaid = 0;
+  let betSum = 0;
+  let headsCalls = 0;
+  let tailsCalls = 0;
+  let biggestSingleWin = 0;
+  let curStreak = 0;
+  let curFace: CoinSide | null = null;
+  let longestStreak = 0;
+
+  for (const r of rows) {
+    flips += 1;
+    totalWagered += r.betAmount;
+    totalPaid += r.payout;
+    betSum += r.betAmount;
+    if (r.netChange > biggestSingleWin) biggestSingleWin = r.netChange;
+    if (!isCoinFlipDetails(r.details)) continue;
+    if (r.details.call === 'heads') headsCalls += 1;
+    else tailsCalls += 1;
+    if (r.details.landed === curFace) {
+      curStreak += 1;
+    } else {
+      curFace = r.details.landed;
+      curStreak = 1;
+    }
+    if (curStreak > longestStreak) longestStreak = curStreak;
+  }
+  const netHouseChips = totalWagered - totalPaid;
+  return {
+    flips,
+    totalWagered,
+    totalPaid,
+    netHouseChips,
+    netPlayerChips: -netHouseChips + 0,
+    actualRtp: totalWagered > 0 ? totalPaid / totalWagered : null,
+    longestStreak,
+    headsCallRate: flips > 0 ? headsCalls / flips : null,
+    tailsCallRate: flips > 0 ? tailsCalls / flips : null,
+    avgBet: flips > 0 ? Math.round(betSum / flips) : 0,
+    biggestSingleWin,
+  };
+}
+
+export async function getCoinFlipFaceDistribution(sinceMs?: number): Promise<CoinFlipFaceCount[]> {
+  let rows = await db.rounds.where('game').equals('coin-flip').toArray();
+  if (sinceMs !== undefined) rows = rows.filter((r) => r.playedAt > sinceMs);
+  const counts: Record<CoinSide, number> = { heads: 0, tails: 0 };
+  for (const r of rows) {
+    if (!isCoinFlipDetails(r.details)) continue;
+    counts[r.details.landed] += 1;
+  }
+  return COIN_FLIP_FACES.map((outcome) => ({ outcome, count: counts[outcome] }));
+}
+
 // ─── Phase 15 #14.5 PR B — Per-game top-players drill-down ────────────────
 //
 // Shared aggregation powering the new `TopPlayersPanel` rendered on every
