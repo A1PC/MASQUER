@@ -1,7 +1,7 @@
 import type { JSX } from 'react';
 import { useState, useEffect, useMemo } from 'react';
 import { useCurrentUser } from '@/store/sessionStore';
-import { useBalance } from '@/store/walletStore';
+import { useBalance, useWalletStore } from '@/store/walletStore';
 import { buyTicket, evaluateLine, LINE_COST, MAIN_PICKS } from '@/systems/lottery';
 import NumberGrid from './NumberGrid';
 import TicketCart from './TicketCart';
@@ -72,6 +72,10 @@ export default function LotteryPage(): JSX.Element | null {
         }),
       );
       setDrawModalDraws(enriched);
+      // `settleMissedDraws` calls `wallet.settleRound` directly (not via the
+      // store wrapper), so any payouts went to Dexie but the Zustand store
+      // still shows the pre-payout balance. Re-hydrate so winnings show up.
+      await useWalletStore.getState().hydrate(userId);
       // Sound: scan the freshly settled draws for the best tier and fire one
       // matching stinger. `'2'` (free re-entry) is intentionally silent.
       let bestRank = 0;
@@ -146,6 +150,10 @@ export default function LotteryPage(): JSX.Element | null {
       );
       return;
     }
+    // `buyTicket` calls `wallet.placeBet` straight through the systems module
+    // (not the store wrapper), so Dexie is correct but the displayed balance
+    // in the Zustand store is stale. Re-hydrate so the UI reflects the debit.
+    await useWalletStore.getState().hydrate(user!.id);
     play('chip.place');
     cart.clear();
     setPurchaseMessage(

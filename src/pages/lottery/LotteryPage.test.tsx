@@ -93,6 +93,33 @@ describe('LotteryPage shell', () => {
     expect(tickets).toHaveLength(1);
   });
 
+  it('syncs the walletStore balance after buying a ticket (regression: UI used to lag behind Dexie)', async () => {
+    const r = await register({ username: 'sync', password: 'password123' });
+    if (!r.ok) throw new Error();
+    useSessionStore.setState({ currentUser: r.user });
+    await useWalletStore.getState().hydrate(r.user.id);
+    const before = useWalletStore.getState().balance;
+    expect(before).toBe(1_000);
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <LotteryPage />
+      </MemoryRouter>,
+    );
+    for (const n of [1, 2, 3, 4, 5, 6]) {
+      await user.click(screen.getByRole('button', { name: `Main number ${n}` }));
+    }
+    await user.click(screen.getByRole('button', { name: 'Bonus number 1' }));
+    await user.click(screen.getByRole('button', { name: /add line/i }));
+    await user.click(screen.getByRole('button', { name: /buy ticket/i }));
+    await waitFor(() => expect(screen.getByText(/bought ticket/i)).toBeInTheDocument());
+    // 1 line × LINE_COST (5) → balance should drop to 995 both in Dexie AND
+    // in the Zustand store. The bug was that the store stayed at 1000 because
+    // buyTicket calls wallet.placeBet directly (bypassing the store wrapper).
+    await waitFor(() => expect(useWalletStore.getState().balance).toBe(995));
+    expect(await db.balances.get(r.user.id).then((b) => b?.chips)).toBe(995);
+  });
+
   it('blocks adding a duplicate manual line with an inline error', async () => {
     const r = await register({ username: 'dup', password: 'password123' });
     if (!r.ok) throw new Error();
