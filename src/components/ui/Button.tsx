@@ -14,7 +14,7 @@ const button = cva(
       variant: {
         primary: 'bg-gradient-to-b from-gold to-gold-deep text-[#241702] shadow-gold-glow',
         secondary: 'border border-brass text-gold bg-transparent',
-        danger: 'bg-gradient-to-b from-[#8a2433] to-velvet-deep text-ivory',
+        danger: 'border-2 border-casino-red bg-transparent text-casino-red hover:bg-casino-red/10',
         ghost: 'bg-transparent text-ivory/85 hover:text-ivory',
       },
       size: { sm: 'text-[10px] px-3.5 py-2', md: 'text-xs px-5 py-2.5', lg: 'text-sm px-6 py-3.5' },
