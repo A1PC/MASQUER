@@ -1,7 +1,7 @@
 # Phase 4 — Roulette: design spec
 
 **Date:** 2026-05-17
-**Author:** Claude (collaborative session with adamzspare)
+**Author:** Claude (collaborative session with Developer)
 **Status:** Approved by user 2026-05-17 → implementation
 **BUILD_GUIDE refs:** §8.2 (game rules), §3 (file layout), §12 row 4 (phase DoD)
 **Tagged release this builds on:** `v0.4-blackjack` (Phase 3)

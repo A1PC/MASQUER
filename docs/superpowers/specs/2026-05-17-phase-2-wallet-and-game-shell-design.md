@@ -1,7 +1,7 @@
 # Phase 2 — Wallet + App Shell + Game Shell — Design Spec
 
 - **Status:** Approved (2026-05-17)
-- **Author:** @adamzspare (with Claude Opus 4.7)
+- **Author:** Developer (with Claude Opus 4.7)
 - **Phase:** 2 of 9 (BUILD_GUIDE.md §12)
 - **Related ADRs:** 0015–0020 (created as part of this phase)
 - **Implementation plan:** `docs/superpowers/plans/2026-05-17-phase-2-wallet-and-game-shell-plan.md` (to be written next)

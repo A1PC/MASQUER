@@ -428,7 +428,7 @@ Expected: 71 total passing (59 existing + 12 new).
 
 - Status: Accepted
 - Date: 2026-05-17
-- Deciders: @adamzspare
+- Deciders: Developer
 
 ## Context
 
@@ -1596,7 +1596,7 @@ Add a note: "Coin Flip (Phase 2 placeholder game) is the fifth value; see ADR-00
 
 - Status: Accepted
 - Date: 2026-05-17
-- Deciders: @adamzspare
+- Deciders: Developer
 
 ## Context
 
@@ -2422,7 +2422,7 @@ describe('LobbyPage', () => {
 
 - Status: Accepted
 - Date: 2026-05-17
-- Deciders: @adamzspare
+- Deciders: Developer
 
 ## Context
 
@@ -2466,7 +2466,7 @@ Sidebar + `<Outlet />`. Child routes for /lobby, /play/_, /stats,
 
 - Status: Accepted
 - Date: 2026-05-17
-- Deciders: @adamzspare
+- Deciders: Developer
 
 ## Context
 
@@ -2711,7 +2711,7 @@ git rm src/components/BalanceBadge.tsx
 
 - Status: Accepted
 - Date: 2026-05-17
-- Deciders: @adamzspare
+- Deciders: Developer
 
 ## Context
 
@@ -3463,7 +3463,7 @@ import StubGamePage from '@/games/_shared/StubGamePage';
 
 - Status: Accepted
 - Date: 2026-05-17
-- Deciders: @adamzspare
+- Deciders: Developer
 
 ## Context
 

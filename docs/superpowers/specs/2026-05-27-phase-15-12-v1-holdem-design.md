@@ -1,7 +1,7 @@
 # Phase 15 sub-project #12.v1 — Texas Hold'em upgrade
 
 **Status:** Spec
-**Author:** Adam + Claude (assistant)
+**Author:** Developer + Claude (assistant)
 **Date:** 2026-05-27
 **Phase:** 15 (Polish & Overhaul) · MASQUER per-game upgrade · poker trio #12.v1 of 3
 **Game:** Texas Hold'em (`src/games/poker/holdem/`) + shared poker chrome (`src/games/poker/_shared/`)

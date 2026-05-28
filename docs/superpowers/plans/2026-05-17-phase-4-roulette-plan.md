@@ -2047,7 +2047,7 @@ git commit -m "test(roulette): coverage thresholds (≥90% on src/games/roulette
 
 - Status: Accepted
 - Date: 2026-05-17
-- Deciders: @adamzspare
+- Deciders: Developer
 
 ## Context
 
@@ -2131,7 +2131,7 @@ git commit -m "docs(adr): 0029 — Roulette European single-zero wheel order"
 
 - Status: Accepted
 - Date: 2026-05-17
-- Deciders: @adamzspare
+- Deciders: Developer
 
 ## Context
 
@@ -2239,7 +2239,7 @@ git commit -m "docs(adr): 0030 — Roulette bet position model + 10-position cap
 
 - Status: Accepted
 - Date: 2026-05-17
-- Deciders: @adamzspare
+- Deciders: Developer
 
 ## Context
 

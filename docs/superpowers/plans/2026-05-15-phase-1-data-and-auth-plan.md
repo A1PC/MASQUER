@@ -477,7 +477,7 @@ Append to the end of `docs/risks.md`:
 
 - Status: Accepted
 - Date: 2026-05-15
-- Deciders: @adamzspare
+- Deciders: Developer
 
 ## Context
 
@@ -528,7 +528,7 @@ human-readable string. Exceptions are reserved for "should never happen" bugs
 
 - Status: Accepted
 - Date: 2026-05-15
-- Deciders: @adamzspare
+- Deciders: Developer
 
 ## Context
 BUILD_GUIDE §7 says "PBKDF2 (Web Crypto, e.g. 100k+ iterations, SHA-256)".
@@ -570,7 +570,7 @@ is a Phase 8 polish.)
 
 - Status: Accepted
 - Date: 2026-05-15
-- Deciders: @adamzspare
+- Deciders: Developer
 
 ## Context
 
@@ -611,7 +611,7 @@ Wrap all access in try/catch (Safari private mode has historically thrown).
 
 - Status: Accepted
 - Date: 2026-05-15
-- Deciders: @adamzspare
+- Deciders: Developer
 
 ## Context
 
@@ -666,7 +666,7 @@ redirect lands the user at the page they originally tried to visit.
 
 - Status: Accepted
 - Date: 2026-05-15
-- Deciders: @adamzspare
+- Deciders: Developer
 
 ## Context
 We need a form library and a validation strategy. Phase 1 has Login and

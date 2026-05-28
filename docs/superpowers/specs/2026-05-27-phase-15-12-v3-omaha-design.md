@@ -1,7 +1,7 @@
 # Phase 15 sub-project #12.v3 — Omaha upgrade
 
 **Status:** Spec
-**Author:** Adam + Claude (assistant)
+**Author:** Developer + Claude (assistant)
 **Date:** 2026-05-27
 **Phase:** 15 (Polish & Overhaul) · MASQUER per-game upgrade · poker trio #12.v3 of 3 (final)
 **Game:** Omaha (`src/games/poker/omaha/`) — inherits shared chrome from `src/games/poker/_shared/`

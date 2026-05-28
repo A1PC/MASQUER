@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-05-27
-- Deciders: @adamzspare
+- Deciders: Developer
 - Amends: BUILD_GUIDE.md §10.7 (board size + bet ceilings) — retunes
   `MULTIPLIER_CURVES` for the larger board. Refines ADR-0016 (one
   `rounds` row per ball — unchanged) and the original Phase 12

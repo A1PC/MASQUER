@@ -1,7 +1,7 @@
 # Phase 15 sub-project #12.v2 — Five-Card Draw upgrade
 
 **Status:** Spec
-**Author:** Adam + Claude (assistant)
+**Author:** Developer + Claude (assistant)
 **Date:** 2026-05-27
 **Phase:** 15 (Polish & Overhaul) · MASQUER per-game upgrade · poker trio #12.v2 of 3
 **Game:** Five-Card Draw (`src/games/poker/five-card-draw/`) — inherits shared chrome from `src/games/poker/_shared/`

@@ -788,7 +788,7 @@ If anything fails, diagnose. Common issues:
 
 - Status: Accepted
 - Date: 2026-05-15
-- Deciders: @adamzspare
+- Deciders: Developer
 
 ## Context
 

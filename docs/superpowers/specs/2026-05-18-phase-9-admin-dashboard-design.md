@@ -1,7 +1,7 @@
 # Phase 9 — Admin Dashboard: design spec
 
 **Date:** 2026-05-18
-**Author:** Claude (collaborative session with adamzspare)
+**Author:** Claude (collaborative session with Developer)
 **Status:** Approved by user 2026-05-18 → implementation
 **Tagged release this builds on:** `v0.6-slots` (Phase 5) plus subsequent
 non-phase tweaks (PRs #102 / #103 / #104)

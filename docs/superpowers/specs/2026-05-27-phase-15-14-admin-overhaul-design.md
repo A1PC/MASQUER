@@ -1,7 +1,7 @@
 # Phase 15 sub-project #14 — Admin overhaul
 
 **Status:** Spec
-**Author:** Adam + Claude (assistant)
+**Author:** Developer + Claude (assistant)
 **Date:** 2026-05-27
 **Phase:** 15 (Polish & Overhaul) · MASQUER cross-cutting · penultimate sub-project before #15 Final integration
 **Scope:** Admin suite at `src/pages/admin/` + supporting aggregations in `src/systems/stats.ts` + new shared admin primitives in `src/components/admin/`

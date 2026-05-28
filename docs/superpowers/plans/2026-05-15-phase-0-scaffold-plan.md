@@ -956,7 +956,7 @@ git commit -m "docs(adr): add ADR template"
 
 - Status: Accepted
 - Date: 2026-05-15
-- Deciders: @adamzspare
+- Deciders: Developer
 
 ## Context
 
@@ -1014,7 +1014,7 @@ git commit -m "docs(adr): ADR-0001 tech stack"
 
 - Status: Accepted
 - Date: 2026-05-15
-- Deciders: @adamzspare
+- Deciders: Developer
 
 ## Context
 
@@ -1073,7 +1073,7 @@ git commit -m "docs(adr): ADR-0002 pnpm + Node 20 LTS"
 
 - Status: Accepted
 - Date: 2026-05-15
-- Deciders: @adamzspare
+- Deciders: Developer
 
 ## Context
 
@@ -1133,7 +1133,7 @@ git commit -m "docs(adr): ADR-0003 strict CI with coverage gate"
 
 - Status: Accepted
 - Date: 2026-05-15
-- Deciders: @adamzspare
+- Deciders: Developer
 
 ## Context
 
@@ -1195,7 +1195,7 @@ git commit -m "docs(adr): ADR-0004 three-PR sequence for Phase 0"
 
 - Status: Accepted
 - Date: 2026-05-15
-- Deciders: @adamzspare
+- Deciders: Developer
 
 ## Context
 
@@ -1255,7 +1255,7 @@ git commit -m "docs(adr): ADR-0005 no branch protection (convention only)"
 
 - Status: Accepted
 - Date: 2026-05-15
-- Deciders: @adamzspare
+- Deciders: Developer
 
 ## Context
 
@@ -1315,7 +1315,7 @@ git commit -m "docs(adr): ADR-0006 pre-commit hooks via Husky + lint-staged"
 
 - Status: Accepted
 - Date: 2026-05-15
-- Deciders: @adamzspare
+- Deciders: Developer
 
 ## Context
 

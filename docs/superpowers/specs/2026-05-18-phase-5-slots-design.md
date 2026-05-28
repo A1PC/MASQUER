@@ -1,7 +1,7 @@
 # Phase 5 — Slots: design spec
 
 **Date:** 2026-05-18
-**Author:** Claude (collaborative session with adamzspare)
+**Author:** Claude (collaborative session with Developer)
 **Status:** Approved by user 2026-05-18 → implementation
 **BUILD_GUIDE refs:** §8.3 (game rules), §3 (file layout), §12 row 5 (phase DoD)
 **Tagged release this builds on:** `v0.5-roulette` (Phase 4)

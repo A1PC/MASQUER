@@ -1679,7 +1679,7 @@ git commit -m "test(stats): include systems/stats.ts in coverage thresholds"
 
 - Status: Accepted
 - Date: 2026-05-19
-- Deciders: @adamzspare
+- Deciders: Developer
 
 ## Context
 
@@ -3692,7 +3692,7 @@ git commit -m "feat(stats): StatsPerGamePage Graphs view — 3 charts scoped to 
 
 - Status: Accepted
 - Date: 2026-05-19
-- Deciders: @adamzspare
+- Deciders: Developer
 
 ## Context
 

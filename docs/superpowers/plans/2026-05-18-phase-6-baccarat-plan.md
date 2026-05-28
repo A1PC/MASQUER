@@ -1232,7 +1232,7 @@ git commit -m "feat(baccarat): getBeadPlate + getBigRoad with walked-pen logic +
 
 - Status: Accepted
 - Date: 2026-05-18
-- Deciders: @adamzspare
+- Deciders: Developer
 
 ## Context
 
@@ -1334,7 +1334,7 @@ git commit -m "docs(adr): 0036 — Baccarat canonical third-card tableau + floor
 
 - Status: Accepted
 - Date: 2026-05-18
-- Deciders: @adamzspare
+- Deciders: Developer
 
 ## Context
 

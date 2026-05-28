@@ -602,7 +602,7 @@ git commit -m "test(admin): include admin paths in coverage report"
 
 - Status: Accepted
 - Date: 2026-05-18
-- Deciders: @adamzspare
+- Deciders: Developer
 
 ## Context
 
@@ -690,7 +690,7 @@ git commit -m "docs(adr): 0034 — admin auth model (hidden /admin/login, synthe
 
 - Status: Accepted
 - Date: 2026-05-18
-- Deciders: @adamzspare
+- Deciders: Developer
 
 ## Context
 

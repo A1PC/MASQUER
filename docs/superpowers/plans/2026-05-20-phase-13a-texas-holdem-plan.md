@@ -905,7 +905,7 @@ git checkout -b phase-13a-poker-pr-c
 
 - Status: Accepted
 - Date: 2026-05-20
-- Deciders: @adamzspare
+- Deciders: Developer
 
 ## Context
 

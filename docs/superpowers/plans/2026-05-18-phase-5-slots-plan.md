@@ -1345,7 +1345,7 @@ git commit -m "test(slots): coverage thresholds (≥90% on src/games/slots/**/*.
 
 - Status: Accepted
 - Date: 2026-05-18
-- Deciders: @adamzspare
+- Deciders: Developer
 
 ## Context
 
@@ -1445,7 +1445,7 @@ git commit -m "docs(adr): 0032 — Slots symbol weights + RTP target (~86%)"
 
 - Status: Accepted
 - Date: 2026-05-18
-- Deciders: @adamzspare
+- Deciders: Developer
 
 ## Context
 

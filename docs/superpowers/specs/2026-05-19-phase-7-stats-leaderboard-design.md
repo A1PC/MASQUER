@@ -1,7 +1,7 @@
 # Phase 7 — Stats + Leaderboard (design spec)
 
 **Status:** Approved 2026-05-19.
-**Owner:** @adamzspare.
+**Owner:** Developer.
 **Implements:** BUILD_GUIDE §9 (Stats) and §10 (Leaderboard).
 **Related:** ADR-0016 (every round writes one row via wallet.settleRound — the rounds table is the single source for derived stats), ADR-0035 (Phase 9 tracking schema — sessions and gameVisits are the source for time-played and per-session stats).
 

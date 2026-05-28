@@ -1688,7 +1688,7 @@ git commit -m "feat(stats): add 'lottery' to game-key consumers exposed by Round
 
 - Status: Accepted
 - Date: 2026-05-19
-- Deciders: @adamzspare
+- Deciders: Developer
 
 ## Context
 

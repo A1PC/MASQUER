@@ -244,7 +244,7 @@ Verbatim content (from spec section 5.4):
 
 - Status: Accepted
 - Date: 2026-05-15
-- Deciders: @adamzspare
+- Deciders: Developer
 
 ## Context
 

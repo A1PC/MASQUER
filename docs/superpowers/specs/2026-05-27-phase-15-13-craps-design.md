@@ -1,7 +1,7 @@
 # Phase 15 sub-project #13 — Craps upgrade
 
 **Status:** Spec
-**Author:** Adam + Claude (assistant)
+**Author:** Developer + Claude (assistant)
 **Date:** 2026-05-27
 **Phase:** 15 (Polish & Overhaul) · MASQUER per-game upgrade · last gameplay game in the polish pass
 **Game:** Craps (`src/games/craps/`) — self-contained; no shared infra

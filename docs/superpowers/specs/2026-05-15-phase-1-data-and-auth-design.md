@@ -1,7 +1,7 @@
 # Phase 1 — Data + Auth — Design Spec
 
 - **Status:** Approved (2026-05-15)
-- **Author:** @adamzspare (with Claude Opus 4.7)
+- **Author:** Developer (with Claude Opus 4.7)
 - **Phase:** 1 of 9 (BUILD_GUIDE.md §12)
 - **Supersedes:** —
 - **Related ADRs:** 0008–0012 (created as part of this phase)

@@ -1,7 +1,7 @@
 # Phase 0 — Scaffold + Project Meta-Setup — Design Spec
 
 - **Status:** Approved (2026-05-15)
-- **Author:** @adamzspare (with Claude Opus 4.7)
+- **Author:** Developer (with Claude Opus 4.7)
 - **Phase:** 0 of 9 (BUILD_GUIDE.md §12)
 - **Supersedes:** —
 - **Related ADRs:** 0001–0007 (created as part of this phase)
@@ -1223,7 +1223,7 @@ What becomes easier? What becomes harder? What did we lock ourselves into?
 
 - Status: Accepted
 - Date: 2026-05-15
-- Deciders: @adamzspare
+- Deciders: Developer
 
 ## Context
 

@@ -1673,7 +1673,7 @@ Below is `0021-blackjack-h17.md` in full as the reference; the others follow the
 
 - Status: Accepted
 - Date: 2026-05-17
-- Deciders: @adamzspare
+- Deciders: Developer
 
 ## Context
 
@@ -2341,7 +2341,7 @@ Expected: 5/5 pass.
 
 - Status: Accepted
 - Date: 2026-05-17
-- Deciders: @adamzspare
+- Deciders: Developer
 
 ## Context
 

@@ -1,7 +1,7 @@
 # Phase 3 — Blackjack — Design Spec
 
 - **Status:** Approved (2026-05-17)
-- **Author:** @adamzspare (with Claude Opus 4.7)
+- **Author:** Developer (with Claude Opus 4.7)
 - **Phase:** 3 of 9 (BUILD_GUIDE.md §12, §8.1)
 - **Related ADRs:** 0021–0028 (created as part of this phase)
 - **Implementation plan:** `docs/superpowers/plans/2026-05-17-phase-3-blackjack-plan.md` (to be written next)

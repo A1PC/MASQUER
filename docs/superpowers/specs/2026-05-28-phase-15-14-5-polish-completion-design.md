@@ -1,7 +1,7 @@
 # Phase 15 sub-project #14.5 — Polish completion (Stats + Leaderboard reskin + admin completion + consistency audit)
 
 **Status:** Spec
-**Author:** Adam + Claude (assistant)
+**Author:** Developer + Claude (assistant)
 **Date:** 2026-05-28
 **Phase:** 15 (Polish & Overhaul) · MASQUER cross-cutting · slotted between #14 Admin overhaul and #15 Final integration
 **Scope:** Player-facing Stats + Leaderboard pages, admin completion (missing pages + enrichment), `_shared/` primitives, non-admin pages, in-game drift sweep

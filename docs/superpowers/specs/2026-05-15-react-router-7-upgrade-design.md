@@ -1,7 +1,7 @@
 # React Router 7 Upgrade — Design Spec
 
 - **Status:** Approved (2026-05-15)
-- **Author:** @adamzspare (with Claude Opus 4.7)
+- **Author:** Developer (with Claude Opus 4.7)
 - **Type:** Chore (dependency upgrade with architectural migration)
 - **Related ADRs:** 0014 (created as part of this chore)
 - **Implementation plan:** `docs/superpowers/plans/2026-05-15-react-router-7-upgrade-plan.md` (to be written next)
@@ -319,7 +319,7 @@ Replaces the prior `<MemoryRouter><Routes>...</Routes></MemoryRouter>` block. Sa
 
 - Status: Accepted
 - Date: 2026-05-15
-- Deciders: @adamzspare
+- Deciders: Developer
 
 ## Context
 
