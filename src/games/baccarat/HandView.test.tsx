@@ -53,7 +53,7 @@ describe('HandView', () => {
     const { container } = render_(
       <HandView label="PLAYER" cards={cards} revealedCount={2} highlight />,
     );
-    expect(container.querySelector('.border-gold')).toBeInTheDocument();
+    expect(container.querySelector('.border-brass')).toBeInTheDocument();
   });
 
   it('sets the data-baccarat-hand attribute', () => {

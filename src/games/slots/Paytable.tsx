@@ -31,7 +31,7 @@ export default function Paytable({ winningKey = null }: Props): JSX.Element {
       data-roulette-layer="paytable"
       className="w-[300px] rounded-md border border-brass/70 bg-felt-table-deep px-4 py-4 shadow-[inset_0_0_18px_rgba(0,0,0,0.4)]"
     >
-      <div className="mb-3 text-center font-display text-[12px] uppercase tracking-[0.22em] text-gold">
+      <div className="mb-3 text-center font-display text-[12px] uppercase tracking-[0.22em] text-gold-bright">
         Payout Table
       </div>
       <div className="flex flex-col gap-1.5">

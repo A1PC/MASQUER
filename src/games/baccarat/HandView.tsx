@@ -38,11 +38,13 @@ export default function HandView({
     <div
       className={[
         'flex flex-col items-center gap-2 rounded-md border px-3 py-3 transition-shadow duration-200',
-        highlight ? 'border-gold bg-gold/5 shadow-gold-glow' : 'border-brass/40 bg-felt-table-deep',
+        highlight
+          ? 'border-brass bg-gold/5 shadow-gold-glow'
+          : 'border-brass/40 bg-felt-table-deep',
       ].join(' ')}
       data-baccarat-hand={label.toLowerCase()}
     >
-      <div className="flex items-center gap-3 font-display text-xs uppercase tracking-[0.2em] text-gold">
+      <div className="flex items-center gap-3 font-display text-xs uppercase tracking-[0.2em] text-gold-bright">
         <span>{label}</span>
         <span className="text-ivory/80">·</span>
         <span className="tabular-nums text-ivory">{total}</span>
@@ -68,7 +70,7 @@ export default function HandView({
         })}
       </div>
       {revealedCount < cards.length && (
-        <div className="text-xs uppercase tracking-wider text-gold/70">DRAW</div>
+        <div className="text-xs uppercase tracking-wider text-gold-bright/70">DRAW</div>
       )}
     </div>
   );

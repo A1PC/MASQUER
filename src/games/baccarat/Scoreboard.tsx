@@ -22,13 +22,13 @@ export default function Scoreboard({ history }: Props): JSX.Element {
       data-baccarat-scoreboard
     >
       <div>
-        <div className="mb-1 font-display text-[10px] uppercase tracking-[0.2em] text-gold">
+        <div className="mb-1 font-display text-[10px] uppercase tracking-[0.2em] text-gold-bright">
           BEAD PLATE
         </div>
         <BeadPlate cells={bead} />
       </div>
       <div>
-        <div className="mb-1 font-display text-[10px] uppercase tracking-[0.2em] text-gold">
+        <div className="mb-1 font-display text-[10px] uppercase tracking-[0.2em] text-gold-bright">
           BIG ROAD
         </div>
         <BigRoad columns={bigRoad} />

@@ -10,7 +10,9 @@ export default function SlotsRules(): JSX.Element {
   return (
     <div className="space-y-4">
       <section>
-        <h3 className="mb-1 font-display text-xs uppercase tracking-[0.18em] text-gold">Object</h3>
+        <h3 className="mb-1 font-display text-xs uppercase tracking-[0.18em] text-gold-bright">
+          Object
+        </h3>
         <p className="text-sm text-ivory/85">
           Spin three reels and match symbols on the centre payline. Three of a kind pays per the
           paytable; any two Cherries also pay. The rarer the symbol, the bigger the prize.
@@ -18,7 +20,7 @@ export default function SlotsRules(): JSX.Element {
       </section>
 
       <section>
-        <h3 className="mb-1 font-display text-xs uppercase tracking-[0.18em] text-gold">
+        <h3 className="mb-1 font-display text-xs uppercase tracking-[0.18em] text-gold-bright">
           Symbols & paytable
         </h3>
         <table className="w-full text-left text-sm text-ivory/85">
@@ -65,7 +67,7 @@ export default function SlotsRules(): JSX.Element {
       </section>
 
       <section>
-        <h3 className="mb-1 font-display text-xs uppercase tracking-[0.18em] text-gold">
+        <h3 className="mb-1 font-display text-xs uppercase tracking-[0.18em] text-gold-bright">
           How spins resolve
         </h3>
         <p className="text-sm text-ivory/85">
@@ -77,7 +79,7 @@ export default function SlotsRules(): JSX.Element {
       </section>
 
       <section>
-        <h3 className="mb-1 font-display text-xs uppercase tracking-[0.18em] text-gold">
+        <h3 className="mb-1 font-display text-xs uppercase tracking-[0.18em] text-gold-bright">
           Win tiers
         </h3>
         <ul className="ml-5 list-disc space-y-1 text-sm text-ivory/85">
@@ -97,7 +99,7 @@ export default function SlotsRules(): JSX.Element {
       </section>
 
       <section>
-        <h3 className="mb-1 font-display text-xs uppercase tracking-[0.18em] text-gold">
+        <h3 className="mb-1 font-display text-xs uppercase tracking-[0.18em] text-gold-bright">
           Bet limits & sticky bet
         </h3>
         <p className="text-sm text-ivory/85">
@@ -108,7 +110,9 @@ export default function SlotsRules(): JSX.Element {
       </section>
 
       <section>
-        <h3 className="mb-1 font-display text-xs uppercase tracking-[0.18em] text-gold">RTP</h3>
+        <h3 className="mb-1 font-display text-xs uppercase tracking-[0.18em] text-gold-bright">
+          RTP
+        </h3>
         <p className="text-sm text-ivory/85">
           Approximately 86% return to player. Symbol weights and the paytable are locked by ADR-0032
           and ADR-0033.

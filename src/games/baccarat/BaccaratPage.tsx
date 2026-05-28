@@ -375,7 +375,7 @@ export default function BaccaratPage(): JSX.Element | null {
                 freshShoeBanner={state.context.freshShoeBanner}
               />
               <div className="text-xs text-ivory/70">
-                Bet: <span className="font-display text-gold">{totalBet}</span> · Balance:{' '}
+                Bet: <span className="font-display text-gold-bright">{totalBet}</span> · Balance:{' '}
                 <span className="font-mono text-ivory/90">{balance.toLocaleString()}</span>
               </div>
             </div>
@@ -390,7 +390,7 @@ export default function BaccaratPage(): JSX.Element | null {
                   'min-h-[44px] min-w-[120px] rounded-md border border-brass bg-velvet px-6 py-2.5',
                   'font-display text-sm uppercase tracking-[0.22em] text-ivory shadow-gold-glow',
                   'transition-colors duration-150 hover:bg-velvet-deep disabled:opacity-40',
-                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2 focus-visible:ring-offset-felt-table-deep',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brass focus-visible:ring-offset-2 focus-visible:ring-offset-felt-table-deep',
                 ].join(' ')}
               >
                 DEAL
