@@ -210,12 +210,17 @@ A pattern of issues caught after shipping. Future sub-projects should watch for 
 
 ## 7. Progress snapshot (regenerate at major milestones)
 
-As of 2026-05-26:
+**Phase 15 complete — shipped as v1.0 on 2026-05-28.**
 
-- **10 of 16 sub-projects shipped** (0–10.v2 done).
-- **5 sub-projects + 1 final integration to go**: #11 Plinko, #12.v1–v3 Poker, #13 Craps, #14 Admin overhaul, #15 Final integration & launch polish.
-- **64+ PRs shipped** across Phase 15 (incl. fix/polish iterations).
-- **2378 tests passing** at the most recent merge (#264).
-- **Latest tag**: pending `v0.15.10-bingo` (this housekeeping cycle).
+- **16 of 16 sub-projects shipped** (0 → 15, including all variant splits
+  `10.vN` for Bingo and `12.vN` for the poker trio).
+- **100+ PRs shipped** across Phase 15 (incl. fix / polish iterations and
+  the closing-pass G1–G13 per-game sweeps).
+- See `CHANGELOG.md` v1.0.0 for the full launch bullet list and
+  `BUILD_GUIDE.md` §12 row 15 for the per-sub-project status grid.
 
-See the umbrella roadmap progress table for the live status: `docs/superpowers/specs/2026-05-22-phase-15-umbrella-roadmap-design.md` §8.
+This patterns doc is the **per-game polish recipe** followed through all of
+Phase 15. New games / variants post-v1.0 should keep following the same
+recipe (MASQUER title · LobbyButton + OddsInfoBox header · RulesModal ·
+brand-token chrome · `useSound` taxonomy · scrollable modal pattern ·
+`useEffectiveReducedMotion`-gated reveal · admin stats panel).
