@@ -24,18 +24,18 @@ export default function StubGamePage({ game, phase }: Props): JSX.Element {
         transition={{ duration: 0.3 }}
       >
         <div className="mb-4 text-6xl">{meta.icon}</div>
-        <h1 className="mb-2 font-display text-3xl tracking-wider text-gold">
+        <h1 className="mb-2 font-display text-2xl tracking-[0.18em] text-gold-bright">
           {meta.name.toUpperCase()}
         </h1>
-        <p className="mb-6 text-white/70">{meta.tagline}</p>
-        <div className="mb-6 inline-block rounded-full border border-gold/40 bg-felt-deep px-5 py-2 font-mono text-sm text-gold">
+        <p className="mb-6 text-ivory/70">{meta.tagline}</p>
+        <div className="mb-6 inline-block rounded-full border border-brass/60 bg-velvet-deep px-5 py-2 font-mono text-sm text-gold-bright">
           Coming in Phase {phase}
         </div>
         <div className="space-x-4">
-          <Link to="/lobby" className="text-gold underline">
+          <Link to="/lobby" className="text-gold-bright underline hover:text-ivory">
             Back to lobby
           </Link>
-          <Link to="/play/coin-flip" className="text-neon-cyan underline">
+          <Link to="/play/coin-flip" className="text-ivory underline hover:text-gold-bright">
             Try Coin Flip
           </Link>
         </div>

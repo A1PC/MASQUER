@@ -71,18 +71,18 @@ export default function GameShell({
           <div className="mb-4 flex w-full items-center justify-between gap-4">
             <div className="flex-shrink-0">
               {lobbyButton ?? (
-                <Link to="/lobby" className="text-xs text-white/60 hover:text-white">
+                <Link to="/lobby" className="text-xs text-ivory/60 hover:text-gold-bright">
                   ← lobby
                 </Link>
               )}
             </div>
             <h1
-              className="min-w-0 flex-1 truncate text-center font-display text-2xl tracking-wider text-gold-bright"
+              className="min-w-0 flex-1 truncate text-center font-display text-2xl tracking-[0.18em] text-gold-bright"
               title={title}
             >
               {title}
               {meta !== undefined && oddsInfo === undefined && (
-                <span className="ml-3 text-xs font-normal tracking-normal text-white/50">
+                <span className="ml-3 text-xs font-normal tracking-normal text-ivory/55">
                   {meta}
                 </span>
               )}
@@ -94,12 +94,12 @@ export default function GameShell({
           <div className="flex flex-1 flex-col items-center justify-center">{children}</div>
         </section>
         {recentItems !== undefined && (
-          <aside className="w-[200px] flex-shrink-0 border-l border-gold/20 bg-felt-deep px-3.5 py-5">
+          <aside className="w-[200px] flex-shrink-0 border-l border-brass/30 bg-felt-table-deep px-3.5 py-5">
             <RecentResults items={recentItems} />
           </aside>
         )}
       </div>
-      <div className="border-t-2 border-gold/40 bg-felt-deep px-6 py-4">{bettingPanel}</div>
+      <div className="border-t-2 border-brass/60 bg-felt-table-deep px-6 py-4">{bettingPanel}</div>
       {rules !== undefined && (
         <>
           <RulesButton onClick={() => setRulesOpen(true)} />

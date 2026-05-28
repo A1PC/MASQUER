@@ -29,7 +29,7 @@ interface Props {
  * Tokens (`src/theme/tokens.ts`):
  *   bg-felt-table-deep — the deep felt green
  *   text-ivory — body
- *   text-gold — eyebrow title
+ *   text-gold-bright — eyebrow title
  *   border-brass/60 — hairline frame
  */
 export default function OddsInfoBox({
@@ -48,7 +48,9 @@ export default function OddsInfoBox({
       aria-label={title ?? 'Odds and payouts'}
     >
       {title !== null && title !== '' && (
-        <h3 className="font-display text-[10px] uppercase tracking-[0.18em] text-gold">{title}</h3>
+        <h3 className="font-display text-[10px] uppercase tracking-[0.18em] text-gold-bright">
+          {title}
+        </h3>
       )}
       <div className="font-body text-xs leading-snug text-ivory">{children}</div>
     </div>
