@@ -163,10 +163,16 @@ export default function BlackjackPage(): JSX.Element | null {
 
   // On settle: play the appropriate win/loss stinger AND update the streak.
   // Streak rule: increment on any winning hand; reset on any losing/bust hand.
-  // A pure push round leaves the streak unchanged. Deferred via a microtask
-  // so `setStreak` is not called synchronously inside the effect body (the
-  // XState snapshot is the external system; the microtask schedules the
-  // update as a subscription callback per react-hooks/set-state-in-effect).
+  // A pure push round leaves the streak unchanged.
+  //
+  // WHY queueMicrotask: `setStreak` is deferred so it does NOT run during the
+  // effect's commit phase. The XState snapshot is the external system driving
+  // this effect; calling `setState` synchronously in the same task can yield a
+  // double-render (and, under StrictMode, a "called during render" warning if
+  // an upstream effect happens to re-enter). Scheduling the update as a
+  // microtask defers it to a new task tick — equivalent to a subscription
+  // callback per the react-hooks `set-state-in-effect` rule. Don't replace
+  // with a synchronous setState in future polish passes.
   useEffect(() => {
     if (!snapshot.matches('settling')) return;
     const rr = snapshot.context.roundResult;
@@ -228,16 +234,23 @@ export default function BlackjackPage(): JSX.Element | null {
                 : r.outcome === 'loss'
                   ? 'L'
                   : 'P',
+          // Badge colours reference the brand palette via CSS vars (declared on
+          // :root by the <style> block below) so a future brand retune touches
+          // one block — same pattern as Coin-flip's `--brand-coin-*`, Slots'
+          // `--brand-jewel-magenta`, and Baccarat's `--brand-scoreboard-*`.
           badgeColor: anyCharlie
-            ? '#e6c068'
+            ? 'var(--brand-blackjack-charlie)'
             : anyBJ
-              ? '#ffe066'
+              ? 'var(--brand-blackjack-natural)'
               : r.outcome === 'win'
-                ? '#3dd17a'
+                ? 'var(--brand-state-win)'
                 : r.outcome === 'loss'
-                  ? '#7a1f2b'
-                  : '#7a7a7a',
-          badgeTextColor: anyCharlie || anyBJ || r.outcome === 'win' ? '#06120c' : '#fff',
+                  ? 'var(--brand-state-loss)'
+                  : 'var(--brand-blackjack-push)',
+          badgeTextColor:
+            anyCharlie || anyBJ || r.outcome === 'win'
+              ? 'var(--brand-felt-table-deep)'
+              : 'var(--brand-ivory)',
           betLabel: String(r.betAmount),
           netChips: r.netChange,
           accent: r.outcome,
@@ -401,48 +414,69 @@ export default function BlackjackPage(): JSX.Element | null {
     !snapshot.matches('insurance_prompt');
 
   return (
-    <GameShell
-      title="MASQUER · Blackjack"
-      game="blackjack"
-      recentItems={items}
-      bettingPanel={bottomPanel}
-      rules={<BlackjackRules />}
-      lobbyButton={<LobbyButton />}
-      oddsInfo={
-        <OddsInfoBox>Blackjack 3:2 · Win 1:1 · Insurance 2:1 · 5-Card Charlie 3:2</OddsInfoBox>
+    <>
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
+      :root {
+        --brand-blackjack-charlie: #e6c068;
+        --brand-blackjack-natural: #ffe066;
+        --brand-blackjack-push: #7a7a7a;
+        --brand-state-win: #3dd17a;
+        --brand-state-loss: #7a1f2b;
+        --brand-felt-table-deep: #0e2e21;
+        --brand-ivory: #f2e7cc;
       }
-    >
-      <div className="relative flex flex-1 flex-col items-center justify-center gap-5 px-4 py-4">
-        <DealerArea
-          cards={dealerCards}
-          holeRevealed={holeRevealed}
-          {...(openingDealerDelays ? { delaysMs: openingDealerDelays } : {})}
-          onCardLanded={handleDealerCardLanded}
-        />
-        <div className="flex items-center gap-3">
-          {streak >= 2 && (
-            <Badge tone="win" icon="Flame" aria-label={`${streak} win streak`}>
-              {streak} win streak
-            </Badge>
-          )}
-        </div>
-        <PlayerArea
-          hands={hands}
-          activeHandIdx={snapshot.context.activeHandIdx}
-          inSettlement={isSettling}
-          {...(settlements ? { settlements } : {})}
-          delaysMsPerHand={openingPlayerDelaysPerHand}
-          highlightsPerHand={highlightsPerHand}
-          onCardLanded={handlePlayerCardLanded}
-        />
-      </div>
-
-      <InsurancePrompt
-        open={inInsurance}
-        mainBet={snapshot.context.betAmount}
-        onTake={handleTakeInsurance}
-        onDecline={() => send({ type: 'DECLINE_INSURANCE' })}
+    `,
+        }}
       />
-    </GameShell>
+      <GameShell
+        title="MASQUER · Blackjack"
+        game="blackjack"
+        recentItems={items}
+        bettingPanel={bottomPanel}
+        rules={<BlackjackRules />}
+        lobbyButton={<LobbyButton />}
+        oddsInfo={
+          // TODO(#15-followup): single long sentence wraps awkwardly on narrow
+          // widths; PR B should let OddsInfoBox accept an array of chips and
+          // render `·`-separated pills for better wrap control. Out of scope for
+          // per-game PR G2 (shared component change → PR B territory).
+          <OddsInfoBox>Blackjack 3:2 · Win 1:1 · Insurance 2:1 · 5-Card Charlie 3:2</OddsInfoBox>
+        }
+      >
+        <div className="relative flex flex-1 flex-col items-center justify-center gap-5 px-4 py-4">
+          <DealerArea
+            cards={dealerCards}
+            holeRevealed={holeRevealed}
+            {...(openingDealerDelays ? { delaysMs: openingDealerDelays } : {})}
+            onCardLanded={handleDealerCardLanded}
+          />
+          <div className="flex items-center gap-3">
+            {streak >= 2 && (
+              <Badge tone="win" icon="Flame" aria-label={`${streak} win streak`}>
+                {streak} win streak
+              </Badge>
+            )}
+          </div>
+          <PlayerArea
+            hands={hands}
+            activeHandIdx={snapshot.context.activeHandIdx}
+            inSettlement={isSettling}
+            {...(settlements ? { settlements } : {})}
+            delaysMsPerHand={openingPlayerDelaysPerHand}
+            highlightsPerHand={highlightsPerHand}
+            onCardLanded={handlePlayerCardLanded}
+          />
+        </div>
+
+        <InsurancePrompt
+          open={inInsurance}
+          mainBet={snapshot.context.betAmount}
+          onTake={handleTakeInsurance}
+          onDecline={() => send({ type: 'DECLINE_INSURANCE' })}
+        />
+      </GameShell>
+    </>
   );
 }
