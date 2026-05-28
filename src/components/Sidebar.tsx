@@ -7,6 +7,7 @@ import { markDrawSeen, useLatestDrawId, useUnreadDot } from '@/systems/lottery-u
 import { Icon, type IconName } from '@/components/ui';
 import { useEffectiveReducedMotion } from '@/motion/useEffectiveReducedMotion';
 import { NAV_ICON } from '@/components/nav/gameIcons';
+import { usePrefetchOnHover } from '@/router/usePrefetchOnHover';
 
 interface Props {
   collapsed: boolean;
@@ -18,25 +19,52 @@ interface NavItemDef {
   iconName: IconName;
   label: string;
   badge?: 'NEW';
+  /** Optional prefetch key — must match a `registerPrefetcher` key in router.tsx. */
+  prefetchKey?: string;
 }
 
 const GAMES: NavItemDef[] = [
-  { to: '/lobby', iconName: NAV_ICON.lobby, label: 'Lobby' },
-  { to: '/play/coin-flip', iconName: NAV_ICON['coin-flip'], label: 'Coin Flip' },
-  { to: '/play/blackjack', iconName: NAV_ICON.blackjack, label: 'Blackjack' },
-  { to: '/play/roulette', iconName: NAV_ICON.roulette, label: 'Roulette' },
-  { to: '/play/slots', iconName: NAV_ICON.slots, label: 'Slots' },
-  { to: '/play/baccarat', iconName: NAV_ICON.baccarat, label: 'Baccarat' },
-  { to: '/play/bingo', iconName: NAV_ICON.bingo, label: 'Bingo' },
-  { to: '/play/plinko', iconName: NAV_ICON.plinko, label: 'Plinko' },
-  { to: '/play/poker', iconName: NAV_ICON.poker, label: 'Poker' },
-  { to: '/play/craps', iconName: NAV_ICON.craps, label: 'Craps' },
+  { to: '/lobby', iconName: NAV_ICON.lobby, label: 'Lobby', prefetchKey: 'lobby' },
+  {
+    to: '/play/coin-flip',
+    iconName: NAV_ICON['coin-flip'],
+    label: 'Coin Flip',
+    prefetchKey: 'coin-flip',
+  },
+  {
+    to: '/play/blackjack',
+    iconName: NAV_ICON.blackjack,
+    label: 'Blackjack',
+    prefetchKey: 'blackjack',
+  },
+  {
+    to: '/play/roulette',
+    iconName: NAV_ICON.roulette,
+    label: 'Roulette',
+    prefetchKey: 'roulette',
+  },
+  { to: '/play/slots', iconName: NAV_ICON.slots, label: 'Slots', prefetchKey: 'slots' },
+  {
+    to: '/play/baccarat',
+    iconName: NAV_ICON.baccarat,
+    label: 'Baccarat',
+    prefetchKey: 'baccarat',
+  },
+  { to: '/play/bingo', iconName: NAV_ICON.bingo, label: 'Bingo', prefetchKey: 'bingo' },
+  { to: '/play/plinko', iconName: NAV_ICON.plinko, label: 'Plinko', prefetchKey: 'plinko' },
+  { to: '/play/poker', iconName: NAV_ICON.poker, label: 'Poker', prefetchKey: 'poker' },
+  { to: '/play/craps', iconName: NAV_ICON.craps, label: 'Craps', prefetchKey: 'craps' },
 ];
 
 const YOU: NavItemDef[] = [
-  { to: '/stats', iconName: NAV_ICON.stats, label: 'Stats' },
-  { to: '/leaderboard', iconName: NAV_ICON.leaderboard, label: 'Leaderboard' },
-  { to: '/settings', iconName: NAV_ICON.settings, label: 'Settings' },
+  { to: '/stats', iconName: NAV_ICON.stats, label: 'Stats', prefetchKey: 'stats' },
+  {
+    to: '/leaderboard',
+    iconName: NAV_ICON.leaderboard,
+    label: 'Leaderboard',
+    prefetchKey: 'leaderboard',
+  },
+  { to: '/settings', iconName: NAV_ICON.settings, label: 'Settings', prefetchKey: 'settings' },
 ];
 
 export default function Sidebar({ collapsed }: Props): JSX.Element {
@@ -72,7 +100,12 @@ export default function Sidebar({ collapsed }: Props): JSX.Element {
           <NavItem key={item.to} item={item} reduce={reduce} />
         ))}
         <NavItem
-          item={{ to: '/lottery', iconName: NAV_ICON.lottery, label: 'Lottery' }}
+          item={{
+            to: '/lottery',
+            iconName: NAV_ICON.lottery,
+            label: 'Lottery',
+            prefetchKey: 'lottery',
+          }}
           reduce={reduce}
           unread={hasUnread}
         />
@@ -107,10 +140,15 @@ function NavItem({
   reduce: boolean;
   unread?: boolean;
 }) {
-  const { to, iconName, label, badge } = item;
+  const { to, iconName, label, badge, prefetchKey } = item;
+  // Hover/focus pre-warms the lazy chunk for the matching route key. When the
+  // key is missing or no prefetcher is registered the handlers are no-ops, so
+  // it's always safe to spread them onto the NavLink.
+  const prefetchHandlers = usePrefetchOnHover(prefetchKey ?? '');
   return (
     <NavLink
       to={to}
+      {...prefetchHandlers}
       className={({ isActive }) =>
         `group relative flex items-center justify-between px-4 py-2 font-display text-[12.5px] tracking-[0.05em] outline-none transition-colors focus-visible:bg-gold/10 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-gold/40 ${
           isActive
