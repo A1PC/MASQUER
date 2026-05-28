@@ -115,7 +115,7 @@ export default function ProfilePage({ edit = false }: ProfilePageProps): JSX.Ele
             aria-hidden="true"
           />
           <div className="min-w-0">
-            <h1 className="truncate font-display text-2xl tracking-[0.1em] text-gold">
+            <h1 className="truncate font-display text-2xl tracking-[0.18em] text-gold-bright">
               {user.username}
             </h1>
             <p className="font-body text-xs text-ivory/60">Joined {formatJoined(user.createdAt)}</p>
