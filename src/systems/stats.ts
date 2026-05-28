@@ -2049,3 +2049,51 @@ export async function getLeaderboardLongestStreaks(
   }
   return streaks.sort((a, b) => b.streakLength - a.streakLength).slice(0, limit);
 }
+
+// ─── Phase 15 #14.5 PR B — Per-game top-players drill-down ────────────────
+//
+// Shared aggregation powering the new `TopPlayersPanel` rendered on every
+// game admin page. Returns the top-N net-chip earners scoped to a single
+// game, optionally filtered by `sinceMs` (UTC-epoch exclusive lower bound).
+// Mirrors the leaderboard aggregations' username-resolution pattern.
+
+export interface TopPlayerRow {
+  userId: string;
+  username: string;
+  rounds: number;
+  netChips: number;
+  biggestWin: number;
+}
+
+export async function getTopPlayersForGame(
+  game: Round['game'],
+  limit: number,
+  sinceMs?: number,
+): Promise<TopPlayerRow[]> {
+  if (limit <= 0) return [];
+  let rows = await db.rounds.where('game').equals(game).toArray();
+  if (sinceMs !== undefined) rows = rows.filter((r) => r.playedAt > sinceMs);
+  const byUser = new Map<string, { rounds: number; netChips: number; biggestWin: number }>();
+  for (const r of rows) {
+    const cur = byUser.get(r.userId) ?? { rounds: 0, netChips: 0, biggestWin: 0 };
+    cur.rounds += 1;
+    cur.netChips += r.netChange;
+    if (r.netChange > cur.biggestWin) cur.biggestWin = r.netChange;
+    byUser.set(r.userId, cur);
+  }
+  const usernames = await resolveUsernamesForLeaderboard([...byUser.keys()]);
+  return [...byUser.entries()]
+    .map(([userId, v]) => ({
+      userId,
+      username: usernames.get(userId) ?? '<deleted>',
+      rounds: v.rounds,
+      netChips: v.netChips,
+      biggestWin: v.biggestWin,
+    }))
+    .sort((a, b) => {
+      if (b.netChips !== a.netChips) return b.netChips - a.netChips;
+      // Stable tie-break by username for deterministic test output.
+      return a.username.localeCompare(b.username);
+    })
+    .slice(0, limit);
+}

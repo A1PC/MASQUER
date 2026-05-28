@@ -5138,3 +5138,79 @@ describe('queries.getLeaderboardLongestStreaks', () => {
     expect(out).toEqual([]);
   });
 });
+
+// ── Per-game top-players drill-down (Phase 15 #14.5 PR B) ──────────────────
+
+import { getTopPlayersForGame } from './stats';
+
+describe('queries.getTopPlayersForGame', () => {
+  beforeEach(async () => {
+    await resetDb();
+    localStorage.removeItem(SESSION_KEY);
+  });
+
+  it('returns empty array when no rounds for the game', async () => {
+    const out = await getTopPlayersForGame('blackjack', 10);
+    expect(out).toEqual([]);
+  });
+
+  it('returns empty array when limit <= 0', async () => {
+    await seedLeaderboardFixture();
+    expect(await getTopPlayersForGame('blackjack', 0)).toEqual([]);
+    expect(await getTopPlayersForGame('blackjack', -1)).toEqual([]);
+  });
+
+  it('aggregates rounds per user scoped to the requested game and sorts by netChips desc', async () => {
+    await seedLeaderboardFixture();
+    // Blackjack-only seed (per the fixture): alice +100, +50 ; carol +100, +80, +120, +200
+    const out = await getTopPlayersForGame('blackjack', 10);
+    expect(out).toHaveLength(2);
+    expect(out[0]).toMatchObject({
+      username: 'carol',
+      rounds: 4,
+      netChips: 500,
+      biggestWin: 200,
+    });
+    expect(out[1]).toMatchObject({
+      username: 'alice',
+      rounds: 2,
+      netChips: 150,
+      biggestWin: 100,
+    });
+  });
+
+  it('respects the limit parameter', async () => {
+    await seedLeaderboardFixture();
+    const out = await getTopPlayersForGame('blackjack', 1);
+    expect(out).toHaveLength(1);
+    expect(out[0]!.username).toBe('carol');
+  });
+
+  it('filters by sinceMs when provided (strict greater-than)', async () => {
+    await seedLeaderboardFixture();
+    // alice's blackjack rounds were seeded at playedAt 1000 and 2000.
+    // Drop everything <= 1500 so only the second alice round + carol rounds remain.
+    const out = await getTopPlayersForGame('blackjack', 10, 1500);
+    const alice = out.find((r) => r.username === 'alice');
+    expect(alice?.rounds).toBe(1);
+    expect(alice?.netChips).toBe(50);
+  });
+
+  it('resolves usernames and falls back to <deleted> for missing users', async () => {
+    await db.rounds.add({
+      id: 'ghost-1',
+      userId: 'no-such-user',
+      game: 'slots',
+      betAmount: 10,
+      payout: 0,
+      netChange: -10,
+      outcome: 'loss',
+      details: {},
+      balanceAfter: 0,
+      playedAt: 1000,
+    });
+    const out = await getTopPlayersForGame('slots', 10);
+    expect(out).toHaveLength(1);
+    expect(out[0]!.username).toBe('<deleted>');
+  });
+});
