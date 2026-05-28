@@ -48,4 +48,47 @@ describe('CallBoard', () => {
     expect(board.className).toContain('bg-felt-table-deep');
     expect(board.className).toContain('border-brass/60');
   });
+
+  it('American hero ball is prefixed with its column letter (B-7, G-52, O-72)', () => {
+    // Spread the called list so each test ball lands as the hero (current) one.
+    const cases: Array<[number, string]> = [
+      [7, 'B-7'],
+      [22, 'I-22'],
+      [38, 'N-38'],
+      [52, 'G-52'],
+      [72, 'O-72'],
+    ];
+    for (const [value, expected] of cases) {
+      const { container, unmount } = render(
+        <CallBoard calledSoFar={[value]} callCount={1} variant="american" />,
+      );
+      const hero = container.querySelector('[data-current-ball] [data-bingo-ball]') as HTMLElement;
+      expect(hero).not.toBeNull();
+      expect(hero.textContent).toBe(expected);
+      unmount();
+    }
+  });
+
+  it('British hero ball stays a bare number (no column letter prefix)', () => {
+    const { container } = render(<CallBoard calledSoFar={[77]} callCount={1} variant="british" />);
+    const hero = container.querySelector('[data-current-ball] [data-bingo-ball]') as HTMLElement;
+    expect(hero.textContent).toBe('77');
+    expect(hero.getAttribute('data-ball-letter')).toBeNull();
+  });
+
+  it('American recent-ball chips stay bare numbers (letter prefix only on hero)', () => {
+    // values 5 (B) + 22 (I); only the hero (22) gets the prefix.
+    const { container } = render(
+      <CallBoard calledSoFar={[5, 22]} callCount={2} variant="american" />,
+    );
+    const recent = container.querySelectorAll(
+      '[data-bingo-ball]:not([data-current-ball] [data-bingo-ball])',
+    );
+    // The recent strip should hold the prior call as a bare number.
+    const prior = Array.from(recent).find(
+      (el) => (el as HTMLElement).getAttribute('data-ball-value') === '5',
+    ) as HTMLElement | undefined;
+    expect(prior).toBeDefined();
+    expect(prior!.textContent).toBe('5');
+  });
 });

@@ -41,4 +41,25 @@ describe('CpuCardMini', () => {
     expect(wrapper.className).toContain('bg-felt-table-deep');
     expect(wrapper.className).toContain('border-brass/40');
   });
+
+  it('tier2 label reads "BONUS" for British and "CORNERS" for American', () => {
+    const { rerender } = render(
+      <CpuCardMini
+        cpu={makeCpu('cpu-tier2-b')}
+        cpuIdx={0}
+        variant="british"
+        highlightTier="tier2"
+      />,
+    );
+    expect(screen.getByText(/CPU 1 · BONUS/)).toBeInTheDocument();
+    rerender(
+      <CpuCardMini
+        cpu={makeCpu('cpu-tier2-a')}
+        cpuIdx={0}
+        variant="american"
+        highlightTier="tier2"
+      />,
+    );
+    expect(screen.getByText(/CPU 1 · CORNERS/)).toBeInTheDocument();
+  });
 });
