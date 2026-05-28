@@ -7,6 +7,7 @@ import { dateStringFor, MAIN_PICKS, nextDrawAt } from '@/systems/lottery';
 import type { LotteryDraw } from '@/db';
 import { useEffectiveReducedMotion } from '@/motion/useEffectiveReducedMotion';
 import { useSound } from '@/systems/sound/useSound';
+import { getLastSeenDraw, markDrawSeen } from '@/systems/lottery-unread';
 
 const EMPTY: LotteryDraw | undefined = undefined;
 
@@ -17,17 +18,22 @@ const BALL_STAGGER_MS = 250;
 /**
  * HeroSection — the lottery page's top-of-fold focal point.
  *
- * Pre-draw: ivory eyebrow + giant gold countdown to the next 20:00 boundary.
- * Post-draw: 7 ball slots (6 main + 1 bonus) revealed one at a time with a
- * scale-bounce + gold-glow flash per ball (~250 ms stagger, ~1.75 s total).
- * Reduced-motion: all balls appear simultaneously with no animation; a
- * single batched `ball.drop` plays once rather than per-ball.
+ * Three render states:
+ *  1. **Post-draw, unseen** (`RevealHero`) — today's draw exists in Dexie
+ *     AND the user hasn't seen it before. Renders the 7-ball stagger reveal
+ *     and persists the seen flag via `markDrawSeen` so subsequent mounts
+ *     (tab returns) take state #2 instead of replaying the animation.
+ *  2. **Post-draw, seen** or **pre-draw** (`CountdownHero`) — countdown to
+ *     the next 20:00 boundary with the most-recent draw's numbers rendered
+ *     as a compact static row below. This is what the user sees on revisit.
+ *  3. **No prior draws at all** — `CountdownHero` without the "last draw"
+ *     strip (first-ever launch state).
  *
- * Reveal animation only fires on the FIRST render per `drawId` — subsequent
- * re-renders (countdown tick, store updates) show static balls. Tracked via
- * a `useRef` so re-mounts within the same draw don't re-trigger.
+ * The "seen" flag is per-user localStorage (`lottery-unread.ts`). Reading it
+ * once via `useState` initializer guarantees stable render output for the
+ * lifetime of this mount; the next remount re-reads and picks up the change.
  */
-export default function HeroSection(): JSX.Element {
+export default function HeroSection({ userId }: { userId: string }): JSX.Element {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 1000);
@@ -36,63 +42,43 @@ export default function HeroSection(): JSX.Element {
 
   const today = dateStringFor(now);
   const todayDraw = useLiveQuery(() => db.lotteryDraws.get(today), [today], EMPTY);
+  const lastDraw = useLiveQuery(() => db.lotteryDraws.orderBy('id').reverse().first(), [], EMPTY);
 
   const next = nextDrawAt(now);
   const countdown = formatCountdown(next - now);
 
-  if (todayDraw) {
-    return <PostDraw draw={todayDraw} countdown={countdown} />;
+  // Captured once per mount. The animation path keys off this value, so we
+  // intentionally do NOT update state when we later call markDrawSeen — the
+  // reveal must finish playing on the mount that triggered it.
+  const [seenAtMount] = useState<string | null>(() => getLastSeenDraw(userId));
+
+  useEffect(() => {
+    if (!todayDraw) return;
+    if (seenAtMount === todayDraw.id) return;
+    markDrawSeen(userId, todayDraw.id);
+  }, [todayDraw, seenAtMount, userId]);
+
+  if (todayDraw && seenAtMount !== todayDraw.id) {
+    return <RevealHero draw={todayDraw} countdown={countdown} />;
   }
 
-  return (
-    <section
-      className="rounded-lg border border-brass/60 bg-felt-table-deep p-6 text-center shadow-velvet-panel"
-      data-hero-state="pre-draw"
-    >
-      <p className="mb-2 text-[10px] uppercase tracking-[0.18em] text-ivory/50">Next draw in</p>
-      <p className="font-display text-5xl tabular-nums tracking-wider text-gold-bright">
-        {countdown}
-      </p>
-    </section>
-  );
+  return <CountdownHero countdown={countdown} lastDraw={lastDraw ?? undefined} />;
 }
 
-function PostDraw({ draw, countdown }: { draw: LotteryDraw; countdown: string }): JSX.Element {
+function RevealHero({ draw, countdown }: { draw: LotteryDraw; countdown: string }): JSX.Element {
   const reduce = useEffectiveReducedMotion();
   const { play } = useSound();
 
-  // Persist the last animated drawId so re-renders inside the same day don't
-  // re-trigger the reveal. useState (not useRef) is used to satisfy the
-  // `react-hooks/refs` ESLint rule which forbids reading a ref during render.
-  const [revealedDrawId, setRevealedDrawId] = useState<string | null>(null);
-  const isFirstReveal = revealedDrawId !== draw.id;
-
-  // Cross-system sync: the lottery draw event (which lives in Dexie / the
-  // backfill effect) drives both audio + a "remember I animated this draw"
-  // flag. setState inside this effect is intentional — the alternative is a
-  // useReducer indirection that obscures the simple intent.
-  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
-    if (revealedDrawId === draw.id) return;
-    // Mark animated immediately so subsequent renders (countdown ticks)
-    // see `isFirstReveal === false` and skip the animation path.
-    setRevealedDrawId(draw.id);
     if (reduce) {
-      // One batched sound rather than 7 quick taps.
       play('ball.drop');
       return;
     }
-    // Per-ball sound, paced to match the stagger. setTimeout cadence
-    // matches the visible Framer stagger even under heavy load. We
-    // intentionally do NOT clean up the timers — the 1.75 s reveal window
-    // is short enough that a stray play after an unmount is acceptable.
     const total = MAIN_PICKS + 1;
     for (let i = 0; i < total; i += 1) {
       window.setTimeout(() => play('ball.drop'), i * BALL_STAGGER_MS);
     }
-    return undefined;
-  }, [draw.id, play, reduce, revealedDrawId]);
-  /* eslint-enable react-hooks/set-state-in-effect */
+  }, [draw.id, play, reduce]);
 
   return (
     <section
@@ -110,24 +96,60 @@ function PostDraw({ draw, countdown }: { draw: LotteryDraw; countdown: string })
         data-balls
       >
         {draw.mainNumbers.map((n, i) => (
-          <BigBall
-            key={`m-${i}-${n}`}
-            value={n}
-            color="main"
-            index={i}
-            animate={isFirstReveal && !reduce}
-          />
+          <BigBall key={`m-${i}-${n}`} value={n} color="main" index={i} animate={!reduce} />
         ))}
         <BigBall
           value={draw.bonus}
           color="bonus"
           index={draw.mainNumbers.length}
-          animate={isFirstReveal && !reduce}
+          animate={!reduce}
         />
       </div>
       <p className="font-body text-xs text-ivory/70">
         Next draw in <span className="font-display tabular-nums text-gold-bright">{countdown}</span>
       </p>
+    </section>
+  );
+}
+
+function CountdownHero({
+  countdown,
+  lastDraw,
+}: {
+  countdown: string;
+  lastDraw: LotteryDraw | undefined;
+}): JSX.Element {
+  return (
+    <section
+      className="rounded-lg border border-brass/60 bg-felt-table-deep p-6 text-center shadow-velvet-panel"
+      data-hero-state={lastDraw ? 'post-draw-seen' : 'pre-draw'}
+    >
+      <p className="mb-2 text-[10px] uppercase tracking-[0.18em] text-ivory/50">Next draw in</p>
+      <p className="font-display text-5xl tabular-nums tracking-wider text-gold-bright">
+        {countdown}
+      </p>
+      {lastDraw && (
+        <div
+          className="mt-5 flex flex-col items-center gap-2 border-t border-brass/30 pt-4"
+          data-last-draw
+          data-draw-id={lastDraw.id}
+        >
+          <p className="text-[10px] uppercase tracking-[0.18em] text-ivory/50">
+            Last draw &middot; <span className="tabular-nums">{lastDraw.id}</span>
+          </p>
+          <div
+            className="flex flex-wrap items-center justify-center gap-1.5"
+            role="list"
+            aria-label="Most recent draw numbers"
+            data-last-balls
+          >
+            {lastDraw.mainNumbers.map((n, i) => (
+              <SmallBall key={`lm-${i}-${n}`} value={n} color="main" />
+            ))}
+            <SmallBall value={lastDraw.bonus} color="bonus" />
+          </div>
+        </div>
+      )}
     </section>
   );
 }
@@ -148,7 +170,6 @@ function BigBall({
     ? 'bg-velvet-deep border-jewel-magenta text-gold-bright shadow-[0_0_18px_rgba(232,74,140,0.55)]'
     : 'bg-velvet-deep border-brass text-ivory shadow-[0_0_18px_rgba(212,175,55,0.45)]';
 
-  // Per-ball variants: scale bounce + glow flash. Reduced motion → static.
   const variants = {
     hidden: { scale: 0.6, opacity: 0 },
     visible: {
@@ -180,6 +201,28 @@ function BigBall({
     >
       {value}
     </motion.span>
+  );
+}
+
+function SmallBall({ value, color }: { value: number; color: 'main' | 'bonus' }): JSX.Element {
+  const isBonus = color === 'bonus';
+  const chrome = isBonus
+    ? 'bg-velvet-deep border-jewel-magenta text-gold-bright'
+    : 'bg-velvet-deep border-brass text-ivory';
+  const ariaLabel = isBonus ? `Last bonus ball ${value}` : `Last winning ball ${value}`;
+  return (
+    <span
+      role="listitem"
+      aria-label={ariaLabel}
+      data-small-ball
+      data-ball-color={color}
+      className={[
+        'inline-flex h-8 w-8 items-center justify-center rounded-full border font-display text-xs tabular-nums',
+        chrome,
+      ].join(' ')}
+    >
+      {value}
+    </span>
   );
 }
 

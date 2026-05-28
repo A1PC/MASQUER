@@ -198,7 +198,7 @@ export default function LotteryPage(): JSX.Element | null {
           </span>
         </p>
 
-        <HeroSection />
+        <HeroSection userId={user.id} />
 
         <section className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-3">
           <div className="flex flex-col gap-4 md:col-span-2">
