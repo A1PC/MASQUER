@@ -84,6 +84,25 @@ export default {
           from: { opacity: '1', transform: 'translateX(0)' },
           to: { opacity: '0', transform: 'translateX(calc(100% + 1rem))' },
         },
+        // Slots win-celebration FX (Phase 15 #15 G4 — promoted from a
+        // per-mount `<style dangerouslySetInnerHTML>` block in SlotsPage so
+        // the keyframes register exactly once at build time instead of on
+        // every page mount. ADR-0033 still owns the visual tier mapping.
+        slotsJackpotTint: {
+          '0%': { opacity: '0' },
+          '20%': { opacity: '1' },
+          '100%': { opacity: '0' },
+        },
+        slotsMediumBurst: {
+          '0%': { opacity: '0', transform: 'scale(0.6)' },
+          '40%': { opacity: '1', transform: 'scale(1.1)' },
+          '100%': { opacity: '0', transform: 'scale(1.3)' },
+        },
+        slotsCoinFall: {
+          '0%': { transform: 'translateY(-30px)', opacity: '0' },
+          '20%': { opacity: '1' },
+          '100%': { transform: 'translateY(320px)', opacity: '0' },
+        },
       },
       animation: {
         fadeIn: 'fadeIn 150ms ease-out',
@@ -94,6 +113,12 @@ export default {
         slideOutRight: 'slideOutRight 160ms ease-in',
         toastIn: 'toastIn 200ms ease-out',
         toastOut: 'toastOut 140ms ease-in',
+        // Slots celebrations. `slotsCoinFall` is per-particle so the page
+        // applies a per-instance delay via inline `animationDelay`; the
+        // animation utility supplies the duration + easing + fill-mode.
+        slotsJackpotTint: 'slotsJackpotTint 1500ms ease-out',
+        slotsMediumBurst: 'slotsMediumBurst 800ms ease-out',
+        slotsCoinFall: 'slotsCoinFall 1500ms ease-out forwards',
       },
       boxShadow: {
         // existing neon/gold/roulette shadows kept for current screens
@@ -102,6 +127,7 @@ export default {
         'gold-glow': shadow['gold-glow'],
         'velvet-panel': shadow['velvet-panel'],
         'deco-frame': shadow['deco-frame'],
+        'brass-glow': shadow['brass-glow'],
         'roulette-wheel':
           '0 0 24px rgba(212,175,55,0.6), 0 0 48px rgba(212,175,55,0.35), 0 0 72px rgba(212,175,55,0.15), 0 8px 32px rgba(0,0,0,0.7)',
         'roulette-pulse-red': '0 0 16px 4px rgba(163,18,42,0.85)',
