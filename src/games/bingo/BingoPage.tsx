@@ -86,6 +86,12 @@ export default function BingoPage(): JSX.Element | null {
   // single bridge: each new entry pushes a banner AND plays its associated
   // sound (gated on the prefs-aware `useSound`). Reduced motion does NOT
   // gate audio — players who reduce motion may still want chip cues.
+  //
+  // TODO(#15-followup): the user-tier → sound id mapping below is identical
+  // to the one inlined in Slots/Roulette/Baccarat/Craps. Phase-15 #15.g7
+  // intentionally leaves the inline form here (extracting a shared
+  // `@/systems/sound/winTierSounds.ts` util is PR B scope, not a per-game
+  // cold-look). Audit ref: §2.7 P2.
   useEffect(() => {
     const log = snapshot.context.claimLog;
     if (log.length === 0) {
