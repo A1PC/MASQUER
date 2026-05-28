@@ -40,31 +40,39 @@ function cryptoSeed(): number {
   return buf[0]!;
 }
 
-/** Debounce window for `peg.ping` across all in-flight balls. Plan §A.7
- *  Step 3 — max ~33/sec ceiling so multi-ball auto mode doesn't drown the
- *  player in clicks. */
-const PEG_PING_DEBOUNCE_MS = 30;
+/** Page-level timing tunables (cold-look G9 — phase 15 #15). Grouped here so
+ *  future tuning passes can adjust the cadence in one place; per-field
+ *  comments preserved from the original individual constants. */
+const TIMING = {
+  /** Debounce window for `peg.ping` across all in-flight balls. Plan §A.7
+   *  Step 3 — max ~33/sec ceiling so multi-ball auto mode doesn't drown the
+   *  player in clicks. */
+  PEG_PING_DEBOUNCE_MS: 30,
+  /** Manual-drop cooldown. Prevents stack-clicking visual chaos (spec §4.8). */
+  MANUAL_COOLDOWN_MS: 150,
+  /** Edge-bin celebration cooldown — at most one celebration per ~1 second so
+   *  multi-ball auto mode can't stack 5 coin-showers (spec §8). */
+  CELEBRATION_DEBOUNCE_MS: 1000,
+} as const;
 
-/** Manual-drop cooldown. Prevents stack-clicking visual chaos (spec §4.8). */
-const MANUAL_COOLDOWN_MS = 150;
-
-/** Edge-bin celebration cooldown — at most one celebration per ~1 second so
- *  multi-ball auto mode can't stack 5 coin-showers (spec §8). */
-const CELEBRATION_DEBOUNCE_MS = 1000;
-
-/** Stylable coin-shower particle for edge-bin celebrations. */
+/** Stylable coin-shower particle for edge-bin celebrations.
+ *  `data-testid` is the canonical hook for Plinko's celebration tests
+ *  (renamed from `data-coin-shower` in G9 for testid convention parity). */
 function CoinShower({ active }: { active: boolean }): JSX.Element | null {
   if (!active) return null;
   const particles = Array.from({ length: 20 }, (_, i) => i);
   return (
-    <div className="pointer-events-none absolute inset-0 z-30 overflow-hidden" data-coin-shower>
+    <div
+      className="pointer-events-none absolute inset-0 z-30 overflow-hidden"
+      data-testid="plinko-coin-shower"
+    >
       {particles.map((i) => {
         const left = ((i * 53) % 100) + ((i % 3) * 4 - 4);
         const delay = (i % 7) * 0.05;
         return (
           <motion.span
             key={i}
-            className="absolute h-2 w-2 rounded-full bg-gold-bright shadow-[0_0_5px_rgba(232,189,109,0.85)]"
+            className="absolute h-2 w-2 rounded-full bg-gold-bright shadow-brass-glow"
             style={{ left: `${left}%`, top: '-2%' }}
             initial={{ y: 0, opacity: 0 }}
             animate={{ y: ['0%', '120%'], opacity: [0, 1, 0] }}
@@ -123,7 +131,7 @@ export default function PlinkoPage(): JSX.Element | null {
   const lastPegPingAtRef = useRef<number>(0);
   const handlePegHit = useCallback(() => {
     const now = performance.now();
-    if (now - lastPegPingAtRef.current < PEG_PING_DEBOUNCE_MS) return;
+    if (now - lastPegPingAtRef.current < TIMING.PEG_PING_DEBOUNCE_MS) return;
     lastPegPingAtRef.current = now;
     play('peg.ping');
   }, [play]);
@@ -155,7 +163,10 @@ export default function PlinkoPage(): JSX.Element | null {
     if (manualCooldown) return;
     setManualCooldown(true);
     if (cooldownTimeoutRef.current) clearTimeout(cooldownTimeoutRef.current);
-    cooldownTimeoutRef.current = setTimeout(() => setManualCooldown(false), MANUAL_COOLDOWN_MS);
+    cooldownTimeoutRef.current = setTimeout(
+      () => setManualCooldown(false),
+      TIMING.MANUAL_COOLDOWN_MS,
+    );
     const result = await placeBet(pendingBet, { min: BET_MIN, max: BET_MAX });
     if (!result.ok) return;
     play('chip.place');
@@ -255,7 +266,7 @@ export default function PlinkoPage(): JSX.Element | null {
         const isHighEdge = isEdge && ball.risk === 'high';
         if (isHighEdge) {
           const now = performance.now();
-          if (now - lastCelebrationAtRef.current >= CELEBRATION_DEBOUNCE_MS) {
+          if (now - lastCelebrationAtRef.current >= TIMING.CELEBRATION_DEBOUNCE_MS) {
             lastCelebrationAtRef.current = now;
             if (!reduceMotion) {
               setCelebrationActive(true);
