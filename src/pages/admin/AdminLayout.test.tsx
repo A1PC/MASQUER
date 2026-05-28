@@ -27,6 +27,7 @@ function renderLayoutAt(initial: string) {
           { path: 'baccarat', element: <div>baccarat content</div> },
           { path: 'craps', element: <div>craps content</div> },
           { path: 'blackjack', element: <div>blackjack content</div> },
+          { path: 'coin-flip', element: <div>coin-flip content</div> },
           { path: 'lottery', element: <div>lottery content</div> },
           { path: 'bingo', element: <div>bingo content</div> },
         ],
@@ -233,5 +234,20 @@ describe('AdminLayout', () => {
     const link = screen.getByRole('link', { name: /^blackjack$/i });
     expect(link).toHaveAttribute('aria-current', 'page');
     expect(screen.getByText('blackjack content')).toBeInTheDocument();
+  });
+
+  it('renders the Coin-flip nav link pointing to /admin/coin-flip', () => {
+    renderLayoutAt('/admin');
+    expect(screen.getByRole('link', { name: /^coin-flip$/i })).toHaveAttribute(
+      'href',
+      '/admin/coin-flip',
+    );
+  });
+
+  it('marks the Coin-flip nav link active on /admin/coin-flip', () => {
+    renderLayoutAt('/admin/coin-flip');
+    const link = screen.getByRole('link', { name: /^coin-flip$/i });
+    expect(link).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByText('coin-flip content')).toBeInTheDocument();
   });
 });

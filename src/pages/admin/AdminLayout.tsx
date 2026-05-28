@@ -17,6 +17,7 @@ const NAV_ITEMS = [
   { to: '/admin/craps', label: 'Craps', end: false },
   { to: '/admin/plinko', label: 'Plinko', end: false },
   { to: '/admin/baccarat', label: 'Baccarat', end: false },
+  { to: '/admin/coin-flip', label: 'Coin-flip', end: false },
 ] as const;
 
 export default function AdminLayout(): JSX.Element {
