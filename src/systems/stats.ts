@@ -603,6 +603,15 @@ export interface RouletteAllTimeStats {
   highCount: number;
   dozenCounts: [number, number, number];
   columnCounts: [number, number, number];
+  // Phase 15 #14.5 PR B — additive KPIs (see spec §4.3.3).
+  /** Average payout per spin (rounded). 0 when no spins. */
+  avgSpinPayout: number;
+  /** Most-hit pocket (0..36) across all spins, null when no spins. */
+  hotNumber: number | null;
+  /** Least-hit pocket (0..36) across spun rounds, null when no spins. */
+  coldNumber: number | null;
+  /** Biggest single-spin net win. 0 when no positive spins. */
+  biggestSingleWin: number;
 }
 
 /** Column membership of each number per BUILD_GUIDE §8.2.
@@ -639,14 +648,21 @@ export async function getRouletteAllTimeStats(sinceMs?: number): Promise<Roulett
   let highCount = 0;
   const dozenCounts: [number, number, number] = [0, 0, 0];
   const columnCounts: [number, number, number] = [0, 0, 0];
+  // Phase 15 #14.5 PR B — additive KPI accumulators.
+  let totalPayout = 0;
+  let biggestSingleWin = 0;
+  const numberCounts = new Array<number>(37).fill(0);
 
   for (const r of rows) {
     const d = r.details as RouletteRoundDetails | undefined;
     if (!d?.spin) continue;
     ballsSpun += 1;
     netHouseChips += r.betAmount - r.payout;
+    totalPayout += r.payout;
+    if (r.netChange > biggestSingleWin) biggestSingleWin = r.netChange;
     const n = d.spin.number;
     const c = d.spin.color;
+    numberCounts[n]! += 1;
     if (c === 'red') redCount += 1;
     else if (c === 'black') blackCount += 1;
     else greenCount += 1;
@@ -659,6 +675,27 @@ export async function getRouletteAllTimeStats(sinceMs?: number): Promise<Roulett
       if (dz > 0) dozenCounts[dz - 1]! += 1;
       const col = columnOf(n);
       if (col > 0) columnCounts[col - 1]! += 1;
+    }
+  }
+
+  // Hot/cold across all pockets (incl. 0) — picks the FIRST extremum to keep
+  // output deterministic when multiple pockets tie.
+  let hotNumber: number | null = null;
+  let coldNumber: number | null = null;
+  if (ballsSpun > 0) {
+    let maxCount = -1;
+    let minCount = Number.POSITIVE_INFINITY;
+    for (let i = 0; i < 37; i += 1) {
+      const c = numberCounts[i]!;
+      if (c > maxCount) {
+        maxCount = c;
+        hotNumber = i;
+      }
+      // For cold, only consider pockets that actually got spun OR all zeros.
+      if (c < minCount) {
+        minCount = c;
+        coldNumber = i;
+      }
     }
   }
 
@@ -676,6 +713,10 @@ export async function getRouletteAllTimeStats(sinceMs?: number): Promise<Roulett
     highCount,
     dozenCounts,
     columnCounts,
+    avgSpinPayout: ballsSpun > 0 ? Math.round(totalPayout / ballsSpun) : 0,
+    hotNumber,
+    coldNumber,
+    biggestSingleWin,
   };
 }
 
@@ -731,6 +772,16 @@ export interface SlotsAllTimeStats {
   };
   /** Alias for tierCounts.jackpot — used by the headline stat card. */
   jackpotsHit: number;
+  // Phase 15 #14.5 PR B — additive KPIs (see spec §4.3.3).
+  /** Average payout per spin (rounded). 0 when no spins. */
+  avgPayout: number;
+  /** Average spin cost / betAmount (rounded). 0 when no spins. */
+  avgSpinCost: number;
+  /** Biggest single-spin net win. 0 when no positive spins. */
+  biggestSingleWin: number;
+  /** Average spins per session — degraded proxy as session-id isn't
+   *  derivable from slots rounds; reports total spinsRun as a stand-in. */
+  avgSessionLength: number;
 }
 
 export async function getSlotsAllTimeStats(sinceMs?: number): Promise<SlotsAllTimeStats> {
@@ -740,12 +791,14 @@ export async function getSlotsAllTimeStats(sinceMs?: number): Promise<SlotsAllTi
   let totalWagered = 0;
   let totalPaid = 0;
   const tierCounts = { none: 0, small: 0, medium: 0, jackpot: 0 };
+  let biggestSingleWin = 0;
   for (const r of rows) {
     const d = r.details as SlotsRoundDetails | undefined;
     if (!d?.spin) continue;
     spinsRun += 1;
     totalWagered += r.betAmount;
     totalPaid += r.payout;
+    if (r.netChange > biggestSingleWin) biggestSingleWin = r.netChange;
     const tier = d.winTier ?? 'none';
     if (tier in tierCounts) tierCounts[tier] += 1;
   }
@@ -761,6 +814,11 @@ export async function getSlotsAllTimeStats(sinceMs?: number): Promise<SlotsAllTi
     targetRtp: 0.86,
     tierCounts,
     jackpotsHit: tierCounts.jackpot,
+    // Phase 15 #14.5 PR B — additive KPIs.
+    avgPayout: spinsRun > 0 ? Math.round(totalPaid / spinsRun) : 0,
+    avgSpinCost: spinsRun > 0 ? Math.round(totalWagered / spinsRun) : 0,
+    biggestSingleWin,
+    avgSessionLength: spinsRun,
   };
 }
 
