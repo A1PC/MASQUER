@@ -69,7 +69,9 @@ export default function SetupPanel({
       </p>
 
       <section>
-        <h3 className="mb-2 font-display text-[11px] tracking-[0.18em] text-gold">DIFFICULTY</h3>
+        <h3 className="mb-2 font-display text-[11px] tracking-[0.18em] text-gold-bright">
+          DIFFICULTY
+        </h3>
         <div role="radiogroup" aria-label="Difficulty" className="grid grid-cols-3 gap-2">
           {(['easy', 'medium', 'hard'] as const).map((d) => {
             const dcfg = resolvedConfigs[d];
@@ -81,8 +83,8 @@ export default function SetupPanel({
                 role="radio"
                 aria-checked={selected}
                 onClick={() => onDifficultyChange(d)}
-                className={`min-h-[44px] rounded-md border p-3 text-center transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold ${
-                  selected ? 'border-gold bg-gold/20' : 'border-brass/40 hover:border-brass'
+                className={`min-h-[44px] rounded-md border p-3 text-center transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brass ${
+                  selected ? 'border-brass bg-gold/20' : 'border-brass/40 hover:border-brass'
                 }`}
               >
                 <div
@@ -103,7 +105,7 @@ export default function SetupPanel({
       </section>
 
       <section>
-        <h3 className="mb-2 font-display text-[11px] tracking-[0.18em] text-gold">SPEED</h3>
+        <h3 className="mb-2 font-display text-[11px] tracking-[0.18em] text-gold-bright">SPEED</h3>
         <div role="radiogroup" aria-label="Call speed" className="flex gap-2">
           {(['slow', 'normal', 'fast'] as const).map((s) => (
             <button
@@ -113,9 +115,9 @@ export default function SetupPanel({
               aria-checked={speed === s}
               onClick={() => onSpeedChange(s)}
               className={[
-                'min-h-[44px] flex-1 rounded-md border px-3 py-2 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold',
+                'min-h-[44px] flex-1 rounded-md border px-3 py-2 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brass',
                 speed === s
-                  ? 'border-gold bg-gold text-velvet-deep'
+                  ? 'border-brass bg-gold text-velvet-deep'
                   : 'border-brass/40 bg-felt-table-deep text-ivory/70 hover:border-brass',
               ].join(' ')}
             >
@@ -126,7 +128,9 @@ export default function SetupPanel({
       </section>
 
       <section>
-        <h3 className="mb-2 font-display text-[11px] tracking-[0.18em] text-gold">DAUB MODE</h3>
+        <h3 className="mb-2 font-display text-[11px] tracking-[0.18em] text-gold-bright">
+          DAUB MODE
+        </h3>
         <div role="radiogroup" aria-label="Daub mode" className="flex gap-2">
           {(['auto', 'manual'] as const).map((m) => {
             const selected = effectiveDaubMode === m;
@@ -141,11 +145,11 @@ export default function SetupPanel({
                 onClick={() => !disabled && onDaubModeChange(m)}
                 {...(disabled ? { title: 'This difficulty requires manual daub' } : {})}
                 className={[
-                  'min-h-[44px] flex-1 rounded-md border px-3 py-2 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold',
+                  'min-h-[44px] flex-1 rounded-md border px-3 py-2 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brass',
                   disabled
                     ? 'cursor-not-allowed border-brass/30 text-ivory/30 opacity-40'
                     : selected
-                      ? 'border-gold bg-gold text-velvet-deep'
+                      ? 'border-brass bg-gold text-velvet-deep'
                       : 'border-brass/40 bg-felt-table-deep text-ivory/70 hover:border-brass',
                 ].join(' ')}
               >
@@ -155,7 +159,9 @@ export default function SetupPanel({
           })}
         </div>
         {cfg.forceManual && (
-          <p className="mt-1 text-[10px] text-gold/70">This difficulty requires manual daub.</p>
+          <p className="mt-1 text-[10px] text-gold-bright/70">
+            This difficulty requires manual daub.
+          </p>
         )}
       </section>
 
@@ -180,7 +186,7 @@ export default function SetupPanel({
         type="button"
         onClick={onBuyAndStart}
         disabled={!canAfford}
-        className="mt-2 min-h-[44px] w-full rounded-md border-2 border-gold bg-velvet py-3 font-display text-sm tracking-[0.18em] text-ivory hover:bg-velvet-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold disabled:cursor-not-allowed disabled:opacity-40"
+        className="mt-2 min-h-[44px] w-full rounded-md border-2 border-brass bg-velvet py-3 font-display text-sm tracking-[0.18em] text-gold-bright hover:bg-velvet-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brass disabled:cursor-not-allowed disabled:opacity-40"
       >
         BUY &amp; PLAY ({BUY_IN})
       </button>

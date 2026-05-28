@@ -13,7 +13,7 @@ export default function BingoRules(): JSX.Element {
   return (
     <div className="space-y-4">
       <section>
-        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold">OBJECT</h3>
+        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold-bright">OBJECT</h3>
         <p className="text-ivory/85">
           Match the called numbers on your card. Be first to claim a tier — each tier pays once per
           game, then play continues for the next. Tier-1 + tier-2 bonuses pay only when{' '}
@@ -23,7 +23,7 @@ export default function BingoRules(): JSX.Element {
       </section>
 
       <section>
-        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold">VARIANTS</h3>
+        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold-bright">VARIANTS</h3>
         <div className="space-y-2 text-ivory/85">
           <p>
             <strong>British (90-ball)</strong> &mdash; 3&times;9 grid, 15 numbered cells per card.
@@ -50,7 +50,7 @@ export default function BingoRules(): JSX.Element {
       </section>
 
       <section>
-        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold">TIERS</h3>
+        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold-bright">TIERS</h3>
         <table className="w-full text-left text-xs">
           <thead>
             <tr className="border-b border-brass/40 text-ivory/60">
@@ -85,7 +85,7 @@ export default function BingoRules(): JSX.Element {
       </section>
 
       <section>
-        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold">DAUB MODE</h3>
+        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold-bright">DAUB MODE</h3>
         <p className="text-ivory/85">
           <strong>AUTO</strong> &mdash; cells daub automatically when their number is called.{' '}
           <strong>MANUAL</strong> &mdash; tap each called cell yourself before it counts. Hard
@@ -94,7 +94,7 @@ export default function BingoRules(): JSX.Element {
       </section>
 
       <section>
-        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold">DIFFICULTY</h3>
+        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold-bright">DIFFICULTY</h3>
         <p className="text-ivory/85">
           <strong>Easy</strong> 2 CPUs &middot; pot &times;2 &middot; <strong>Medium</strong> 5 CPUs
           &middot; pot &times;4 &middot; <strong>Hard</strong> 9 CPUs &middot; pot &times;8. Higher
@@ -104,7 +104,9 @@ export default function BingoRules(): JSX.Element {
       </section>
 
       <section>
-        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold">RACE TO CLAIM</h3>
+        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold-bright">
+          RACE TO CLAIM
+        </h3>
         <p className="text-ivory/85">
           Each tier prize goes to whoever calls it first &mdash; you or a CPU. Tier-1 + tier-2
           bonuses pay only when <strong>you</strong> win them; tier-3 is the pot itself. All bonuses
@@ -113,7 +115,9 @@ export default function BingoRules(): JSX.Element {
       </section>
 
       <section>
-        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold">REDUCED MOTION</h3>
+        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold-bright">
+          REDUCED MOTION
+        </h3>
         <p className="text-ivory/85">
           Animations collapse to instant when your OS or in-app preference asks for reduced motion.
           The game stays fully playable.
