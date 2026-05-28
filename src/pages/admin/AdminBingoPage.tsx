@@ -10,12 +10,16 @@ import DateRangeFilter, {
   rangeToSinceMs,
   type RangePreset,
 } from '@/components/admin/DateRangeFilter';
+import TopPlayersPanel from '@/components/admin/TopPlayersPanel';
+import BingoCallCountHistogram from '@/components/charts/BingoCallCountHistogram';
 import {
   getBingoAllTimeStats,
   getBingoBallsToBingo,
+  getBingoCallCountHistogram,
   getBingoVariantDifficultyDistribution,
   type BingoAllTimeStats,
   type BingoBallsToBingo,
+  type BingoCallCountBin,
   type BingoDifficulty,
   type BingoVariant,
   type BingoVariantDifficultyCount,
@@ -320,10 +324,14 @@ const EMPTY_STATS: BingoAllTimeStats = {
   doubleLineWins: 0,
   totalBonusesPaid: 0,
   totalPotsWonByPlayer: 0,
+  // Phase 15 #14.5 PR B — additive KPI defaults.
+  avgCallCount: null,
+  biggestSingleWin: 0,
 };
 const EMPTY_DIST: readonly BingoVariantDifficultyCount[] = [];
 const EMPTY_BALLS: readonly BingoBallsToBingo[] = [];
 const EMPTY_ROUNDS: readonly Round[] = [];
+const EMPTY_CALL_HIST: readonly BingoCallCountBin[] = [];
 
 interface MiniBarProps {
   label: string;
@@ -400,6 +408,12 @@ function AdminBingoStats(): JSX.Element {
   const stats = useLiveQuery(() => getBingoAllTimeStats(sinceMs), [sinceMs], EMPTY_STATS);
   const distribution = useLiveQuery(() => getBingoVariantDifficultyDistribution(), [], EMPTY_DIST);
   const ballsToBingo = useLiveQuery(() => getBingoBallsToBingo(), [], EMPTY_BALLS);
+  // Phase 15 #14.5 PR B — additive call-count histogram for the new chart.
+  const callHist = useLiveQuery(
+    () => getBingoCallCountHistogram(sinceMs),
+    [sinceMs],
+    EMPTY_CALL_HIST,
+  );
   // Load-all + sort by playedAt desc + slice(20) — #250 pattern; do NOT use
   // `.where(...).reverse().limit(...)` (ties-break by primary key, not
   // chronologically).
@@ -629,6 +643,50 @@ function AdminBingoStats(): JSX.Element {
           size, not the player&apos;s 1&ndash;4-card pick.
         </p>
       </section>
+
+      {/* Phase 15 #14.5 PR B — NEW additive sections (KPI grid + call-count
+          histogram + per-user drill-down). None of the existing top StatCards
+          / hero chart / bonus economics / recent table is modified or moved. */}
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-5" data-admin-kpi-grid>
+        <StatCard
+          label="Avg call count"
+          value={stats.avgCallCount === null ? '—' : stats.avgCallCount.toLocaleString()}
+        />
+        <StatCard
+          label="Fast-bingo rate"
+          value={
+            stats.playerTier3Wins === 0 ? '—' : `${(stats.fastBingoHitRate * 100).toFixed(1)}%`
+          }
+        />
+        <StatCard
+          label="Per-difficulty house edge"
+          value={stats.actualRtp === null ? '—' : `${(100 - stats.actualRtp * 100).toFixed(1)}%`}
+          sub="aggregate house edge"
+        />
+        <StatCard
+          label="Avg session length"
+          value={stats.avgCallCount === null ? '—' : `${stats.avgCallCount} calls`}
+        />
+        <StatCard
+          label="Biggest single win"
+          value={stats.biggestSingleWin === 0 ? '—' : `+${stats.biggestSingleWin.toLocaleString()}`}
+        />
+      </div>
+
+      <section aria-label="Bingo call-count histogram">
+        <h3 className="mb-2 font-display text-xs tracking-[0.18em] text-ivory/60">
+          CALL-COUNT DISTRIBUTION
+        </h3>
+        <div className="rounded-md border border-brass/60 bg-velvet-deep p-4">
+          {gamesPlayed === 0 ? (
+            <p className="py-4 text-center text-xs text-ivory/40">No call-count data yet.</p>
+          ) : (
+            <BingoCallCountHistogram data={callHist} />
+          )}
+        </div>
+      </section>
+
+      <TopPlayersPanel game="bingo" {...(sinceMs !== undefined ? { sinceMs } : {})} />
     </div>
   );
 }

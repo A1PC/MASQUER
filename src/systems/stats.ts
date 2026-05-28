@@ -892,6 +892,17 @@ export interface BaccaratAllTimeStats {
   /** Dragon = winner won by ≥ 4 with a non-natural. */
   playerDragons: number;
   bankerDragons: number;
+  // Phase 15 #14.5 PR B — additive KPIs (see spec §4.3.3).
+  /** playerWins / roundsPlayed. null when no rounds. */
+  playerWinRate: number | null;
+  /** bankerWins / roundsPlayed. null when no rounds. */
+  bankerWinRate: number | null;
+  /** ties / roundsPlayed. null when no rounds. */
+  tieRate: number | null;
+  /** Mean `totalCards` across all rounds (proxy for shoe-length). null when no rounds. */
+  avgShoeLength: number | null;
+  /** Biggest single round net win. 0 when no positive rounds. */
+  biggestSingleWin: number;
 }
 
 export async function getBaccaratAllTimeStats(sinceMs?: number): Promise<BaccaratAllTimeStats> {
@@ -911,12 +922,15 @@ export async function getBaccaratAllTimeStats(sinceMs?: number): Promise<Baccara
   let smallCount = 0;
   let playerDragons = 0;
   let bankerDragons = 0;
+  let totalCardsSum = 0;
+  let biggestSingleWin = 0;
   for (const r of rows) {
     const d = r.details as PersistedBaccaratDetails | undefined;
     if (!d?.winner) continue;
     roundsPlayed += 1;
     totalWagered += r.betAmount;
     totalPaid += r.payout;
+    if (r.netChange > biggestSingleWin) biggestSingleWin = r.netChange;
     if (d.winner === 'player') playerWins += 1;
     else if (d.winner === 'banker') bankerWins += 1;
     else ties += 1;
@@ -927,6 +941,7 @@ export async function getBaccaratAllTimeStats(sinceMs?: number): Promise<Baccara
     // Big = 5–6 cards (one side took a third); Small = 4 cards (both stood).
     if (d.totalCards === 4) smallCount += 1;
     else if (d.totalCards >= 5) bigCount += 1;
+    totalCardsSum += d.totalCards;
     // Dragon = winning side wins by ≥ 4 with a non-natural.
     if (d.margin >= 4 && !d.winnerNatural) {
       if (d.winner === 'player') playerDragons += 1;
@@ -953,6 +968,12 @@ export async function getBaccaratAllTimeStats(sinceMs?: number): Promise<Baccara
     smallCount,
     playerDragons,
     bankerDragons,
+    // Phase 15 #14.5 PR B — additive KPIs (see spec §4.3.3).
+    playerWinRate: roundsPlayed > 0 ? playerWins / roundsPlayed : null,
+    bankerWinRate: roundsPlayed > 0 ? bankerWins / roundsPlayed : null,
+    tieRate: roundsPlayed > 0 ? ties / roundsPlayed : null,
+    avgShoeLength: roundsPlayed > 0 ? Math.round((totalCardsSum / roundsPlayed) * 10) / 10 : null,
+    biggestSingleWin,
   };
 }
 
@@ -1087,6 +1108,11 @@ export interface BingoAllTimeStats {
   totalBonusesPaid: number;
   /** Sum of `pot` across games the player won (tier-3 take). */
   totalPotsWonByPlayer: number;
+  // Phase 15 #14.5 PR B — additive KPIs (see spec §4.3.3).
+  /** Mean `finalCallCount` across all settled games. null when no games. */
+  avgCallCount: number | null;
+  /** Biggest single net win across games. 0 when no positive wins. */
+  biggestSingleWin: number;
 }
 
 export async function getBingoAllTimeStats(sinceMs?: number): Promise<BingoAllTimeStats> {
@@ -1102,6 +1128,8 @@ export async function getBingoAllTimeStats(sinceMs?: number): Promise<BingoAllTi
   let doubleLineWins = 0;
   let totalBonusesPaid = 0;
   let totalPotsWonByPlayer = 0;
+  let callCountSum = 0;
+  let biggestSingleWin = 0;
 
   for (const r of rows) {
     if (!isBingoDetails(r.details)) continue;
@@ -1109,6 +1137,8 @@ export async function getBingoAllTimeStats(sinceMs?: number): Promise<BingoAllTi
     gamesPlayed += 1;
     totalWagered += r.betAmount;
     totalPaid += r.payout;
+    if (r.netChange > biggestSingleWin) biggestSingleWin = r.netChange;
+    callCountSum += d.finalCallCount;
     if (d.userTier3) {
       playerTier3Wins += 1;
       totalPotsWonByPlayer += d.pot;
@@ -1139,6 +1169,9 @@ export async function getBingoAllTimeStats(sinceMs?: number): Promise<BingoAllTi
     doubleLineWins,
     totalBonusesPaid,
     totalPotsWonByPlayer,
+    // Phase 15 #14.5 PR B — additive KPIs (see spec §4.3.3).
+    avgCallCount: gamesPlayed > 0 ? Math.round(callCountSum / gamesPlayed) : null,
+    biggestSingleWin,
   };
 }
 
@@ -1211,6 +1244,41 @@ export async function getBingoBallsToBingo(): Promise<BingoBallsToBingo[]> {
       averageCalls: count > 0 ? total / count : null,
     };
   });
+}
+
+// Phase 15 #14.5 PR B — additive call-count histogram. Buckets every
+// settled bingo game's `finalCallCount` into 10-call-wide bins (0-9,
+// 10-19, …, 80+). Each bin is always returned so the histogram has a
+// fixed x-axis.
+export interface BingoCallCountBin {
+  /** Inclusive lower bound (multiples of 10). */
+  binMin: number;
+  /** Inclusive upper bound (binMin + 9, or `Infinity` for the catch-all). */
+  binMax: number;
+  count: number;
+}
+
+export async function getBingoCallCountHistogram(sinceMs?: number): Promise<BingoCallCountBin[]> {
+  let rows = await db.rounds.where('game').equals('bingo').toArray();
+  if (sinceMs !== undefined) rows = rows.filter((r) => r.playedAt > sinceMs);
+  const BINS: BingoCallCountBin[] = [
+    { binMin: 0, binMax: 9, count: 0 },
+    { binMin: 10, binMax: 19, count: 0 },
+    { binMin: 20, binMax: 29, count: 0 },
+    { binMin: 30, binMax: 39, count: 0 },
+    { binMin: 40, binMax: 49, count: 0 },
+    { binMin: 50, binMax: 59, count: 0 },
+    { binMin: 60, binMax: 69, count: 0 },
+    { binMin: 70, binMax: 79, count: 0 },
+    { binMin: 80, binMax: Number.POSITIVE_INFINITY, count: 0 },
+  ];
+  for (const r of rows) {
+    if (!isBingoDetails(r.details)) continue;
+    const calls = r.details.finalCallCount;
+    const idx = Math.min(Math.floor(calls / 10), BINS.length - 1);
+    BINS[idx]!.count += 1;
+  }
+  return BINS;
 }
 
 // ─── Phase 15 #11 — Plinko all-time admin stats ───────────────────────
