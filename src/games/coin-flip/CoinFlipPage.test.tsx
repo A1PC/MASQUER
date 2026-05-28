@@ -70,8 +70,15 @@ describe('CoinFlipPage', () => {
     renderPage();
     await userEvent.click(screen.getByLabelText('Add 25 chips to bet'));
     await userEvent.click(screen.getByText(/PLACE BET/));
-    expect(screen.getByRole('button', { name: /^Heads$/i })).toBeEnabled();
-    expect(play).toHaveBeenCalledWith('chip.place');
+    // The PLACE BET click drives an async wallet.placeBet round-trip; under
+    // CI load the Heads-button enable and the chip.place sound can settle a
+    // tick after the synchronous click resolves. Both must be polled.
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /^Heads$/i })).toBeEnabled();
+    });
+    await waitFor(() => {
+      expect(play).toHaveBeenCalledWith('chip.place');
+    });
   });
 
   it('settling a winning round writes a rounds row, plays coin.flip + win.small, increments streak', async () => {
