@@ -66,24 +66,23 @@ rather than a rewrite — the body stays as the historical record.
 
 ## Phase 15 overhaul conventions (still apply post-v1.0)
 
-Phase 15 was the complete UI/UX overhaul + polish + per-game feature additions
+Phase 15 was the complete UI/UX overhaul, polish, per-game feature additions,
+admin expansion, and brand rename — decomposed into 16 dependency-ordered
+sub-projects. All 16 shipped at v1.0. The umbrella roadmap
+(`docs/superpowers/specs/2026-05-22-phase-15-umbrella-roadmap-design.md`) is
+the historical source of truth; the per-game recipe lives in
+`docs/PHASE_15_PATTERNS.md`. Every new screen / feature post-v1.0 should
+continue to follow these rules:
 
-- admin expansion + brand rename, decomposed into 16 dependency-ordered
-  sub-projects. All 16 shipped (v1.0). The umbrella roadmap
-  (`docs/superpowers/specs/2026-05-22-phase-15-umbrella-roadmap-design.md`) is
-  the historical source of truth; the per-game recipe lives in
-  `docs/PHASE_15_PATTERNS.md`. Every new screen / feature post-v1.0 should
-  continue to follow these rules:
-
-* **Build UI from the shared design-system primitives** — do not hand-roll
+- **Build UI from the shared design-system primitives** — do not hand-roll
   one-off components per screen.
-* **Tokens only — no hard-coded hex** in components. Colors, type, and
+- **Tokens only — no hard-coded hex** in components. Colors, type, and
   spacing come from `src/theme/tokens.ts` + the tailwind config (this is
   already a CLAUDE.md rule; the overhaul made it real).
-* **`useSound` is the only sound integration point.** Games call the hook —
+- **`useSound` is the only sound integration point.** Games call the hook —
   never embed `<audio>` directly. Volume + mute live in the Settings page and
   persist.
-* **`prefers-reduced-motion` is honored everywhere** via
+- **`prefers-reduced-motion` is honored everywhere** via
   `useEffectiveReducedMotion` — every animated surface has an instant /
   eased-down fallback. Reuse the shared Framer-Motion variant library rather
   than bespoke transitions.
