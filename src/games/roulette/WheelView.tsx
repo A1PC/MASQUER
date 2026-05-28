@@ -24,10 +24,14 @@ export interface WheelProps {
 
 // ─── Geometry constants ──────────────────────────────────────────────────────
 
+// Pocket-fill CSS vars resolve at paint time against `:root` (the var block
+// is declared by `RoulettePage`). This keeps the wheel, the felt
+// (`BettingLayout.tsx`), and the recent-items badges (`RoulettePage.tsx`)
+// in lock-step so a brand retune of the pocket palette touches one block.
 const POCKET_FILL: Record<PocketColor, string> = {
-  red: '#a3122a',
-  black: '#1a1a1a',
-  green: '#3dd17a',
+  red: 'var(--brand-roulette-red)',
+  black: 'var(--brand-roulette-black)',
+  green: 'var(--brand-roulette-green)',
 };
 
 const WHEEL_SIZE = 320;

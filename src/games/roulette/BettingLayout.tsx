@@ -30,13 +30,14 @@ function cellNumber(visualCol: number, row: number): number {
   return 3 * visualCol - (row - 1);
 }
 
-// Tokens (Phase 15 #6) — match the wheel pocket colours via tailwind theme so
-// the felt and the wheel stay in lock-step. Raw hex values intentionally
-// mirror the `roulette-pocket-*` keys in `tailwind.config.ts`.
+// Pocket-colour CSS vars — declared once on `:root` by `RoulettePage` so the
+// felt, `WheelView`'s POCKET_FILL, and the recent-items badges all reference
+// the same source of truth (Phase 15 #15.g3 cold-look polish). Same
+// retune-once pattern as Slots' `--brand-jewel-magenta`.
 const CELL_FILLS: Record<'red' | 'black' | 'green', string> = {
-  red: '#a3122a', // roulette.pocket-red
-  black: '#1a1a1a', // roulette.pocket
-  green: '#3dd17a', // roulette.pocket-green
+  red: 'var(--brand-roulette-red)',
+  black: 'var(--brand-roulette-black)',
+  green: 'var(--brand-roulette-green)',
 };
 
 type OverlayDef =

@@ -10,6 +10,7 @@ import { useBalance, useWalletStore } from '@/store/walletStore';
 import { useRecentRounds } from '@/systems/hooks/useRecentRounds';
 import { useSound } from '@/systems/sound/useSound';
 import { useEffectiveReducedMotion } from '@/motion/useEffectiveReducedMotion';
+import { formatChips } from '@/lib/formatChips';
 import type { RecentResultItem } from '@/games/_shared/RecentResults';
 import BettingLayout from './BettingLayout';
 import ChipSelector from './ChipSelector';
@@ -19,9 +20,15 @@ import { rouletteMachine } from './machine';
 import { ROULETTE_CONFIG, type ChipDenomination } from './config';
 import type { RouletteRoundDetails } from './types';
 
-const POCKET_RED = '#a3122a';
-const POCKET_BLACK = '#1a1a1a';
-const POCKET_GREEN = '#3dd17a';
+// Pocket-colour CSS vars are declared on :root by the <style> block below
+// so the recent-items badges, WheelView's POCKET_FILL, and BettingLayout's
+// CELL_FILLS all reference one source of truth. Same pattern as Slots'
+// `--brand-jewel-magenta`, Baccarat's `--brand-scoreboard-*`, and Coin-flip's
+// `--brand-coin-*` — a future brand retune touches one block.
+const POCKET_RED_VAR = 'var(--brand-roulette-red)';
+const POCKET_BLACK_VAR = 'var(--brand-roulette-black)';
+const POCKET_GREEN_VAR = 'var(--brand-roulette-green)';
+const POCKET_BADGE_INK_VAR = 'var(--brand-felt-table-deep)';
 const TIMER_RING_SIZE = 56;
 const TIMER_RING_STROKE = 4;
 const TIMER_RING_RADIUS = (TIMER_RING_SIZE - TIMER_RING_STROKE) / 2;
@@ -129,7 +136,9 @@ export default function RoulettePage(): JSX.Element | null {
               },
             });
           }
-          console.warn('Roulette spin: placeBet failed', result.error);
+          if (import.meta.env.DEV) {
+            console.warn('Roulette spin: placeBet failed', result.error);
+          }
           break;
         }
         newHandles.push([bet.key, result.handle.betId]);
@@ -275,12 +284,16 @@ export default function RoulettePage(): JSX.Element | null {
         const d = r.details as RouletteRoundDetails;
         const color = d.spin?.color ?? 'green';
         const badgeBg =
-          color === 'red' ? POCKET_RED : color === 'black' ? POCKET_BLACK : POCKET_GREEN;
+          color === 'red'
+            ? POCKET_RED_VAR
+            : color === 'black'
+              ? POCKET_BLACK_VAR
+              : POCKET_GREEN_VAR;
         return {
           key: r.id,
           badgeText: String(d.spin?.number ?? '?'),
           badgeColor: badgeBg,
-          badgeTextColor: color === 'black' ? '#fff' : '#06120c',
+          badgeTextColor: color === 'black' ? '#fff' : POCKET_BADGE_INK_VAR,
           betLabel: String(r.betAmount),
           netChips: r.netChange,
           accent: r.outcome,
@@ -295,78 +308,96 @@ export default function RoulettePage(): JSX.Element | null {
   const announceSec = Math.max(0, Math.round(remainingSec / 5) * 5);
 
   return (
-    <GameShell
-      title="MASQUER · Roulette"
-      game="roulette"
-      lobbyButton={<LobbyButton />}
-      oddsInfo={
-        <OddsInfoBox>
-          Straight 35:1 · Split 17:1 · Street 11:1 · Corner 8:1 · Six-line 5:1 · Column 2:1 · Dozen
-          2:1 · Red/Black/Odd/Even/Low/High 1:1
-        </OddsInfoBox>
+    <>
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
+      :root {
+        --brand-roulette-red: #a3122a;
+        --brand-roulette-black: #1a1a1a;
+        --brand-roulette-green: #3dd17a;
+        --brand-felt-table-deep: #0e2e21;
       }
-      recentItems={recentItems}
-      rules={<RouletteRules />}
-      onRulesOpenChange={handleRulesOpenChange}
-      bettingPanel={
-        <div className="mx-auto flex max-w-[760px] flex-col gap-3 px-2">
-          <ResultBanner
-            visible={inSettled}
-            spin={state.context.spinResult}
-            netChange={state.context.roundResult?.netChange ?? 0}
-          />
-          <BettingLayout
-            bets={state.context.bets}
-            disabled={!canPlace}
-            chipAmount={chip}
-            onPlaceBet={handlePlaceBet}
-            onRemoveBet={(key) => send({ type: 'REMOVE_BET', key })}
-            onClearAll={() => send({ type: 'CLEAR_ALL' })}
-          />
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <ChipSelector value={chip} onChange={setChip} disabled={!canPlace} />
-            <div className="flex items-center gap-3">
-              <span className="text-[11px] text-ivory/60">
-                Balance: <span className="font-mono text-ivory/90">{balance.toLocaleString()}</span>
-              </span>
-              <CountdownRing
-                visible={canPlace && betWindowEndsAt !== null}
-                reduce={reduce}
-                progress={progress}
-                dashoffset={dashoffset}
-                remainingSec={remainingSec}
-                announceSec={announceSec}
-              />
-              <button
-                type="button"
-                aria-label={hasBets ? 'Spin the wheel now' : 'Spin the wheel now without bets'}
-                data-spin-now={canPlace ? 'true' : 'false'}
-                onClick={handleSpinNow}
-                disabled={!canPlace}
-                className={[
-                  'min-h-[44px] rounded-md border border-brass bg-velvet px-5 py-2.5',
-                  'font-display text-sm uppercase tracking-[0.18em] text-ivory shadow-gold-glow',
-                  'transition-colors duration-150 hover:bg-velvet-deep disabled:opacity-40',
-                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brass focus-visible:ring-offset-2 focus-visible:ring-offset-felt-table-deep',
-                ].join(' ')}
-              >
-                SPIN NOW
-              </button>
+    `,
+        }}
+      />
+      <GameShell
+        title="MASQUER · Roulette"
+        game="roulette"
+        lobbyButton={<LobbyButton />}
+        oddsInfo={
+          <OddsInfoBox>
+            Straight 35:1 · Split 17:1 · Street 11:1 · Corner 8:1 · Six-line 5:1 · Column 2:1 ·
+            Dozen 2:1 · Red/Black/Odd/Even/Low/High 1:1
+          </OddsInfoBox>
+        }
+        recentItems={recentItems}
+        rules={<RouletteRules />}
+        onRulesOpenChange={handleRulesOpenChange}
+        bettingPanel={
+          <div className="mx-auto flex max-w-[760px] flex-col gap-3 px-2">
+            <ResultBanner
+              visible={inSettled}
+              spin={state.context.spinResult}
+              netChange={state.context.roundResult?.netChange ?? 0}
+            />
+            <BettingLayout
+              bets={state.context.bets}
+              disabled={!canPlace}
+              chipAmount={chip}
+              onPlaceBet={handlePlaceBet}
+              onRemoveBet={(key) => send({ type: 'REMOVE_BET', key })}
+              onClearAll={() => send({ type: 'CLEAR_ALL' })}
+            />
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <ChipSelector value={chip} onChange={setChip} disabled={!canPlace} />
+              <div className="flex items-center gap-3">
+                <span className="text-[11px] text-ivory/60">
+                  Balance: <span className="font-mono text-ivory/90">{formatChips(balance)}</span>
+                </span>
+                <CountdownRing
+                  visible={canPlace && betWindowEndsAt !== null}
+                  reduce={reduce}
+                  progress={progress}
+                  dashoffset={dashoffset}
+                  remainingSec={remainingSec}
+                  announceSec={announceSec}
+                />
+                {/* TODO(#15-followup): extract <GameActionButton> primitive shared with
+                  Slots' SPIN and Baccarat's DEAL buttons (same min-h-[44px] /
+                  brass-on-velvet pattern). Deferred per Phase 15 #15 spec §5.3
+                  — no new shared components in the cold-look polish pass. */}
+                <button
+                  type="button"
+                  aria-label={hasBets ? 'Spin the wheel now' : 'Spin the wheel now without bets'}
+                  data-spin-now={canPlace ? 'true' : 'false'}
+                  onClick={handleSpinNow}
+                  disabled={!canPlace}
+                  className={[
+                    'min-h-[44px] rounded-md border border-brass bg-velvet px-5 py-2.5',
+                    'font-display text-sm uppercase tracking-[0.18em] text-ivory shadow-gold-glow',
+                    'transition-colors duration-150 hover:bg-velvet-deep disabled:opacity-40',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brass focus-visible:ring-offset-2 focus-visible:ring-offset-felt-table-deep',
+                  ].join(' ')}
+                >
+                  SPIN NOW
+                </button>
+              </div>
             </div>
           </div>
+        }
+      >
+        <div className="flex flex-1 flex-col items-center justify-center gap-6 px-6 py-4">
+          <WheelView
+            targetNumber={targetNumber}
+            spinning={inSpinning}
+            settled={inSettled}
+            durationMs={reduce ? 0 : ROULETTE_CONFIG.SPIN_DURATION_MS}
+            reducedMotion={reduce}
+          />
         </div>
-      }
-    >
-      <div className="flex flex-1 flex-col items-center justify-center gap-6 px-6 py-4">
-        <WheelView
-          targetNumber={targetNumber}
-          spinning={inSpinning}
-          settled={inSettled}
-          durationMs={reduce ? 0 : ROULETTE_CONFIG.SPIN_DURATION_MS}
-          reducedMotion={reduce}
-        />
-      </div>
-    </GameShell>
+      </GameShell>
+    </>
   );
 }
 
@@ -426,7 +457,7 @@ function CountdownRing({
           cy={TIMER_RING_SIZE / 2}
           r={TIMER_RING_RADIUS}
           fill="none"
-          stroke="rgba(199,154,75,0.2)"
+          className="stroke-brass/20"
           strokeWidth={TIMER_RING_STROKE}
         />
         <circle
