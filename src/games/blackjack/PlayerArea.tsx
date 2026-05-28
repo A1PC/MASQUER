@@ -70,7 +70,7 @@ export default function PlayerArea({
             className={cn(
               'p-3 text-center transition-shadow duration-200',
               isActive
-                ? 'shadow-[0_0_18px_rgba(230,192,104,0.35)] outline outline-2 outline-gold'
+                ? 'shadow-[0_0_18px_rgba(230,192,104,0.35)] outline outline-2 outline-gold-bright'
                 : isResolved && !isActive
                   ? 'opacity-70'
                   : 'opacity-90',
@@ -81,7 +81,7 @@ export default function PlayerArea({
             <div
               className={cn(
                 'mb-1 flex items-center justify-center gap-1.5 font-display text-[10px] tracking-[0.18em]',
-                isActive ? 'text-gold-bright' : 'text-gold',
+                isActive ? 'text-gold-bright' : 'text-gold-bright/70',
               )}
             >
               {isActive && <span aria-hidden>▶</span>}

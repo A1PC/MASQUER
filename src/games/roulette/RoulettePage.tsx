@@ -347,7 +347,7 @@ export default function RoulettePage(): JSX.Element | null {
                   'min-h-[44px] rounded-md border border-brass bg-velvet px-5 py-2.5',
                   'font-display text-sm uppercase tracking-[0.18em] text-ivory shadow-gold-glow',
                   'transition-colors duration-150 hover:bg-velvet-deep disabled:opacity-40',
-                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2 focus-visible:ring-offset-felt-table-deep',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brass focus-visible:ring-offset-2 focus-visible:ring-offset-felt-table-deep',
                 ].join(' ')}
               >
                 SPIN NOW
@@ -394,7 +394,7 @@ function CountdownRing({
       <div
         data-countdown
         data-reduced-motion="true"
-        className="font-display text-xs uppercase tracking-[0.18em] text-gold"
+        className="font-display text-xs uppercase tracking-[0.18em] text-gold-bright"
         role="status"
         aria-live="polite"
         aria-atomic="true"

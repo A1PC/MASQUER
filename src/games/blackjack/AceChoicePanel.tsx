@@ -38,7 +38,9 @@ export default function AceChoicePanel({ allowEleven, onChoose }: Props): JSX.El
         {announcement}
       </p>
       <div className="mb-3 flex items-baseline justify-between">
-        <span className="font-display text-[11px] tracking-[0.18em] text-gold">LOCK ACE AS</span>
+        <span className="font-display text-[11px] tracking-[0.18em] text-gold-bright">
+          LOCK ACE AS
+        </span>
         <span className="font-mono text-[11px] text-ivory/55">
           {allowEleven ? 'Pick 1 or 11' : '11 would bust — pick 1'}
         </span>
