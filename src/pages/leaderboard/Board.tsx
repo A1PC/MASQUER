@@ -21,13 +21,13 @@ export default function Board({
   const [mode, setMode] = useState<MeAllMode>('all');
   const visible = mode === 'all' ? rows.slice(0, 10) : computeMeWindow(rows, currentUserId);
   return (
-    <div className="rounded border border-gold/30 bg-felt-deep p-3" data-board={title}>
+    <div className="rounded-md border border-brass/60 bg-velvet-deep p-3" data-board={title}>
       <div className="mb-2 flex items-center justify-between">
-        <h3 className="font-display text-[11px] tracking-[0.18em] text-gold">{title}</h3>
+        <h3 className="font-display text-[11px] tracking-[0.18em] text-gold-bright">{title}</h3>
         <MeAllToggle value={mode} onChange={setMode} />
       </div>
       {visible.length === 0 ? (
-        <p className="text-xs text-white/40">No rankings yet.</p>
+        <p className="text-xs text-ivory/40">No rankings yet.</p>
       ) : (
         <table className="w-full text-left text-sm">
           <tbody>
@@ -38,19 +38,19 @@ export default function Board({
                   key={r.userId}
                   className={
                     isCurrent
-                      ? 'rounded border border-gold/70 bg-gold/10'
-                      : 'border-b border-white/5'
+                      ? 'rounded border border-brass bg-velvet text-ivory'
+                      : 'border-b border-brass/10 text-ivory'
                   }
                   data-current-user={isCurrent || undefined}
                 >
-                  <td className="w-8 py-1 pr-2 text-xs text-white/50">#{r.rank}</td>
+                  <td className="w-8 py-1 pr-2 text-xs text-ivory/50">#{r.rank}</td>
                   <td className="py-1">
                     {r.username}
                     {isCurrent && <span className="ml-1 text-xs text-gold-bright">(you)</span>}
                   </td>
                   <td className="py-1 text-right tabular-nums">
                     {formatValue(r.value)}
-                    {r.sub && <span className="ml-2 text-xs text-white/40">{r.sub}</span>}
+                    {r.sub && <span className="ml-2 text-xs text-ivory/40">{r.sub}</span>}
                   </td>
                 </tr>
               );

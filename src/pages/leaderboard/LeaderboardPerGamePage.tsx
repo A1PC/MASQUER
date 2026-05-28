@@ -68,13 +68,13 @@ export default function LeaderboardPerGamePage(): JSX.Element | null {
     return (
       <div className="flex flex-col gap-6">
         <section>
-          <h2 className="mb-2 font-display text-xs tracking-wider text-white/60">
+          <h2 className="mb-2 font-display text-xs tracking-wider text-ivory/60">
             {label} — BEST PLAYER
           </h2>
           <BoardBar rows={netWinner} currentUserId={user.id} formatValue={formatSignedChips} />
         </section>
         <section>
-          <h2 className="mb-2 font-display text-xs tracking-wider text-white/60">
+          <h2 className="mb-2 font-display text-xs tracking-wider text-ivory/60">
             {label} — BIGGEST SINGLE WIN
           </h2>
           <BoardBar
@@ -84,7 +84,7 @@ export default function LeaderboardPerGamePage(): JSX.Element | null {
           />
         </section>
         <section>
-          <h2 className="mb-2 font-display text-xs tracking-wider text-white/60">
+          <h2 className="mb-2 font-display text-xs tracking-wider text-ivory/60">
             {label} — MOST ROUNDS PLAYED
           </h2>
           <BoardBar rows={mostRounds} currentUserId={user.id} formatValue={formatChips} />

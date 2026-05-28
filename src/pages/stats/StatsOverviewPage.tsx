@@ -80,17 +80,17 @@ export default function StatsOverviewPage(): JSX.Element | null {
     return (
       <div className="flex flex-col gap-6">
         <section>
-          <h2 className="mb-2 font-display text-xs tracking-wider text-white/60">NET FLOW</h2>
+          <h2 className="mb-2 font-display text-xs tracking-wider text-ivory/60">NET FLOW</h2>
           <NetFlowLine data={netFlow} />
         </section>
         <section>
-          <h2 className="mb-2 font-display text-xs tracking-wider text-white/60">
+          <h2 className="mb-2 font-display text-xs tracking-wider text-ivory/60">
             GAME DISTRIBUTION
           </h2>
           <GameDistributionDonut data={distribution} />
         </section>
         <section>
-          <h2 className="mb-2 font-display text-xs tracking-wider text-white/60">
+          <h2 className="mb-2 font-display text-xs tracking-wider text-ivory/60">
             WIN RATE BY GAME
           </h2>
           <WinRateByGameBar data={winRates} />
