@@ -48,7 +48,7 @@ export default function LoginPage(): JSX.Element {
           <div className="flex flex-col items-center gap-3 text-center">
             <MaskMark size={64} />
             <div>
-              <h1 className="font-display text-2xl tracking-[0.16em] text-gold">Sign in</h1>
+              <h1 className="font-display text-2xl tracking-[0.18em] text-gold-bright">Sign in</h1>
               <p className="mt-1 font-body text-xs text-ivory/60">Welcome back to MASQUER.</p>
             </div>
           </div>
@@ -83,7 +83,7 @@ export default function LoginPage(): JSX.Element {
           </Field>
 
           {submitError ? (
-            <p role="alert" className="text-[11px] text-[#e3a8af]">
+            <p role="alert" className="text-[11px] text-casino-red">
               {submitError}
             </p>
           ) : null}
@@ -94,7 +94,7 @@ export default function LoginPage(): JSX.Element {
 
           <p className="text-center font-body text-xs text-ivory/60">
             New here?{' '}
-            <Link to="/register" className="text-gold underline">
+            <Link to="/register" className="text-gold-bright underline hover:text-ivory">
               Create an account
             </Link>
           </p>
