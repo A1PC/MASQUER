@@ -117,7 +117,7 @@ function DifficultyCard({
       <div className="flex flex-col gap-3">
         {/* CPU Count */}
         <div>
-          <label className="mb-1 block text-[10px] uppercase tracking-widest text-white/60">
+          <label className="mb-1 block text-[10px] uppercase tracking-widest text-ivory/60">
             CPU Count
           </label>
           <input
@@ -129,12 +129,12 @@ function DifficultyCard({
             className="w-full rounded border border-white/20 bg-black/30 px-3 py-1.5 text-xs text-white focus:border-gold focus:outline-none"
             aria-label={`${difficulty} CPU count`}
           />
-          <p className="mt-0.5 text-[9px] text-white/30">Default: {def.cpuCount}</p>
+          <p className="mt-0.5 text-[9px] text-ivory/30">Default: {def.cpuCount}</p>
         </div>
 
         {/* Pot Multiplier */}
         <div>
-          <label className="mb-1 block text-[10px] uppercase tracking-widest text-white/60">
+          <label className="mb-1 block text-[10px] uppercase tracking-widest text-ivory/60">
             Pot Multiplier
           </label>
           <input
@@ -146,14 +146,14 @@ function DifficultyCard({
             className="w-full rounded border border-white/20 bg-black/30 px-3 py-1.5 text-xs text-white focus:border-gold focus:outline-none"
             aria-label={`${difficulty} pot multiplier`}
           />
-          <p className="mt-0.5 text-[9px] text-white/30">
+          <p className="mt-0.5 text-[9px] text-ivory/30">
             Default: {def.potMultiplier} (pot = {BUY_IN} × multiplier)
           </p>
         </div>
 
         {/* CPU Latency */}
         <div>
-          <label className="mb-1 block text-[10px] uppercase tracking-widest text-white/60">
+          <label className="mb-1 block text-[10px] uppercase tracking-widest text-ivory/60">
             CPU Latency (ms)
           </label>
           <div className="flex items-center gap-2">
@@ -168,7 +168,7 @@ function DifficultyCard({
               className="w-full rounded border border-white/20 bg-black/30 px-3 py-1.5 text-xs text-white focus:border-gold focus:outline-none"
               aria-label={`${difficulty} CPU latency min`}
             />
-            <span className="shrink-0 text-xs text-white/40">to</span>
+            <span className="shrink-0 text-xs text-ivory/40">to</span>
             <input
               type="number"
               min={0}
@@ -181,7 +181,7 @@ function DifficultyCard({
               aria-label={`${difficulty} CPU latency max`}
             />
           </div>
-          <p className="mt-0.5 text-[9px] text-white/30">
+          <p className="mt-0.5 text-[9px] text-ivory/30">
             Default: {def.cpuLatencyMs[0]}–{def.cpuLatencyMs[1]} ms
           </p>
         </div>
@@ -198,9 +198,9 @@ function DifficultyCard({
               className="rounded"
               aria-label={`${difficulty} force manual daub`}
             />
-            <span className="text-xs text-white/70">Force manual daub</span>
+            <span className="text-xs text-ivory/70">Force manual daub</span>
           </label>
-          <p className="ml-6 mt-0.5 text-[9px] text-white/30">
+          <p className="ml-6 mt-0.5 text-[9px] text-ivory/30">
             Default: {def.forceManual ? 'yes' : 'no'}
           </p>
         </div>
@@ -229,7 +229,7 @@ function DifficultyCard({
         <button
           type="button"
           onClick={onReset}
-          className="flex-1 rounded border border-white/20 px-3 py-2 font-display text-[11px] tracking-wider text-white/60 transition hover:border-white/50 hover:text-white"
+          className="flex-1 rounded border border-white/20 px-3 py-2 font-display text-[11px] tracking-wider text-ivory/60 transition hover:border-white/50 hover:text-white"
         >
           RESET TO DEFAULT
         </button>
@@ -347,10 +347,10 @@ function MiniBar({ label, count, total, fillClass, paidChips }: MiniBarProps): J
   const pct = total === 0 ? 0 : (count / total) * 100;
   return (
     <div className="flex flex-col gap-1" data-mini-bar={label}>
-      <div className="flex items-baseline justify-between text-[10px] tracking-wider text-white/60">
+      <div className="flex items-baseline justify-between text-[10px] tracking-wider text-ivory/60">
         <span className="font-display uppercase">{label}</span>
-        <span className="tabular-nums text-white/80">
-          {count.toLocaleString()} <span className="text-white/40">({pct.toFixed(1)}%)</span>
+        <span className="tabular-nums text-ivory/80">
+          {count.toLocaleString()} <span className="text-ivory/40">({pct.toFixed(1)}%)</span>
           {paidChips !== undefined && (
             <span className="ml-2 text-gold-bright">+{paidChips.toLocaleString()}</span>
           )}
@@ -477,12 +477,12 @@ function AdminBingoStats(): JSX.Element {
 
       {/* Hero chart */}
       <section aria-label="Bingo variant × difficulty distribution">
-        <h3 className="mb-2 font-display text-xs tracking-[0.18em] text-white/60">
+        <h3 className="mb-2 font-display text-xs tracking-[0.18em] text-ivory/60">
           VARIANT × DIFFICULTY DISTRIBUTION
         </h3>
         <div className="rounded-md border border-gold/30 bg-felt-deep p-4">
           {gamesPlayed === 0 ? (
-            <p className="py-8 text-center text-xs text-white/40">No bingo rounds recorded yet.</p>
+            <p className="py-8 text-center text-xs text-ivory/40">No bingo rounds recorded yet.</p>
           ) : (
             <BingoVariantDifficultyBar data={distribution} />
           )}
@@ -492,7 +492,7 @@ function AdminBingoStats(): JSX.Element {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Bonus economics panel */}
         <section aria-label="Bingo bonus economics">
-          <h3 className="mb-2 font-display text-xs tracking-[0.18em] text-white/60">
+          <h3 className="mb-2 font-display text-xs tracking-[0.18em] text-ivory/60">
             BONUS ECONOMICS
           </h3>
           <div className="flex flex-col gap-3 rounded-md border border-gold/30 bg-felt-deep p-4">
@@ -522,7 +522,7 @@ function AdminBingoStats(): JSX.Element {
               fillClass="bg-jewel-magenta/70"
               paidChips={stats.fastBingoPlayerWins * 500}
             />
-            <div className="flex items-baseline justify-between border-t border-gold/20 pt-3 text-[10px] tracking-wider text-white/50">
+            <div className="flex items-baseline justify-between border-t border-gold/20 pt-3 text-[10px] tracking-wider text-ivory/50">
               <span className="font-display uppercase">Total bonuses paid</span>
               <span className="font-display tabular-nums text-gold-bright">
                 +{stats.totalBonusesPaid.toLocaleString()}
@@ -533,7 +533,7 @@ function AdminBingoStats(): JSX.Element {
 
         {/* Average balls to BINGO per difficulty */}
         <section aria-label="Average balls to BINGO per difficulty">
-          <h3 className="mb-2 font-display text-xs tracking-[0.18em] text-white/60">
+          <h3 className="mb-2 font-display text-xs tracking-[0.18em] text-ivory/60">
             AVERAGE BALLS TO BINGO
           </h3>
           <div className="rounded-md border border-gold/30 bg-felt-deep p-4">
@@ -544,17 +544,17 @@ function AdminBingoStats(): JSX.Element {
                   className="flex flex-col items-center gap-1 rounded-md border border-brass/40 bg-felt-table-deep p-3 text-center"
                   data-balls-to-bingo={row.difficulty}
                 >
-                  <div className="font-display text-[10px] tracking-[0.18em] text-white/50">
+                  <div className="font-display text-[10px] tracking-[0.18em] text-ivory/50">
                     {DIFFICULTY_TITLE_SHORT[row.difficulty]}
                   </div>
                   <div className="font-display text-2xl tabular-nums text-gold-bright">
                     {row.averageCalls === null ? '—' : row.averageCalls.toFixed(1)}
                   </div>
-                  <div className="text-[9px] text-white/40">avg calls</div>
+                  <div className="text-[9px] text-ivory/40">avg calls</div>
                 </div>
               ))}
             </div>
-            <p className="mt-3 text-[10px] tracking-wider text-white/40">
+            <p className="mt-3 text-[10px] tracking-wider text-ivory/40">
               Mean final call count across player tier-3 wins per difficulty. Lower = faster.
             </p>
           </div>
@@ -563,15 +563,15 @@ function AdminBingoStats(): JSX.Element {
 
       {/* Recent games table (last 20) */}
       <section aria-label="Recent bingo games">
-        <h3 className="mb-2 font-display text-xs tracking-[0.18em] text-white/60">
+        <h3 className="mb-2 font-display text-xs tracking-[0.18em] text-ivory/60">
           RECENT GAMES (LAST 20)
         </h3>
         {filteredRecent.length === 0 ? (
-          <p className="text-xs text-white/40">No games yet.</p>
+          <p className="text-xs text-ivory/40">No games yet.</p>
         ) : (
           <table className="w-full text-left text-xs">
             <thead>
-              <tr className="border-b border-gold/30 uppercase tracking-wider text-white/40">
+              <tr className="border-b border-gold/30 uppercase tracking-wider text-ivory/40">
                 <th className="py-2 pr-3">Played at</th>
                 <th className="py-2 pr-3">Variant</th>
                 <th className="py-2 pr-3">Difficulty</th>
@@ -600,7 +600,7 @@ function AdminBingoStats(): JSX.Element {
                 const housePl = r.betAmount - r.payout;
                 return (
                   <tr key={r.id} className="border-b border-white/5">
-                    <td className="py-1.5 pr-3 tabular-nums text-white/70">
+                    <td className="py-1.5 pr-3 tabular-nums text-ivory/70">
                       {new Date(r.playedAt).toISOString().slice(0, 19).replace('T', ' ')}
                     </td>
                     <td className="py-1.5 pr-3 text-ivory">
@@ -625,7 +625,7 @@ function AdminBingoStats(): JSX.Element {
                           ? 'text-chip-win'
                           : housePl < 0
                             ? 'text-casino-red'
-                            : 'text-white/60'
+                            : 'text-ivory/60'
                       }`}
                     >
                       {housePl > 0 ? '+' : ''}
@@ -637,8 +637,8 @@ function AdminBingoStats(): JSX.Element {
             </tbody>
           </table>
         )}
-        <p className="mt-2 text-[10px] tracking-wider text-white/40">
-          *Cards column shows <span className="text-white/60">player + CPU count</span> &mdash;
+        <p className="mt-2 text-[10px] tracking-wider text-ivory/40">
+          *Cards column shows <span className="text-ivory/60">player + CPU count</span> &mdash;
           per-game card-count isn&apos;t persisted in this version, so the column reads as the table
           size, not the player&apos;s 1&ndash;4-card pick.
         </p>
@@ -697,7 +697,7 @@ export default function AdminBingoPage(): JSX.Element {
   return (
     <div className="flex flex-col gap-6">
       <h1 className="font-display text-base tracking-wider text-gold-bright">BINGO CONFIG</h1>
-      <p className="text-[11px] text-white/50">
+      <p className="text-[11px] text-ivory/50">
         Override per-difficulty parameters. Changes apply to the next game started — in-progress
         games are unaffected. Leave at defaults if unsure.
       </p>

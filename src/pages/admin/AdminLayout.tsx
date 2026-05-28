@@ -1,6 +1,7 @@
 import type { JSX } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router';
 import { useSessionStore } from '@/store/sessionStore';
+import { Button } from '@/components/ui';
 
 const NAV_ITEMS = [
   { to: '/admin', label: 'Overview', end: true },
@@ -20,6 +21,11 @@ const NAV_ITEMS = [
   { to: '/admin/coin-flip', label: 'Coin-flip', end: false },
 ] as const;
 
+/**
+ * Background-token rule (audit §1.3): `bg-felt-table` is the outer surface,
+ * `bg-velvet-deep` is the chrome (topbar + sidebar), `bg-felt-deep` is the
+ * inner-card colour (e.g. AdminRoulettePage panels). Don't mix these roles.
+ */
 export default function AdminLayout(): JSX.Element {
   const navigate = useNavigate();
   const logoutAdmin = useSessionStore((s) => s.logoutAdmin);
@@ -35,17 +41,16 @@ export default function AdminLayout(): JSX.Element {
         className="flex items-center justify-between border-b border-brass/60 bg-velvet-deep px-6 py-3"
         data-admin-topbar
       >
-        <h1 className="font-display text-sm tracking-[0.18em] text-gold-bright">
-          MASQUER &middot; Admin
-        </h1>
-        <button
-          type="button"
+        <h1 className="font-display text-sm tracking-[0.18em] text-gold-bright">MASQUER · Admin</h1>
+        <Button
+          variant="ghost"
+          size="sm"
           onClick={handleLogout}
-          className="rounded-md border border-brass/60 px-3 py-1 font-display text-xs tracking-[0.18em] text-ivory hover:bg-velvet"
           data-admin-logout
+          className="border border-brass/60 px-3 py-1 text-ivory hover:bg-velvet"
         >
           Log out
-        </button>
+        </Button>
       </header>
       <div className="flex flex-1 overflow-hidden">
         <aside
@@ -63,7 +68,8 @@ export default function AdminLayout(): JSX.Element {
                 end={item.end}
                 className={({ isActive }) =>
                   [
-                    'border-l-[3px] px-4 py-2 text-xs transition',
+                    'border-l-[3px] px-4 py-2 text-xs outline-none transition',
+                    'focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-gold/40',
                     isActive
                       ? 'border-brass bg-velvet font-display tracking-[0.12em] text-gold-bright'
                       : 'border-transparent text-ivory/55 hover:bg-velvet/50',

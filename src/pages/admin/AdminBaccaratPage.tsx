@@ -102,10 +102,10 @@ function MiniBar({ label, count, total, fillClass }: MiniBarProps): JSX.Element 
   const pct = total === 0 ? 0 : (count / total) * 100;
   return (
     <div className="flex flex-col gap-1" data-mini-bar={label}>
-      <div className="flex items-baseline justify-between text-[10px] tracking-wider text-white/60">
+      <div className="flex items-baseline justify-between text-[10px] tracking-wider text-ivory/60">
         <span className="font-display uppercase">{label}</span>
-        <span className="tabular-nums text-white/80">
-          {count.toLocaleString()} <span className="text-white/40">({pct.toFixed(1)}%)</span>
+        <span className="tabular-nums text-ivory/80">
+          {count.toLocaleString()} <span className="text-ivory/40">({pct.toFixed(1)}%)</span>
         </span>
       </div>
       <div
@@ -135,7 +135,7 @@ function StreakCell({ label, count, fillClass }: StreakCellProps): JSX.Element {
   const pct = Math.min(100, count * 10);
   return (
     <div className="flex flex-col gap-1.5" data-streak={label}>
-      <div className="flex items-baseline justify-between text-[10px] tracking-wider text-white/60">
+      <div className="flex items-baseline justify-between text-[10px] tracking-wider text-ivory/60">
         <span className="font-display uppercase">{label}</span>
         <span className="font-display text-base tabular-nums text-ivory">
           {count.toLocaleString()}
@@ -223,12 +223,12 @@ export default function AdminBaccaratPage(): JSX.Element {
 
       {/* Winner-distribution chart — hero */}
       <section aria-label="Baccarat winner distribution">
-        <h2 className="mb-2 font-display text-xs tracking-wider text-white/60">
+        <h2 className="mb-2 font-display text-xs tracking-wider text-ivory/60">
           WINNER DISTRIBUTION
         </h2>
         <div className="rounded-md border border-gold/30 bg-felt-deep p-4">
           {roundsPlayed === 0 ? (
-            <p className="py-8 text-center text-xs text-white/40">
+            <p className="py-8 text-center text-xs text-ivory/40">
               No baccarat rounds recorded yet.
             </p>
           ) : (
@@ -240,7 +240,7 @@ export default function AdminBaccaratPage(): JSX.Element {
       {/* Secondary panels: side-bet hit rates + streaks */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <section aria-label="Baccarat side-bet hit rates">
-          <h2 className="mb-2 font-display text-xs tracking-wider text-white/60">
+          <h2 className="mb-2 font-display text-xs tracking-wider text-ivory/60">
             SIDE-BET HIT RATES
           </h2>
           <div className="flex flex-col gap-3 rounded-md border border-gold/30 bg-felt-deep p-4">
@@ -268,34 +268,34 @@ export default function AdminBaccaratPage(): JSX.Element {
               total={roundsPlayed}
               fillClass="bg-jewel-magenta"
             />
-            <div className="grid grid-cols-2 gap-2 border-t border-gold/20 pt-3 text-[10px] tracking-wider text-white/50">
+            <div className="grid grid-cols-2 gap-2 border-t border-gold/20 pt-3 text-[10px] tracking-wider text-ivory/50">
               <div className="flex items-baseline justify-between">
                 <span className="font-display uppercase">Player pair</span>
-                <span className="tabular-nums text-white/80">
+                <span className="tabular-nums text-ivory/80">
                   {stats.playerPairs.toLocaleString()}
                 </span>
               </div>
               <div className="flex items-baseline justify-between">
                 <span className="font-display uppercase">Banker pair</span>
-                <span className="tabular-nums text-white/80">
+                <span className="tabular-nums text-ivory/80">
                   {stats.bankerPairs.toLocaleString()}
                 </span>
               </div>
               <div className="flex items-baseline justify-between">
                 <span className="font-display uppercase">Player dragon</span>
-                <span className="tabular-nums text-white/80">
+                <span className="tabular-nums text-ivory/80">
                   {stats.playerDragons.toLocaleString()}
                 </span>
               </div>
               <div className="flex items-baseline justify-between">
                 <span className="font-display uppercase">Banker dragon</span>
-                <span className="tabular-nums text-white/80">
+                <span className="tabular-nums text-ivory/80">
                   {stats.bankerDragons.toLocaleString()}
                 </span>
               </div>
               <div className="flex items-baseline justify-between">
                 <span className="font-display uppercase">Double naturals</span>
-                <span className="tabular-nums text-white/80">
+                <span className="tabular-nums text-ivory/80">
                   {stats.doubleNaturals.toLocaleString()}
                 </span>
               </div>
@@ -304,7 +304,7 @@ export default function AdminBaccaratPage(): JSX.Element {
         </section>
 
         <section aria-label="Baccarat longest winner streaks">
-          <h2 className="mb-2 font-display text-xs tracking-wider text-white/60">
+          <h2 className="mb-2 font-display text-xs tracking-wider text-ivory/60">
             LONGEST STREAKS
           </h2>
           <div className="flex flex-col gap-4 rounded-md border border-gold/30 bg-felt-deep p-4">
@@ -323,7 +323,7 @@ export default function AdminBaccaratPage(): JSX.Element {
               count={streaks.longestTieStreak}
               fillClass="bg-scoreboard-tie"
             />
-            <p className="border-t border-gold/20 pt-3 text-[10px] tracking-wider text-white/40">
+            <p className="border-t border-gold/20 pt-3 text-[10px] tracking-wider text-ivory/40">
               Chronological run-length per winner across all recorded rounds.
             </p>
           </div>
@@ -332,15 +332,15 @@ export default function AdminBaccaratPage(): JSX.Element {
 
       {/* Recent rounds table */}
       <section aria-label="Recent baccarat rounds">
-        <h2 className="mb-2 font-display text-xs tracking-wider text-white/60">
+        <h2 className="mb-2 font-display text-xs tracking-wider text-ivory/60">
           RECENT ROUNDS (LAST 20)
         </h2>
         {filteredRecent.length === 0 ? (
-          <p className="text-xs text-white/40">No rounds yet.</p>
+          <p className="text-xs text-ivory/40">No rounds yet.</p>
         ) : (
           <table className="w-full text-left text-xs">
             <thead>
-              <tr className="border-b border-gold/30 uppercase tracking-wider text-white/40">
+              <tr className="border-b border-gold/30 uppercase tracking-wider text-ivory/40">
                 <th className="py-2 pr-3">Played at</th>
                 <th className="py-2 pr-3">Winner</th>
                 <th className="py-2 pr-3">Totals</th>
@@ -368,7 +368,7 @@ export default function AdminBaccaratPage(): JSX.Element {
                 const housePl = r.betAmount - r.payout;
                 return (
                   <tr key={r.id} className="border-b border-white/5">
-                    <td className="py-1.5 pr-3 tabular-nums text-white/70">
+                    <td className="py-1.5 pr-3 tabular-nums text-ivory/70">
                       {new Date(r.playedAt).toISOString().slice(0, 19).replace('T', ' ')}
                     </td>
                     <td className="py-1.5 pr-3">
@@ -403,7 +403,7 @@ export default function AdminBaccaratPage(): JSX.Element {
                         {isBig && (
                           <span
                             data-side-bet="big"
-                            className="inline-flex items-center rounded-sm border border-white/30 bg-white/5 px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-white/70"
+                            className="inline-flex items-center rounded-sm border border-white/30 bg-white/5 px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-ivory/70"
                           >
                             Big
                           </span>
@@ -411,7 +411,7 @@ export default function AdminBaccaratPage(): JSX.Element {
                         {isSmall && (
                           <span
                             data-side-bet="small"
-                            className="inline-flex items-center rounded-sm border border-white/20 bg-white/5 px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-white/60"
+                            className="inline-flex items-center rounded-sm border border-white/20 bg-white/5 px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-ivory/60"
                           >
                             Small
                           </span>
@@ -425,7 +425,7 @@ export default function AdminBaccaratPage(): JSX.Element {
                           </span>
                         )}
                         {!playerPair && !bankerPair && !isBig && !isSmall && !isDragon && (
-                          <span className="text-white/30">—</span>
+                          <span className="text-ivory/30">—</span>
                         )}
                       </div>
                     </td>
@@ -441,7 +441,7 @@ export default function AdminBaccaratPage(): JSX.Element {
                           ? 'text-chip-win'
                           : housePl < 0
                             ? 'text-casino-red'
-                            : 'text-white/60'
+                            : 'text-ivory/60'
                       }`}
                     >
                       {housePl > 0 ? '+' : ''}

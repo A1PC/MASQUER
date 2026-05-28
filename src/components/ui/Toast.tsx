@@ -32,7 +32,9 @@ interface ToastEntry extends ToastOptions {
 const accentByTone: Record<ToastTone, string> = {
   info: 'before:bg-brass',
   win: 'before:bg-gold',
-  loss: 'before:bg-[#a3243a]',
+  // Aligned to the `casino-red` token used by Field/Input — one source of truth
+  // for "loss" red across every form/toast surface.
+  loss: 'before:bg-casino-red',
 };
 
 // Functional colour is always paired with an icon (a11y: never colour-only).
@@ -52,8 +54,20 @@ const soundByTone: Record<ToastTone, SoundId> = {
 const iconColorByTone: Record<ToastTone, string> = {
   info: 'text-brass',
   win: 'text-gold',
-  loss: 'text-[#e3a8af]',
+  // Aligned to the `casino-red` token used by Field/Input — see accentByTone.
+  loss: 'text-casino-red',
 };
+
+// Extracted to mirror Modal's `overlayClass` — keeps the swipe + animation
+// utilities readable and avoids accidentally dropping a space at the join.
+const toastRootClass = cn(
+  'relative flex items-center gap-3 overflow-hidden rounded-lg border border-brass bg-surface',
+  'py-3 pl-5 pr-3 shadow-velvet-panel',
+  'before:absolute before:inset-y-0 before:left-0 before:w-1 before:content-[""]',
+  'motion-safe:data-[state=open]:animate-toastIn motion-safe:data-[state=closed]:animate-toastOut',
+  'data-[swipe=move]:translate-x-[var(--radix-toast-swipe-move-x)]',
+  'data-[swipe=cancel]:translate-x-0 data-[swipe=end]:animate-toastOut',
+);
 
 interface ToastProviderProps {
   children: ReactNode;
@@ -100,15 +114,7 @@ export function ToastProvider({ children, duration = 4000 }: ToastProviderProps)
               open={t.open}
               onOpenChange={(open) => setOpen(t.id, open)}
               {...(t.duration !== undefined ? { duration: t.duration } : {})}
-              className={cn(
-                'relative flex items-center gap-3 overflow-hidden rounded-lg border border-brass bg-surface ' +
-                  'py-3 pl-5 pr-3 shadow-velvet-panel ' +
-                  'before:absolute before:inset-y-0 before:left-0 before:w-1 before:content-[""] ' +
-                  'motion-safe:data-[state=open]:animate-toastIn motion-safe:data-[state=closed]:animate-toastOut ' +
-                  'data-[swipe=move]:translate-x-[var(--radix-toast-swipe-move-x)] ' +
-                  'data-[swipe=cancel]:translate-x-0 data-[swipe=end]:animate-toastOut',
-                accentByTone[tone],
-              )}
+              className={cn(toastRootClass, accentByTone[tone])}
             >
               <span className={cn('shrink-0', iconColorByTone[tone])}>
                 <MaskMark size={26} variant="simple" title="" />

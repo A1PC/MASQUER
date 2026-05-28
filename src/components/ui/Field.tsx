@@ -26,7 +26,10 @@ export function Field({ id, label, helper, error, className, children }: FieldPr
       </label>
       {children}
       {error ? (
-        <p role="alert" className="text-[11px] text-[#e3a8af]">
+        // Pick: reuse the existing `casino-red` token (already in tailwind config)
+        // rather than adding a new `state-loss-soft` alias — one-line cheapest fix
+        // and unifies Field/Input/Toast/LoginPage/RegisterPage on one token.
+        <p role="alert" className="text-[11px] text-casino-red">
           {error}
         </p>
       ) : helper ? (

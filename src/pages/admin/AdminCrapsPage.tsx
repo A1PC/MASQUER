@@ -135,7 +135,7 @@ export default function AdminCrapsPage(): JSX.Element {
           when no session has persisted the additive betTypeWagered field
           yet (handled inside the chart wrapper). */}
       <section aria-label="Craps bet-type frequency">
-        <h2 className="mb-2 font-display text-xs tracking-wider text-white/60">
+        <h2 className="mb-2 font-display text-xs tracking-wider text-ivory/60">
           BET-TYPE FREQUENCY (CHIPS WAGERED)
         </h2>
         <div className="rounded-md border border-gold/30 bg-felt-deep p-4">
@@ -145,16 +145,16 @@ export default function AdminCrapsPage(): JSX.Element {
 
       {/* Biggest sessions panel — top 10 by net win across all tiers. */}
       <section aria-label="Biggest craps session wins">
-        <h2 className="mb-2 font-display text-xs tracking-wider text-white/60">
+        <h2 className="mb-2 font-display text-xs tracking-wider text-ivory/60">
           BIGGEST SESSION WINS (TOP 10)
         </h2>
         <div className="rounded-md border border-gold/30 bg-felt-deep p-4">
           {biggestSessions.length === 0 ? (
-            <p className="py-4 text-center text-xs text-white/40">No winning sessions yet.</p>
+            <p className="py-4 text-center text-xs text-ivory/40">No winning sessions yet.</p>
           ) : (
             <table className="w-full text-left text-xs" data-biggest-sessions>
               <thead>
-                <tr className="border-b border-gold/30 uppercase tracking-wider text-white/40">
+                <tr className="border-b border-gold/30 uppercase tracking-wider text-ivory/40">
                   <th className="py-2 pr-3 text-right">#</th>
                   <th className="py-2 pr-3 text-right">Net</th>
                   <th className="py-2 pr-3">Tier</th>
@@ -164,12 +164,12 @@ export default function AdminCrapsPage(): JSX.Element {
               <tbody>
                 {biggestSessions.map((s, i) => (
                   <tr key={`${s.playedAt}-${i}`} className="border-b border-white/5">
-                    <td className="py-1.5 pr-3 text-right tabular-nums text-white/60">{i + 1}</td>
+                    <td className="py-1.5 pr-3 text-right tabular-nums text-ivory/60">{i + 1}</td>
                     <td className="py-1.5 pr-3 text-right font-mono tabular-nums text-gold-bright">
                       +{s.net.toLocaleString()}
                     </td>
                     <td className="py-1.5 pr-3 text-ivory">{TIER_LABEL[s.tier]}</td>
-                    <td className="py-1.5 tabular-nums text-white/70">
+                    <td className="py-1.5 tabular-nums text-ivory/70">
                       {formatTimestamp(s.playedAt)}
                     </td>
                   </tr>
@@ -182,15 +182,15 @@ export default function AdminCrapsPage(): JSX.Element {
 
       {/* Recent sessions table (last 20). */}
       <section aria-label="Recent craps sessions">
-        <h2 className="mb-2 font-display text-xs tracking-wider text-white/60">
+        <h2 className="mb-2 font-display text-xs tracking-wider text-ivory/60">
           RECENT SESSIONS (LAST 20)
         </h2>
         {filteredRecent.length === 0 ? (
-          <p className="text-xs text-white/40">No sessions yet.</p>
+          <p className="text-xs text-ivory/40">No sessions yet.</p>
         ) : (
           <table className="w-full text-left text-xs" data-recent-sessions>
             <thead>
-              <tr className="border-b border-gold/30 uppercase tracking-wider text-white/40">
+              <tr className="border-b border-gold/30 uppercase tracking-wider text-ivory/40">
                 <th className="py-2 pr-3">Time</th>
                 <th className="py-2 pr-3">Tier</th>
                 <th className="py-2 pr-3 text-right">Bought in</th>
@@ -207,7 +207,7 @@ export default function AdminCrapsPage(): JSX.Element {
                 const net = r.payout - r.betAmount;
                 return (
                   <tr key={r.id} className="border-b border-white/5">
-                    <td className="py-1.5 pr-3 tabular-nums text-white/70">
+                    <td className="py-1.5 pr-3 tabular-nums text-ivory/70">
                       {formatTimestamp(r.playedAt)}
                     </td>
                     <td className="py-1.5 pr-3 text-ivory">{tier ? TIER_LABEL[tier] : '—'}</td>
@@ -219,7 +219,7 @@ export default function AdminCrapsPage(): JSX.Element {
                     </td>
                     <td
                       className={`py-1.5 pr-3 text-right tabular-nums ${
-                        net > 0 ? 'text-chip-win' : net < 0 ? 'text-casino-red' : 'text-white/60'
+                        net > 0 ? 'text-chip-win' : net < 0 ? 'text-casino-red' : 'text-ivory/60'
                       }`}
                     >
                       {net > 0 ? '+' : ''}

@@ -67,10 +67,10 @@ function MiniBar({ label, count, total, fillClass }: MiniBarProps): JSX.Element 
   const pct = total === 0 ? 0 : (count / total) * 100;
   return (
     <div className="flex flex-col gap-1" data-mini-bar={label}>
-      <div className="flex items-baseline justify-between text-[10px] tracking-wider text-white/60">
+      <div className="flex items-baseline justify-between text-[10px] tracking-wider text-ivory/60">
         <span className="font-display uppercase">{label}</span>
-        <span className="tabular-nums text-white/80">
-          {count.toLocaleString()} <span className="text-white/40">({pct.toFixed(1)}%)</span>
+        <span className="tabular-nums text-ivory/80">
+          {count.toLocaleString()} <span className="text-ivory/40">({pct.toFixed(1)}%)</span>
         </span>
       </div>
       <div
@@ -150,12 +150,12 @@ export default function AdminRoulettePage(): JSX.Element {
 
       {/* Distribution chart hero */}
       <section aria-label="Roulette pocket distribution">
-        <h2 className="mb-2 font-display text-xs tracking-wider text-white/60">
+        <h2 className="mb-2 font-display text-xs tracking-wider text-ivory/60">
           POCKET DISTRIBUTION (0–36)
         </h2>
         <div className="rounded-md border border-gold/30 bg-felt-deep p-4">
           {totalSpins === 0 ? (
-            <p className="py-8 text-center text-xs text-white/40">
+            <p className="py-8 text-center text-xs text-ivory/40">
               No roulette spins recorded yet.
             </p>
           ) : (
@@ -167,7 +167,7 @@ export default function AdminRoulettePage(): JSX.Element {
       {/* Secondary panels: parity + dozens/columns */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <section aria-label="Roulette parity and range">
-          <h2 className="mb-2 font-display text-xs tracking-wider text-white/60">
+          <h2 className="mb-2 font-display text-xs tracking-wider text-ivory/60">
             PARITY · COLOUR · RANGE
           </h2>
           <div className="flex flex-col gap-3 rounded-md border border-gold/30 bg-felt-deep p-4">
@@ -212,12 +212,12 @@ export default function AdminRoulettePage(): JSX.Element {
         </section>
 
         <section aria-label="Roulette dozens and columns">
-          <h2 className="mb-2 font-display text-xs tracking-wider text-white/60">
+          <h2 className="mb-2 font-display text-xs tracking-wider text-ivory/60">
             DOZENS &amp; COLUMNS
           </h2>
           <div className="flex flex-col gap-4 rounded-md border border-gold/30 bg-felt-deep p-4">
             <div className="flex flex-col gap-2">
-              <div className="font-display text-[10px] tracking-[0.2em] text-white/40">DOZENS</div>
+              <div className="font-display text-[10px] tracking-[0.2em] text-ivory/40">DOZENS</div>
               <MiniBar
                 label="1st 12"
                 count={stats.dozenCounts[0]}
@@ -238,7 +238,7 @@ export default function AdminRoulettePage(): JSX.Element {
               />
             </div>
             <div className="flex flex-col gap-2 border-t border-gold/20 pt-3">
-              <div className="font-display text-[10px] tracking-[0.2em] text-white/40">COLUMNS</div>
+              <div className="font-display text-[10px] tracking-[0.2em] text-ivory/40">COLUMNS</div>
               <MiniBar
                 label="Column 1"
                 count={stats.columnCounts[0]}
@@ -266,15 +266,15 @@ export default function AdminRoulettePage(): JSX.Element {
        *  patterns. Number + colour collapse into one circular pocket
        *  badge that reads like the wheel itself (red / black / green). */}
       <section aria-label="Recent roulette spins">
-        <h2 className="mb-2 font-display text-xs tracking-wider text-white/60">
+        <h2 className="mb-2 font-display text-xs tracking-wider text-ivory/60">
           RECENT SPINS (LAST 20)
         </h2>
         {filteredRecent.length === 0 ? (
-          <p className="text-xs text-white/40">No spins yet.</p>
+          <p className="text-xs text-ivory/40">No spins yet.</p>
         ) : (
           <table className="w-full text-left text-xs">
             <thead>
-              <tr className="border-b border-gold/30 uppercase tracking-wider text-white/40">
+              <tr className="border-b border-gold/30 uppercase tracking-wider text-ivory/40">
                 <th className="py-2 pr-3">Played at</th>
                 <th className="py-2 pr-3">Pocket</th>
                 <th className="py-2 pr-3 text-right">Bet</th>
@@ -298,7 +298,7 @@ export default function AdminRoulettePage(): JSX.Element {
                 const badgeText = color === 'green' ? 'text-[#06120c]' : 'text-ivory';
                 return (
                   <tr key={r.id} className="border-b border-white/5">
-                    <td className="py-1.5 pr-3 tabular-nums text-white/70">
+                    <td className="py-1.5 pr-3 tabular-nums text-ivory/70">
                       {new Date(r.playedAt).toISOString().slice(0, 19).replace('T', ' ')}
                     </td>
                     <td className="py-1.5 pr-3">
@@ -322,7 +322,7 @@ export default function AdminRoulettePage(): JSX.Element {
                           ? 'text-chip-win'
                           : housePl < 0
                             ? 'text-casino-red'
-                            : 'text-white/60'
+                            : 'text-ivory/60'
                       }`}
                     >
                       {housePl > 0 ? '+' : ''}

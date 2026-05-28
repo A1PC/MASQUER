@@ -46,7 +46,7 @@ const EMPTY_ROUNDS: readonly Round[] = [];
  *  read consistently. */
 const TIER_BADGE: Record<'none' | 'small' | 'medium' | 'jackpot', { label: string; cls: string }> =
   {
-    none: { label: 'Loss', cls: 'bg-white/5 text-white/50 border-white/10' },
+    none: { label: 'Loss', cls: 'bg-white/5 text-ivory/50 border-white/10' },
     small: { label: 'Small', cls: 'bg-[#3dd17a]/15 text-[#5dd9a0] border-[#3dd17a]/40' },
     medium: { label: 'Medium', cls: 'bg-gold/15 text-gold-bright border-gold/40' },
     jackpot: { label: 'Jackpot', cls: 'bg-[#e84a8c]/15 text-[#f291bd] border-[#e84a8c]/50' },
@@ -71,10 +71,10 @@ function MiniTierBar({ label, count, total, fillClass }: MiniTierBarProps): JSX.
   const pct = total === 0 ? 0 : (count / total) * 100;
   return (
     <div className="flex flex-col gap-1" data-mini-bar={label}>
-      <div className="flex items-baseline justify-between text-[10px] tracking-wider text-white/60">
+      <div className="flex items-baseline justify-between text-[10px] tracking-wider text-ivory/60">
         <span className="font-display uppercase">{label}</span>
-        <span className="tabular-nums text-white/80">
-          {count.toLocaleString()} <span className="text-white/40">({pct.toFixed(1)}%)</span>
+        <span className="tabular-nums text-ivory/80">
+          {count.toLocaleString()} <span className="text-ivory/40">({pct.toFixed(1)}%)</span>
         </span>
       </div>
       <div
@@ -155,12 +155,12 @@ export default function AdminSlotsPage(): JSX.Element {
 
       {/* Combination distribution — hero chart */}
       <section aria-label="Slots combination distribution">
-        <h2 className="mb-2 font-display text-xs tracking-wider text-white/60">
+        <h2 className="mb-2 font-display text-xs tracking-wider text-ivory/60">
           COMBINATION DISTRIBUTION
         </h2>
         <div className="rounded-md border border-gold/30 bg-felt-deep p-4">
           {spinsRun === 0 ? (
-            <p className="py-8 text-center text-xs text-white/40">No slots spins recorded yet.</p>
+            <p className="py-8 text-center text-xs text-ivory/40">No slots spins recorded yet.</p>
           ) : (
             <SlotsCombinationBar data={combos} />
           )}
@@ -170,7 +170,7 @@ export default function AdminSlotsPage(): JSX.Element {
       {/* Secondary panels: win-tier breakdown + symbol × reel matrix */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <section aria-label="Slots win-tier breakdown">
-          <h2 className="mb-2 font-display text-xs tracking-wider text-white/60">
+          <h2 className="mb-2 font-display text-xs tracking-wider text-ivory/60">
             WIN-TIER BREAKDOWN
           </h2>
           <div className="flex flex-col gap-3 rounded-md border border-gold/30 bg-felt-deep p-4">
@@ -202,12 +202,12 @@ export default function AdminSlotsPage(): JSX.Element {
         </section>
 
         <section aria-label="Slots symbol-by-reel landing counts">
-          <h2 className="mb-2 font-display text-xs tracking-wider text-white/60">
+          <h2 className="mb-2 font-display text-xs tracking-wider text-ivory/60">
             SYMBOL × REEL DISTRIBUTION
           </h2>
           <div className="rounded-md border border-gold/30 bg-felt-deep p-4">
             {spinsRun === 0 ? (
-              <p className="py-8 text-center text-xs text-white/40">
+              <p className="py-8 text-center text-xs text-ivory/40">
                 No spins recorded — symbol weights will populate once players spin.
               </p>
             ) : (
@@ -219,15 +219,15 @@ export default function AdminSlotsPage(): JSX.Element {
 
       {/* Recent spins table */}
       <section aria-label="Recent slots spins">
-        <h2 className="mb-2 font-display text-xs tracking-wider text-white/60">
+        <h2 className="mb-2 font-display text-xs tracking-wider text-ivory/60">
           RECENT SPINS (LAST 20)
         </h2>
         {filteredRecent.length === 0 ? (
-          <p className="text-xs text-white/40">No spins yet.</p>
+          <p className="text-xs text-ivory/40">No spins yet.</p>
         ) : (
           <table className="w-full text-left text-xs">
             <thead>
-              <tr className="border-b border-gold/30 uppercase tracking-wider text-white/40">
+              <tr className="border-b border-gold/30 uppercase tracking-wider text-ivory/40">
                 <th className="py-2 pr-3">Played at</th>
                 <th className="py-2 pr-3">Reels</th>
                 <th className="py-2 pr-3">Tier</th>
@@ -246,7 +246,7 @@ export default function AdminSlotsPage(): JSX.Element {
                 const housePl = r.betAmount - r.payout;
                 return (
                   <tr key={r.id} className="border-b border-white/5">
-                    <td className="py-1.5 pr-3 tabular-nums text-white/70">
+                    <td className="py-1.5 pr-3 tabular-nums text-ivory/70">
                       {new Date(r.playedAt).toISOString().slice(0, 19).replace('T', ' ')}
                     </td>
                     <td className="py-1.5 pr-3 font-display text-ivory tabular-nums">
@@ -272,7 +272,7 @@ export default function AdminSlotsPage(): JSX.Element {
                           ? 'text-chip-win'
                           : housePl < 0
                             ? 'text-casino-red'
-                            : 'text-white/60'
+                            : 'text-ivory/60'
                       }`}
                     >
                       {housePl > 0 ? '+' : ''}

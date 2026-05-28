@@ -15,7 +15,8 @@ const fieldSurface = cva(
     variants: {
       state: {
         default: 'border border-brass focus-visible:border-gold',
-        error: 'border border-[#a3243a] focus-visible:border-[#a3243a]',
+        // Reuse the existing `casino-red` token to align with Field/Toast.
+        error: 'border border-casino-red focus-visible:border-casino-red',
       },
     },
     defaultVariants: { state: 'default' },
