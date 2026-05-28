@@ -144,8 +144,13 @@ describe('BlackjackPage', () => {
     seed(7);
     renderPage();
     await placeBetAndDeal();
-    expect(screen.getByText(/DEALER/)).toBeInTheDocument();
-    expect(screen.getByText(/HAND 1/)).toBeInTheDocument();
+    // placeBetAndDeal awaits DEALER, but under CI parallelism HAND 1 (the
+    // PlayerArea label) can render a tick later than the DealerArea. waitFor
+    // it explicitly to keep the assertion CI-stable.
+    await waitFor(() => {
+      expect(screen.getByText(/DEALER/)).toBeInTheDocument();
+      expect(screen.getByText(/HAND 1/)).toBeInTheDocument();
+    });
   });
 
   it('does NOT render any dealer total label (Phase-15 #5 fix)', async () => {
