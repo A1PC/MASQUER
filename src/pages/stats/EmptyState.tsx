@@ -16,13 +16,13 @@ export default function EmptyState({ gameName, ctaTo }: Props): JSX.Element {
   const target = ctaTo ?? '/lobby';
   return (
     <div
-      className="flex flex-col items-center justify-center gap-3 rounded border border-gold/30 bg-felt-deep px-6 py-12 text-center"
+      className="flex flex-col items-center justify-center gap-3 rounded-md border border-brass/60 bg-velvet-deep px-6 py-12 text-center"
       data-empty-state
     >
-      <p className="text-sm text-white/70">{message}</p>
+      <p className="text-sm text-ivory/70">{message}</p>
       <Link
         to={target}
-        className="rounded-sm bg-gold px-4 py-2 font-display text-xs uppercase tracking-wider text-felt-deep hover:bg-gold-bright"
+        className="rounded-sm border-2 border-brass bg-velvet px-4 py-2 font-display text-xs tracking-[0.18em] text-gold-bright hover:bg-velvet-deep"
       >
         {buttonText} →
       </Link>

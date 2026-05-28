@@ -43,19 +43,19 @@ export default function LeaderboardOverviewPage(): JSX.Element | null {
     return (
       <div className="flex flex-col gap-6">
         <section>
-          <h2 className="mb-2 font-display text-xs tracking-wider text-white/60">
+          <h2 className="mb-2 font-display text-xs tracking-wider text-ivory/60">
             BIGGEST NET WINNER
           </h2>
           <BoardBar rows={netWinner} currentUserId={user.id} formatValue={formatSignedChips} />
         </section>
         <section>
-          <h2 className="mb-2 font-display text-xs tracking-wider text-white/60">
+          <h2 className="mb-2 font-display text-xs tracking-wider text-ivory/60">
             MOST ROUNDS PLAYED
           </h2>
           <BoardBar rows={mostRounds} currentUserId={user.id} formatValue={formatChips} />
         </section>
         <section>
-          <h2 className="mb-2 font-display text-xs tracking-wider text-white/60">
+          <h2 className="mb-2 font-display text-xs tracking-wider text-ivory/60">
             BIGGEST SINGLE WIN
           </h2>
           <BoardBar
@@ -65,13 +65,13 @@ export default function LeaderboardOverviewPage(): JSX.Element | null {
           />
         </section>
         <section>
-          <h2 className="mb-2 font-display text-xs tracking-wider text-white/60">
+          <h2 className="mb-2 font-display text-xs tracking-wider text-ivory/60">
             LONGEST WIN STREAK
           </h2>
           <BoardBar rows={longestWinStreak} currentUserId={user.id} formatValue={formatChips} />
         </section>
         <section>
-          <h2 className="mb-2 font-display text-xs tracking-wider text-white/60">MOST VARIETY</h2>
+          <h2 className="mb-2 font-display text-xs tracking-wider text-ivory/60">MOST VARIETY</h2>
           <BoardBar rows={mostVariety} currentUserId={user.id} />
         </section>
       </div>

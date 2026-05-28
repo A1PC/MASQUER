@@ -8,7 +8,8 @@ export default function ViewModeToggle(): JSX.Element {
     <div
       role="radiogroup"
       aria-label="View mode"
-      className="inline-flex overflow-hidden rounded-full border border-gold/50 bg-felt-deep"
+      className="inline-flex overflow-hidden rounded-md border border-brass/60 bg-velvet-deep"
+      data-view-mode-toggle
     >
       <button
         type="button"
@@ -16,8 +17,10 @@ export default function ViewModeToggle(): JSX.Element {
         aria-checked={mode === 'cards'}
         onClick={() => setMode('cards')}
         className={[
-          'px-3 py-1 text-[11px] uppercase tracking-wider transition',
-          mode === 'cards' ? 'bg-gold text-felt-deep' : 'text-white/70 hover:text-white',
+          'px-3 py-1 text-[11px] font-display tracking-[0.18em] uppercase transition',
+          mode === 'cards'
+            ? 'bg-velvet text-gold-bright'
+            : 'text-ivory/55 hover:bg-velvet/50 hover:text-ivory/80',
         ].join(' ')}
       >
         Cards
@@ -28,8 +31,10 @@ export default function ViewModeToggle(): JSX.Element {
         aria-checked={mode === 'graphs'}
         onClick={() => setMode('graphs')}
         className={[
-          'px-3 py-1 text-[11px] uppercase tracking-wider transition',
-          mode === 'graphs' ? 'bg-gold text-felt-deep' : 'text-white/70 hover:text-white',
+          'px-3 py-1 text-[11px] font-display tracking-[0.18em] uppercase transition',
+          mode === 'graphs'
+            ? 'bg-velvet text-gold-bright'
+            : 'text-ivory/55 hover:bg-velvet/50 hover:text-ivory/80',
         ].join(' ')}
       >
         Graphs
