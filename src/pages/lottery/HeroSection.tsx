@@ -106,7 +106,7 @@ function RevealHero({ draw, countdown }: { draw: LotteryDraw; countdown: string 
         />
       </div>
       <p className="font-body text-xs text-ivory/70">
-        Next draw in <span className="font-display tabular-nums text-gold-bright">{countdown}</span>
+        Next draw in <span className="font-numeral tabular-nums text-gold-bright">{countdown}</span>
       </p>
     </section>
   );
@@ -125,7 +125,7 @@ function CountdownHero({
       data-hero-state={lastDraw ? 'post-draw-seen' : 'pre-draw'}
     >
       <p className="mb-2 text-[10px] uppercase tracking-[0.18em] text-ivory/50">Next draw in</p>
-      <p className="font-display text-5xl tabular-nums tracking-wider text-gold-bright">
+      <p className="font-numeral text-5xl tabular-nums tracking-wider text-gold-bright">
         {countdown}
       </p>
       {lastDraw && (

@@ -19,6 +19,12 @@ const EMPTY_FAVS: readonly LotteryFavorite[] = [];
  * Reskinned in Phase 15 #9 for MASQUER tokens, ≥44 px touch targets, and a
  * scrollable favourites list (`max-h-[60vh] overflow-y-auto`) so long lists
  * don't push the buy CTA below the fold.
+ *
+ * TODO(#15-followup): rename/delete still use `window.prompt` / `window.confirm`
+ * — they're native browser chrome that breaks the MASQUER look and isn't
+ * keyboard-trapped like the shared `Modal` primitive. Migrate to a small
+ * inline confirm + a rename `Field` once we have a `useConfirmModal` hook;
+ * out of scope for G6 cold-look polish.
  */
 export default function FavoritesDropdown({ userId, currentPick, onLoad }: Props): JSX.Element {
   const favorites = useLiveQuery(() => listFavorites(userId), [userId], EMPTY_FAVS);

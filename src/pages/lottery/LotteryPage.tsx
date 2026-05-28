@@ -13,6 +13,12 @@ import { useLotteryBackfill } from './useLotteryBackfill';
 import HistorySlide from './HistorySlide';
 import YourTicketsSlide from './YourTicketsSlide';
 import LotteryRules from './LotteryRules';
+// TODO(#15-followup): audit §2.6 P2 — the Lobby/Odds/Rules trio is duplicated
+// across every games-sandbox page (via GameShell) and re-stitched here by
+// hand because Lottery is a top-level page per ADR-0040, not a games-sandbox
+// citizen. Extract a shared "shell-lite" wrapper that takes the trio without
+// GameShell's right-rail; out of scope for G6 (per-game polish), belongs in
+// PR B / a future cross-cutting sweep.
 import LobbyButton from '@/games/_shared/LobbyButton';
 import OddsInfoBox from '@/games/_shared/OddsInfoBox';
 import RulesButton from '@/games/_shared/RulesButton';
@@ -47,7 +53,11 @@ export default function LotteryPage(): JSX.Element | null {
   const [bonusSelected, setBonusSelected] = useState<number | null>(null);
   const [addError, setAddError] = useState<string | null>(null);
   const [purchaseMessage, setPurchaseMessage] = useState<string | null>(null);
-  const [revealLines, setRevealLines] = useState<PurchaseRevealLine[] | null>(null);
+  // Empty array == no reveal pending; non-empty == purchase-reveal modal open.
+  // Simpler than `PurchaseRevealLine[] | null` (audit §2.6 P2): the empty list
+  // is the natural "closed" state and avoids the `?? []` defaulting at the
+  // render site.
+  const [revealLines, setRevealLines] = useState<PurchaseRevealLine[]>([]);
   const [rulesOpen, setRulesOpen] = useState(false);
 
   const { freshDraws } = useLotteryBackfill();
@@ -201,7 +211,7 @@ export default function LotteryPage(): JSX.Element | null {
 
         <p className="mb-3 text-right text-xs text-ivory/60">
           Balance:{' '}
-          <span className="font-display tabular-nums text-gold-bright">
+          <span className="font-numeral tabular-nums text-gold-bright">
             {balance.toLocaleString()}
           </span>
         </p>
@@ -228,18 +238,26 @@ export default function LotteryPage(): JSX.Element | null {
                 setAddError(null);
               }}
             />
+            {/*
+             * TODO(#15-followup): ADD LINE + ADD LUCKY DIP are the same
+             * bespoke `<button>` shape used by SPIN (Slots), DEAL (Baccarat),
+             * and SPIN THE WHEEL (Roulette) — fold into the planned shared
+             * `GameActionButton` primitive (PR B territory per per-game scope
+             * rules, same defer as G2/G3/G4/G5). Focus ring + ≥44 px touch
+             * target are correct here; only the duplication is the issue.
+             */}
             <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={handleAddLine}
-                className="min-h-[44px] flex-1 rounded-md border border-brass bg-felt-table-deep py-2 font-display text-xs tracking-[0.18em] text-gold-bright hover:bg-velvet-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
+                className="min-h-[44px] flex-1 rounded-md border border-brass bg-felt-table-deep py-2 font-display text-xs tracking-[0.18em] text-gold-bright hover:bg-velvet-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2 focus-visible:ring-offset-felt-table-deep"
               >
                 ADD LINE
               </button>
               <button
                 type="button"
                 onClick={cart.addLuckyDip}
-                className="min-h-[44px] flex-1 rounded-md border border-brass bg-felt-table-deep py-2 font-display text-xs tracking-[0.18em] text-gold-bright hover:bg-velvet-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
+                className="min-h-[44px] flex-1 rounded-md border border-brass bg-felt-table-deep py-2 font-display text-xs tracking-[0.18em] text-gold-bright hover:bg-velvet-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2 focus-visible:ring-offset-felt-table-deep"
               >
                 ADD LUCKY DIP
               </button>
@@ -268,9 +286,9 @@ export default function LotteryPage(): JSX.Element | null {
 
         <DrawAnimationModal
           mode="purchase"
-          open={revealLines !== null}
-          lines={revealLines ?? []}
-          onClose={() => setRevealLines(null)}
+          open={revealLines.length > 0}
+          lines={revealLines}
+          onClose={() => setRevealLines([])}
         />
         <DrawAnimationModal
           mode="draw"

@@ -7,6 +7,12 @@ import type { JSX } from 'react';
  * Mirrors the blackjack/slots rules pattern: short eyebrow + scannable
  * sections so the content fits comfortably in the shared `RulesModal`
  * scrollable body.
+ *
+ * TODO(#15-followup): audit §2.6 P3 — every game's rules modal renders its
+ * payout table freestyle; extract a shared `<RulesPayoutTable>` / `<RulesH>`
+ * skeleton so the typographic rhythm (headings, table column widths, numeric
+ * font) is uniform across all 13 games. Out of scope for G6 (per-game polish),
+ * belongs in PR B / a future cross-cutting sweep.
  */
 export default function LotteryRules(): JSX.Element {
   return (
@@ -55,27 +61,27 @@ export default function LotteryRules(): JSX.Element {
             <tr className="border-b border-brass/20">
               <td className="py-1 pr-3">6 main</td>
               <td className="py-1 pr-3 font-display text-gold-bright">6 (jackpot)</td>
-              <td className="py-1 text-right tabular-nums">20,000,000</td>
+              <td className="py-1 text-right font-numeral tabular-nums">20,000,000</td>
             </tr>
             <tr className="border-b border-brass/20">
               <td className="py-1 pr-3">5 main + bonus</td>
               <td className="py-1 pr-3">5+bonus</td>
-              <td className="py-1 text-right tabular-nums">1,000,000</td>
+              <td className="py-1 text-right font-numeral tabular-nums">1,000,000</td>
             </tr>
             <tr className="border-b border-brass/20">
               <td className="py-1 pr-3">5 main</td>
               <td className="py-1 pr-3">5</td>
-              <td className="py-1 text-right tabular-nums">1,750</td>
+              <td className="py-1 text-right font-numeral tabular-nums">1,750</td>
             </tr>
             <tr className="border-b border-brass/20">
               <td className="py-1 pr-3">4 main</td>
               <td className="py-1 pr-3">4</td>
-              <td className="py-1 text-right tabular-nums">150</td>
+              <td className="py-1 text-right font-numeral tabular-nums">150</td>
             </tr>
             <tr className="border-b border-brass/20">
               <td className="py-1 pr-3">3 main</td>
               <td className="py-1 pr-3">3</td>
-              <td className="py-1 text-right tabular-nums">30</td>
+              <td className="py-1 text-right font-numeral tabular-nums">30</td>
             </tr>
             <tr>
               <td className="py-1 pr-3">2 main</td>
