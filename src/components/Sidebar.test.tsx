@@ -1,12 +1,13 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import 'fake-indexeddb/auto';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { RouterProvider, createMemoryRouter } from 'react-router';
 import Sidebar from './Sidebar';
 import { useSessionStore } from '@/store/sessionStore';
 import { db } from '@/db';
 import { resetDb } from '@/test/db-helpers';
 import { markDrawSeen } from '@/systems/lottery-unread';
+import { registerPrefetcher, __resetPrefetchRegistryForTests } from '@/router/usePrefetchOnHover';
 import type { User } from '@/db';
 import type { LotteryDraw } from '@/db';
 
@@ -184,6 +185,37 @@ describe('Sidebar', () => {
     // Dot should not appear (or should disappear) after marking.
     await waitFor(() => {
       expect(screen.queryByTestId('unread-dot')).not.toBeInTheDocument();
+    });
+  });
+
+  // --- PREFETCH-ON-HOVER (Phase 15 #15 PR C) ---
+
+  describe('hover/focus prefetching', () => {
+    beforeEach(() => __resetPrefetchRegistryForTests());
+
+    it('invokes the registered prefetcher when a sidebar item is hovered', () => {
+      const blackjackPrefetch = vi.fn(() => new Promise<unknown>(() => {}));
+      registerPrefetcher('blackjack', blackjackPrefetch);
+      renderAtPath('/lobby');
+      fireEvent.mouseEnter(screen.getByRole('link', { name: /blackjack/i }));
+      expect(blackjackPrefetch).toHaveBeenCalledTimes(1);
+    });
+
+    it('invokes the registered prefetcher when a sidebar item is focused', () => {
+      const slotsPrefetch = vi.fn(() => new Promise<unknown>(() => {}));
+      registerPrefetcher('slots', slotsPrefetch);
+      renderAtPath('/lobby');
+      fireEvent.focus(screen.getByRole('link', { name: /slots/i }));
+      expect(slotsPrefetch).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not throw on hover when no prefetcher is registered', () => {
+      // Registry is empty — handlers must be no-op so the sidebar stays
+      // resilient to mis-keyed routes.
+      renderAtPath('/lobby');
+      expect(() =>
+        fireEvent.mouseEnter(screen.getByRole('link', { name: /coin flip/i })),
+      ).not.toThrow();
     });
   });
 });
