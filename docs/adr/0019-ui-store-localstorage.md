@@ -39,3 +39,13 @@ Extend ADR-0010's localStorage allow-list to include `src/store/uiStore.ts`.
 
 - ADR-0010 (localStorage allow-list, Phase 1)
 - Phase 2 spec §6.7 (uiStore.ts verbatim)
+
+## Amendments
+
+- **2026-05-19 (Phase 7).** Added `statsViewMode` (`'cards' | 'graphs'`)
+  preference to the same store; persisted under
+  `masquer.ui.statsViewMode`.
+- **2026-05-28 (v1.0 brand rename).** Storage key prefix `localGamble.ui.*`
+  → `masquer.ui.*`. Mechanism unchanged. Allow-list grew through Phase 15
+  to include `src/systems/admin-auth.ts`, `src/systems/lottery-unread.ts`,
+  and `src/systems/lottery.ts` — all reflected in `docs/conventions.md`.

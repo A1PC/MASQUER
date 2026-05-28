@@ -42,7 +42,7 @@ Phase 2 is complete when BUILD_GUIDE §12 row 2 plus the Phase 2 extensions in �
 | 4   | Lobby shell = collapsible sidebar (left) + horizontal cabinet carousel (center) + RecentResults rail (right, in-game only)                                     | Hybrid of two layout brainstorm options; sidebar gives fast game-switching, carousel showcases the cabinets.                                  |
 | 5   | Daily top-up: **+50 chips every floating 24h** since last claim, no zero-chip bypass                                                                           | Strict cooldown is unexploitable. BUILD_GUIDE §4's "never bricked" wording softened to "always recoverable within 24h" via spec edit in PR D. |
 | 6   | Layout route: single parent at `/` with `<RequireAuth>` baked in; children via `<Outlet />`                                                                    | Cleanest RR 7 idiom; one place for the shell; uniform auth-gating. ADR-0018.                                                                  |
-| 7   | Sidebar collapse state: persisted to `localStorage` (`MASQUER.ui.sidebarCollapsed`); default **OPEN** on first ever visit                                      | Discoverability for new users + remembers preference. ADR-0019 extends ADR-0010's localStorage allow-list.                                    |
+| 7   | Sidebar collapse state: persisted to `localStorage` (`masquer.ui.sidebarCollapsed`); default **OPEN** on first ever visit                                      | Discoverability for new users + remembers preference. ADR-0019 extends ADR-0010's localStorage allow-list.                                    |
 | 8   | **5-PR sequence:** RNG → Wallet+History+Store → AppShell → Daily top-up → GameShell+CoinFlip+stubs                                                             | Tightest reviewable units. Each PR has one clear concern.                                                                                     |
 | 9   | Design philosophy: old-school Vegas content rendered with modern web execution (centered scaling, Framer Motion transitions, respect `prefers-reduced-motion`) | Established in brainstorm; recorded in project memory; carries into Phase 3+.                                                                 |
 | 10  | History is written by `settleRound` inside the same Dexie transaction as the balance credit; no separate `systems/history.ts` file                             | Avoids a race window or circular calls. BUILD_GUIDE §3 needs an edit (PR B) to reflect this. ADR-0016.                                        |
@@ -731,7 +731,7 @@ export const useNextDailyEligibleAt = (): number | null =>
 ```ts
 import { create } from 'zustand';
 
-const SIDEBAR_KEY = 'MASQUER.ui.sidebarCollapsed';
+const SIDEBAR_KEY = 'masquer.ui.sidebarCollapsed';
 
 interface UIState {
   sidebarCollapsed: boolean;
@@ -2224,7 +2224,7 @@ gh issue create --milestone "$PHASE_2_MS" --label "phase-2,chore" \
 - Click avatar → ProfileDropdown opens; click View profile / Edit profile / My stats / Settings → each navigates to `/profile`, `/profile/edit`, `/stats` (Phase 1 placeholder), `/settings`.
 - Click Log out → returns to `/login`, walletStore cleared.
 - Click ☰ → sidebar collapses smoothly; click again → opens. Refresh → preference preserved.
-- First-ever-visit user (clear localStorage `MASQUER.ui.sidebarCollapsed`) → sidebar starts OPEN.
+- First-ever-visit user (clear localStorage `masquer.ui.sidebarCollapsed`) → sidebar starts OPEN.
 
 ### PR D
 

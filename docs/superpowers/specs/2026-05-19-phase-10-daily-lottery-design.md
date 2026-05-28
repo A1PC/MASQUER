@@ -150,7 +150,7 @@ Chip-only RTP ≈ 43.1%. With free re-entries the realized RTP rises modestly ab
 
 ### 6.2 RNG seed
 
-- For draw `YYYY-MM-DD`, RNG is seeded by `hash('MASQUER.lottery.' + 'YYYY-MM-DD')`. This makes the draw deterministic per date: all users on the same machine see the same numbers regardless of when they open the app.
+- For draw `YYYY-MM-DD`, RNG is seeded by `hash('masquer.lottery.' + 'YYYY-MM-DD')`. This makes the draw deterministic per date: all users on the same machine see the same numbers regardless of when they open the app.
 - Seed → mulberry32 PRNG (already used by `src/systems/rng.ts`) → pick 5 distinct from [1,50] + 1 from [1,10]
 
 ### 6.3 Backfill on app open
@@ -173,7 +173,7 @@ Chip-only RTP ≈ 43.1%. With free re-entries the realized RTP rises modestly ab
   - Reveal balls one at a time (~250ms gap, instant on `prefers-reduced-motion`)
   - For each of the user's lines in that draw, render an inline strip: line numbers with the matching ones lit up, tier name, win amount (or "Match 2 — Free entry for next draw!")
   - "Next draw →" button (or "Done" on the last one)
-- Modal state persists across refresh-mid-modal (last-shown-draw saved in `localStorage.MASQUER.lottery.lastSeenDraw`); next session resumes from where left off
+- Modal state persists across refresh-mid-modal (last-shown-draw saved in `localStorage.masquer.lottery.lastSeenDraw`); next session resumes from where left off
 
 ## 7. Persistence (Dexie v3 — additive)
 

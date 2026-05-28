@@ -50,7 +50,7 @@ logged in; password is hashed in the DB."**
 | 5   | Route protection via `<RequireAuth>` wrapper component per protected route                                                                | Most common React Router pattern; easy to grep                                                | 0011               |
 | 6   | Username stored as entered (`username`) PLUS an indexed lowercase field (`usernameLower`) for unique lookups                              | Pretty display + case-insensitive uniqueness enforced by Dexie's `&` unique index             | —                  |
 | 7   | Avatar color randomly picked from a **curated 10-color palette** matching the retro Vegas theme                                           | Guarantees every avatar reads well on dark felt                                               | —                  |
-| 8   | Session persistence via `localStorage` key `MASQUER.session.userId`                                                                       | Single string, synchronous read on app boot, survives refresh and tab close                   | 0010               |
+| 8   | Session persistence via `localStorage` key `masquer.session.userId`                                                                       | Single string, synchronous read on app boot, survives refresh and tab close                   | 0010               |
 | 9   | Three-PR sequence: data layer → auth system → UI wiring                                                                                   | Matches Phase 0 cadence; each PR's CI tests against its own additions                         | —                  |
 
 ## 4. Architecture overview
@@ -412,7 +412,7 @@ import {
 } from '@/systems/crypto';
 import { pickRandomAvatarColor } from '@/systems/avatar';
 
-const SESSION_KEY = 'MASQUER.session.userId';
+const SESSION_KEY = 'masquer.session.userId';
 const STARTING_CHIPS = 1000;
 
 export type RegisterError = 'username_taken' | 'unknown';
@@ -1122,7 +1122,7 @@ gh issue create --milestone "$PHASE_1_MS" --label "phase-1,chore" \
 3. Land on `/lobby` showing "Welcome, Adam" + avatar swatch
 4. DevTools → IndexedDB → `MASQUER` → `users` has `Adam` with hashed password (verify long base64 string, NOT plaintext)
 5. `balances` has Adam's userId with `chips: 1000`
-6. localStorage has `MASQUER.session.userId` = Adam's UUID
+6. localStorage has `masquer.session.userId` = Adam's UUID
 7. Refresh → "Loading…" briefly → `/lobby` (still logged in)
 8. Click "Log out" → land on `/login` → localStorage key cleared
 9. Visit `/lobby` directly → redirects to `/login`

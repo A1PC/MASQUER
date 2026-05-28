@@ -38,3 +38,22 @@ React Router + Vitest + ESLint + Prettier.
 ## References
 
 - BUILD_GUIDE.md §2 (Tech Stack)
+
+## Amendments
+
+- **2026-05-17 (Phase 3).** XState v5 + `@xstate/react` adopted for
+  per-round game logic (Blackjack first; later Roulette, Baccarat, Bingo,
+  Plinko, Craps, Poker). See ADR-0026.
+- **2026-05-22 (Phase 15 #1 — Design system).** Tailwind tokens extended
+  with the Velvet Deco palette in `src/theme/tokens.ts`; 25 design-system
+  primitives shipped. See ADR-0043.
+- **2026-05-22 (Phase 15 #2 — Motion & Sound).** `useSound` /
+  `useEffectiveReducedMotion` hooks added (ADR-0044 sound, motion library
+  in `src/motion/`).
+- **2026-05-28 (v1.0).** Recharts adopted into a shared lazy-loaded chunk
+  (ADR-0039); React Router 7 data-router pattern (ADR-0014); game routes
+  are lazy-loaded post-Phase-15 #15 PR C (main bundle ~222 KB gzipped).
+  Core stack (TypeScript, React 18, Vite, Tailwind, Zustand, Dexie, Web
+  Crypto API, Vitest, ESLint, Prettier) is unchanged from the Phase-0
+  decision; XState v5, Framer Motion 12, Storybook 8 are the only major
+  additions.

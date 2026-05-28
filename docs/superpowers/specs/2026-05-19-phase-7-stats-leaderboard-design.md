@@ -59,7 +59,7 @@ Replace the two stub pages at `/stats` and `/leaderboard` with playable, data-dr
 ```
 
 - Title uses display font, gold-bright. Includes current tab name.
-- Toggle is a two-segment pill (Cards default, Graphs alternative). Sets the `viewMode` slice in `uiStore`. Persisted to `localStorage` under `MASQUER.ui.statsViewMode`.
+- Toggle is a two-segment pill (Cards default, Graphs alternative). Sets the `viewMode` slice in `uiStore`. Persisted to `localStorage` under `masquer.ui.statsViewMode`.
 
 ### 4.3 Empty state
 
@@ -233,7 +233,7 @@ interface UiState {
 }
 ```
 
-Persisted to `localStorage` under `MASQUER.ui.statsViewMode` (matches the existing `MASQUER.ui.sidebarCollapsed` pattern). Default: `'cards'`.
+Persisted to `localStorage` under `masquer.ui.statsViewMode` (matches the existing `masquer.ui.sidebarCollapsed` pattern). Default: `'cards'`.
 
 ## 9. Recharts shared lazy chunk
 

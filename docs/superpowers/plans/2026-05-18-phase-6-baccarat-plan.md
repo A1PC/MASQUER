@@ -4398,7 +4398,7 @@ describe('BaccaratPage — integration', () => {
   beforeEach(async () => {
     MotionGlobalConfig.skipAnimations = true;
     await resetDb();
-    localStorage.removeItem('MASQUER.session.userId');
+    localStorage.removeItem('masquer.session.userId');
     useSessionStore.setState({
       currentUser: null,
       isAdmin: false,

@@ -1746,7 +1746,7 @@ Verbatim from spec §6.7:
 ```ts
 import { create } from 'zustand';
 
-const SIDEBAR_KEY = 'MASQUER.ui.sidebarCollapsed';
+const SIDEBAR_KEY = 'masquer.ui.sidebarCollapsed';
 
 interface UIState {
   sidebarCollapsed: boolean;
@@ -1797,7 +1797,7 @@ export const useUIStore = create<UIState>((set, get) => ({
 ```ts
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const SIDEBAR_KEY = 'MASQUER.ui.sidebarCollapsed';
+const SIDEBAR_KEY = 'masquer.ui.sidebarCollapsed';
 
 // Re-import the module fresh for each test so initial state is recomputed.
 async function importFreshStore() {
@@ -3701,6 +3701,6 @@ This plan was self-reviewed for:
 
 - **Spec coverage:** every spec section maps to at least one task. Spec §5 (5-PR breakdown) → 5 PR sections. Spec §6 verbatim file drafts → individual tasks. Spec §7 test plan → test tasks in each PR. Spec §8 ADRs → A3, B11, C16, D4, E13. Spec §9 risks → A4, B11. Spec §10 conventions update → C17. Spec §11 issue setup → pre-flight Step 4. Spec §12 smoke plan → embedded in each PR's local DoD + Rel3 final smoke. Spec §13 DoD → Rel3. Spec §15 BUILD_GUIDE edits → B10 + D4. Spec §16 release procedure → Rel1 + Rel2.
 - **Placeholders:** no TBD/TODO/"fill in details". The component test outline tasks (E3, E4 "Test", etc.) provide actual code; tasks that reference "spec §6.X" point to the verbatim spec rather than repeating ~150 lines of unchanged code — acceptable because the spec is itself the verbatim source committed to main before this plan runs.
-- **Type / name consistency:** verified across tasks: `WALLET_CONFIG`, `BetHandle`, `RoundResult`, `PlaceBetError` (6 codes), `ClaimDailyResult`, `useWalletStore`/`useBalance`/`useNextDailyEligibleAt`, `useUIStore`, `RecentResultItem`, `useGameRound`, `useRecentRounds`, `CoinFlipDetails`, `CoinSide`, `COIN_FLIP_CONFIG`, `STARTING_CHIPS=1000`, `DAILY_CLAIM_AMOUNT=50`, `DAILY_CLAIM_INTERVAL_MS=86_400_000`, branch names `phase-2-rng`/`phase-2-wallet`/`phase-2-app-shell`/`phase-2-daily-topup`/`phase-2-games`, `MASQUER.ui.sidebarCollapsed`, `MASQUER.session.userId`. All consistent.
+- **Type / name consistency:** verified across tasks: `WALLET_CONFIG`, `BetHandle`, `RoundResult`, `PlaceBetError` (6 codes), `ClaimDailyResult`, `useWalletStore`/`useBalance`/`useNextDailyEligibleAt`, `useUIStore`, `RecentResultItem`, `useGameRound`, `useRecentRounds`, `CoinFlipDetails`, `CoinSide`, `COIN_FLIP_CONFIG`, `STARTING_CHIPS=1000`, `DAILY_CLAIM_AMOUNT=50`, `DAILY_CLAIM_INTERVAL_MS=86_400_000`, branch names `phase-2-rng`/`phase-2-wallet`/`phase-2-app-shell`/`phase-2-daily-topup`/`phase-2-games`, `masquer.ui.sidebarCollapsed`, `masquer.session.userId`. All consistent.
 - **Scope:** Phase 2 only. No Phase 3+ game logic, no real profile/settings pages.
 - **Test count at end of Phase 2:** ~150 (Phase 1 baseline 59 + Phase 2 ~91 new). Coverage gates: ≥80% on `src/systems/**/*.ts`, ≥90% on `src/games/coin-flip/logic.ts`.

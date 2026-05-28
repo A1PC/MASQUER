@@ -379,7 +379,7 @@ const BONUS_POOL_SIZE = 10;
 /** Deterministic seed derived from the date string. djb2-ish hash for speed. */
 function dateSeed(date: string): number {
   let h = 5381;
-  const prefix = 'MASQUER.lottery.';
+  const prefix = 'masquer.lottery.';
   const input = prefix + date;
   for (let i = 0; i < input.length; i += 1) {
     h = ((h << 5) + h + input.charCodeAt(i)) | 0; // | 0 → keep i32
@@ -3979,7 +3979,7 @@ import { useCurrentUser } from '@/store/sessionStore';
 
 // inside the Sidebar component:
 const user = useCurrentUser();
-const seenKey = user ? `MASQUER.lottery.lastSeenDraw.${user.id}` : null;
+const seenKey = user ? `masquer.lottery.lastSeenDraw.${user.id}` : null;
 const lastDrawId = useLiveQuery(async () => (await db.lotteryDraws.orderBy('id').last())?.id ?? null, [], null);
 const seen = seenKey ? localStorage.getItem(seenKey) : null;
 const hasUnread = lastDrawId !== null && lastDrawId !== seen;
