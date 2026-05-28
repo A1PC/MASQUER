@@ -6,6 +6,7 @@ import { useBalance } from '@/store/walletStore';
 import { useGameRound } from '@/games/_shared/useGameRound';
 import LobbyButton from '@/games/_shared/LobbyButton';
 import RulesButton from '@/games/_shared/RulesButton';
+import { Button } from '@/components/ui';
 import { useSound } from '@/systems/sound/useSound';
 import { useEffectiveReducedMotion } from '@/motion/useEffectiveReducedMotion';
 import type { BetHandle } from '@/systems/wallet';
@@ -421,21 +422,25 @@ function DrawSession({ session, onSessionOver, onReset }: DrawSessionProps): JSX
           <h2 className="font-display text-xl tracking-[0.18em] text-casino-red">OUT OF CHIPS</h2>
           <p className="text-ivory/85">You busted. Rebuy to continue.</p>
           {canRebuy && (
-            <button
-              className="rounded-md bg-gold px-6 py-3 font-display text-sm tracking-[0.18em] text-felt-deep hover:bg-gold-bright"
+            <Button
+              variant="primary"
+              size="lg"
+              className="rounded-md font-display tracking-[0.18em]"
               onClick={() => handleRebuy(rebuyAmount)}
               data-rebuy
             >
               REBUY {rebuyAmount.toLocaleString()}
-            </button>
+            </Button>
           )}
-          <button
-            className="rounded-md border border-brass/60 px-6 py-3 font-display text-sm tracking-[0.18em] text-ivory hover:bg-velvet"
+          <Button
+            variant="secondary"
+            size="lg"
+            className="rounded-md font-display tracking-[0.18em]"
             onClick={handleLeave}
             data-leave-bust
           >
             LEAVE TABLE
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -460,19 +465,22 @@ function DrawSession({ session, onSessionOver, onReset }: DrawSessionProps): JSX
             <span className="text-ivory/70">Bought in: {ctx.totalBoughtIn.toLocaleString()}</span>
             <span className="text-ivory/70">Final stack: {finalStack.toLocaleString()}</span>
             <span
-              className={`font-mono text-xl font-bold ${net >= 0 ? 'text-chip-win' : 'text-casino-red'}`}
+              className={`font-numeral text-xl font-bold tabular-nums ${net >= 0 ? 'text-chip-win' : 'text-casino-red'}`}
+              data-session-over-net
             >
               {net >= 0 ? '+' : ''}
               {net.toLocaleString()}
             </span>
           </div>
-          <button
-            className="rounded-md bg-gold px-6 py-3 font-display text-sm tracking-[0.18em] text-felt-deep hover:bg-gold-bright"
+          <Button
+            variant="primary"
+            size="lg"
+            className="rounded-md font-display tracking-[0.18em]"
             onClick={onReset}
             data-play-again
           >
             PLAY AGAIN
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -530,22 +538,26 @@ function DrawSession({ session, onSessionOver, onReset }: DrawSessionProps): JSX
                 {Math.ceil(graceRemainingMs / 1000)}s
               </span>
             </span>
-            <button
+            <Button
               type="button"
+              variant="danger"
+              size="sm"
               onClick={handleLeave}
-              className="rounded-md border border-casino-red/60 px-4 py-2 font-display text-xs tracking-[0.18em] text-casino-red hover:bg-casino-red/10"
+              className="rounded-md font-display tracking-[0.18em]"
               data-leave-grace
             >
               LEAVE NOW
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant="secondary"
+              size="sm"
               onClick={handleDealNow}
-              className="rounded-md border border-brass/60 px-4 py-2 font-display text-xs tracking-[0.18em] text-ivory hover:bg-velvet"
+              className="rounded-md font-display tracking-[0.18em] text-ivory"
               data-deal-now
             >
               DEAL NOW
-            </button>
+            </Button>
           </div>
         </div>
       )}
