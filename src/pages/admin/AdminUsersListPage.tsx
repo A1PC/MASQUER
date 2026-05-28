@@ -2,6 +2,7 @@ import type { JSX } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Link } from 'react-router';
 import { getAllUserStats, type UserStatsRow } from '@/systems/stats';
+import AdminDangerZone from '@/components/admin/AdminDangerZone';
 
 const EMPTY_ROWS: UserStatsRow[] = [];
 
@@ -67,6 +68,8 @@ export default function AdminUsersListPage(): JSX.Element {
           )}
         </tbody>
       </table>
+
+      <AdminDangerZone />
     </div>
   );
 }

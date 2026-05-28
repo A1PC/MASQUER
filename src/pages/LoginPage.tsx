@@ -7,7 +7,6 @@ import { useSessionStore, useCurrentUser } from '@/store/sessionStore';
 import { loginSchema, type LoginInput } from '@/systems/auth-schemas';
 import { Card, Field, Input, Button } from '@/components/ui';
 import MaskMark from '@/components/brand/MaskMark';
-import DevWipeButton from '@/components/DevWipeButton';
 
 export default function LoginPage(): JSX.Element {
   const login = useSessionStore((s) => s.login);
@@ -98,8 +97,6 @@ export default function LoginPage(): JSX.Element {
               Create an account
             </Link>
           </p>
-
-          <DevWipeButton />
         </form>
       </Card>
     </main>

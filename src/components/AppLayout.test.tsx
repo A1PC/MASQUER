@@ -45,4 +45,36 @@ describe('AppLayout', () => {
     expect(screen.getByText(/Coin Flip/)).toBeInTheDocument(); // sidebar item
     expect(screen.getByText('lobby content')).toBeInTheDocument(); // outlet
   });
+
+  it('renders BannedOverlay instead of TopBar/Sidebar/Outlet when user.isBanned', () => {
+    useSessionStore.setState({
+      currentUser: { ...testUser, isBanned: true },
+      bootstrapping: false,
+    });
+    useUIStore.setState({ sidebarCollapsed: false });
+
+    const router = createMemoryRouter(
+      [
+        {
+          path: '/',
+          element: (
+            <ToastProvider>
+              <AppLayout />
+            </ToastProvider>
+          ),
+          children: [{ path: 'lobby', element: <p>lobby content</p> }],
+        },
+      ],
+      { initialEntries: ['/lobby'] },
+    );
+    const { container } = render(<RouterProvider router={router} />);
+
+    // Overlay present
+    expect(container.querySelector('[data-banned-overlay]')).not.toBeNull();
+    expect(screen.getByRole('heading', { name: 'BANNED' })).toBeInTheDocument();
+    // Normal layout NOT mounted (no MASQUER topbar, no sidebar items, no outlet content)
+    expect(screen.queryByText('MASQUER')).toBeNull();
+    expect(screen.queryByText(/Coin Flip/)).toBeNull();
+    expect(screen.queryByText('lobby content')).toBeNull();
+  });
 });

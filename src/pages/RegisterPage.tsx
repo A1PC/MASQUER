@@ -7,7 +7,6 @@ import { useSessionStore, useCurrentUser } from '@/store/sessionStore';
 import { registerSchema, type RegisterInput } from '@/systems/auth-schemas';
 import { Card, Field, Input, Button } from '@/components/ui';
 import MaskMark from '@/components/brand/MaskMark';
-import DevWipeButton from '@/components/DevWipeButton';
 
 export default function RegisterPage(): JSX.Element {
   const registerUser = useSessionStore((s) => s.register);
@@ -123,8 +122,6 @@ export default function RegisterPage(): JSX.Element {
               Sign in
             </Link>
           </p>
-
-          <DevWipeButton />
         </form>
       </Card>
     </main>
