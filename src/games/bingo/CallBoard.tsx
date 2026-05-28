@@ -59,6 +59,19 @@ export default function CallBoard({ calledSoFar, callCount, variant }: Props): J
   );
 }
 
+/** American 5-column letter mapping (1–15 → B, 16–30 → I, …, 61–75 → O).
+ *  Mirrors the column boundaries in `ballPalette.ts#americanBallStyle`. The
+ *  letter is shown next to the called number on the hero ball so the variant
+ *  reads as canonical "B-7" / "G-52" American bingo. British returns `null`
+ *  (no column letter — UK deciles are colour-coded, not letter-coded). */
+function americanLetter(value: number): 'B' | 'I' | 'N' | 'G' | 'O' | null {
+  if (value <= 15) return 'B';
+  if (value <= 30) return 'I';
+  if (value <= 45) return 'N';
+  if (value <= 60) return 'G';
+  return 'O';
+}
+
 function BingoBall({
   value,
   variant,
@@ -70,14 +83,19 @@ function BingoBall({
 }): JSX.Element {
   const palette = ballPaletteFor(value, variant);
   const dim = size === 'large' ? 'w-16 h-16 text-2xl' : 'w-6 h-6 text-[10px]';
+  // VARIANT-BRANCH (American-only, audit §2.8 cold-look): prefix the hero
+  // ball with its column letter so the call reads as "B-7" rather than a
+  // bare "7". Skipped on small recent-ball chips to keep them legible.
+  const letter = variant === 'american' && size === 'large' ? americanLetter(value) : null;
   return (
     <div
       className={`${dim} flex items-center justify-center rounded-full border-2 font-display tabular-nums shadow-md`}
       style={{ background: palette.fill, borderColor: palette.ring, color: palette.textColor }}
       data-bingo-ball
       data-ball-value={value}
+      {...(letter ? { 'data-ball-letter': letter } : {})}
     >
-      {value}
+      {letter ? `${letter}-${value}` : value}
     </div>
   );
 }

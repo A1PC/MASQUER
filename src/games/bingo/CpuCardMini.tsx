@@ -11,11 +11,15 @@ interface Props {
   highlightTier?: 'tier1' | 'tier2' | 'tier3' | null;
 }
 
-const TIER_LABELS = {
-  tier1: 'LINE',
-  tier2: 'BONUS',
-  tier3: 'WINNER',
-} as const;
+/** Compact CPU mini-card tier label. tier2 copy differs per variant so the
+ *  American "FOUR CORNERS" reads correctly instead of the generic "BONUS"
+ *  (which suits British double-line). Kept short to fit the 9px gutter. */
+function tierLabelFor(tier: 'tier1' | 'tier2' | 'tier3', variant: Variant): string {
+  if (tier === 'tier1') return 'LINE';
+  if (tier === 'tier3') return 'WINNER';
+  // tier2 — VARIANT-BRANCH (audit §2.8 cold-look)
+  return variant === 'american' ? 'CORNERS' : 'BONUS';
+}
 
 /** Mini CPU card. Same daubed-cell magenta ring as the player's BingoCard
  *  (just smaller). Label tone shifts gold-bright when this CPU has hit
@@ -42,7 +46,7 @@ export default function CpuCardMini({
         }`}
       >
         CPU {cpuIdx + 1}
-        {highlightTier && ` · ${TIER_LABELS[highlightTier]}`}
+        {highlightTier && ` · ${tierLabelFor(highlightTier, variant)}`}
       </div>
       <BingoCard
         card={cpu.card}

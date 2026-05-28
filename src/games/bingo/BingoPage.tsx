@@ -34,6 +34,37 @@ import EndScreen from './EndScreen';
 import BingoRules from './BingoRules';
 import BingoVariantModal from './BingoVariantModal';
 
+// ============================================================================
+// VARIANT-PATH GUIDE (audit §2.8 P2 — comment-block delineation)
+// ----------------------------------------------------------------------------
+// `BingoPage` is shared between the British 90-ball and American 75-ball
+// variants. When an audit finding is filed, use this map to attribute it
+// correctly between §2.7 (British) and §2.8 (American):
+//
+//   SHARED (variant-agnostic):
+//     - Header / subtitle scaffold
+//     - Setup / awaiting_bet_handle / done state branches
+//     - Sound bridges (ball.drop + tier→stinger map)
+//     - Bet placement, settle, machine wiring
+//     - DaubToggle, OddsInfoBox, RulesButton, RulesModal, LobbyButton
+//
+//   BRITISH-ONLY (90-ball, 3×9 strip, line→double line→full house):
+//     - `variant === 'british'` branches in the `subtitle` ternary below
+//     - VARIANTS.british tier labels (LINE!/DOUBLE LINE!/BINGO!) rendered
+//       indirectly via WinBanner + EndScreen + SetupPanel
+//
+//   AMERICAN-ONLY (75-ball, 5×5 grid w/ free centre, line→four corners→blackout):
+//     - `variant === 'american'` branches in the `subtitle` ternary below
+//     - Free-centre cell render (auto-marked, MaskMark) lives in BingoCard.tsx
+//     - B-I-N-G-O column headers + ball-call letter prefix live in
+//       BingoCard.tsx + CallBoard.tsx
+//     - VARIANTS.american tier labels (LINE!/FOUR CORNERS!/BLACKOUT!) ditto
+//
+// TODO(#15-followup): if/when American gains enough divergence to justify it,
+// split into `BingoBritishPage`/`BingoAmericanPage` wrappers sharing internals
+// (mirrors poker `holdem/draw/omaha`). Tracked as a PR-B-scope refactor —
+// out of scope for the per-game cold-look pass.
+// ============================================================================
 function isVariant(v: string | null): v is Variant {
   return v === 'british' || v === 'american';
 }
@@ -263,6 +294,10 @@ export default function BingoPage(): JSX.Element | null {
 
   const inGame =
     snapshot.matches('playing') || snapshot.matches('settling') || snapshot.matches('done');
+  // VARIANT-BRANCH (shared subtitle, prefix differs): British/American copy is
+  // chosen here from the URL `?variant=` param resolved at the top of the
+  // component. Any future variant-only subtitle copy belongs in the dedicated
+  // branch — keep the ternary readable rather than forking the whole header.
   const subtitle = inGame
     ? `${variant === 'british' ? 'British' : 'American'} · ${snapshot.context.difficulty}`
     : `${variant === 'british' ? 'British' : 'American'} · setup`;
