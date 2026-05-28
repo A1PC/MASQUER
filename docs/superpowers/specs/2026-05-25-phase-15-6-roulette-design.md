@@ -43,7 +43,7 @@ These come straight from the umbrella roadmap §4.4 and CLAUDE.md hard rules and
 5. **One RNG.** No `Math.random()`. ESLint enforces.
 6. **Spec-first.** BUILD_GUIDE §8.2 is updated first (bet-cap removal note + auto-spin timer note + ball-centre note). ADRs amended first. Then code.
 7. **No CLAUDE.md edits.**
-8. **Conventional Commits, commit subject ≤ 100 chars** (commitlint header-max-length=100 — captured in `feedback-localgamble-commit-subject-limit`).
+8. **Conventional Commits, commit subject ≤ 100 chars** (commitlint header-max-length=100 — captured in `feedback-masquer-commit-subject-limit`).
 9. **Recent-results sidebar stays.** Per user: _"keep showing the recent results on the side of the page as normal."_ `GameShell` already does this via `recentItems`; the page keeps passing them.
 
 ---

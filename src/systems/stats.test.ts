@@ -21,7 +21,7 @@ import {
   getUserWinRateByGame,
 } from './stats';
 
-const SESSION_KEY = 'localGamble.session.userId';
+const SESSION_KEY = 'masquer.session.userId';
 
 async function seedTwoUsersWithRounds() {
   await resetDb();

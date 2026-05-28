@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useUIStore } from './uiStore';
 
-const SIDEBAR_KEY = 'localGamble.ui.sidebarCollapsed';
+const SIDEBAR_KEY = 'masquer.ui.sidebarCollapsed';
 
 // Re-import the module fresh for each test so initial state is recomputed.
 async function importFreshStore() {
@@ -62,7 +62,7 @@ describe('uiStore', () => {
 
 describe('uiStore.statsViewMode', () => {
   beforeEach(() => {
-    localStorage.removeItem('localGamble.ui.statsViewMode');
+    localStorage.removeItem('masquer.ui.statsViewMode');
     useUIStore.setState({ statsViewMode: 'cards' });
   });
 
@@ -73,17 +73,17 @@ describe('uiStore.statsViewMode', () => {
   it('setStatsViewMode persists to localStorage', () => {
     useUIStore.getState().setStatsViewMode('graphs');
     expect(useUIStore.getState().statsViewMode).toBe('graphs');
-    expect(localStorage.getItem('localGamble.ui.statsViewMode')).toBe('graphs');
+    expect(localStorage.getItem('masquer.ui.statsViewMode')).toBe('graphs');
   });
 
   it('reads persisted preference on init', async () => {
-    localStorage.setItem('localGamble.ui.statsViewMode', 'graphs');
+    localStorage.setItem('masquer.ui.statsViewMode', 'graphs');
     const { useUIStore } = await importFreshStore();
     expect(useUIStore.getState().statsViewMode).toBe('graphs');
   });
 
   it('invalid persisted value falls back to "cards"', async () => {
-    localStorage.setItem('localGamble.ui.statsViewMode', 'bogus');
+    localStorage.setItem('masquer.ui.statsViewMode', 'bogus');
     const { useUIStore } = await importFreshStore();
     expect(useUIStore.getState().statsViewMode).toBe('cards');
   });

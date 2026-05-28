@@ -1828,8 +1828,8 @@ Add a `statsViewMode` slice mirroring the existing `sidebarCollapsed` pattern. S
 ```ts
 import { create } from 'zustand';
 
-const SIDEBAR_KEY = 'localGamble.ui.sidebarCollapsed';
-const STATS_VIEW_KEY = 'localGamble.ui.statsViewMode';
+const SIDEBAR_KEY = 'MASQUER.ui.sidebarCollapsed';
+const STATS_VIEW_KEY = 'MASQUER.ui.statsViewMode';
 
 export type StatsViewMode = 'cards' | 'graphs';
 
@@ -1905,7 +1905,7 @@ Append:
 ```ts
 describe('uiStore.statsViewMode', () => {
   beforeEach(() => {
-    localStorage.removeItem('localGamble.ui.statsViewMode');
+    localStorage.removeItem('MASQUER.ui.statsViewMode');
     useUIStore.setState({ statsViewMode: 'cards' });
   });
 
@@ -1916,18 +1916,18 @@ describe('uiStore.statsViewMode', () => {
   it('setStatsViewMode persists to localStorage', () => {
     useUIStore.getState().setStatsViewMode('graphs');
     expect(useUIStore.getState().statsViewMode).toBe('graphs');
-    expect(localStorage.getItem('localGamble.ui.statsViewMode')).toBe('graphs');
+    expect(localStorage.getItem('MASQUER.ui.statsViewMode')).toBe('graphs');
   });
 
   it('reads persisted preference on init', () => {
-    localStorage.setItem('localGamble.ui.statsViewMode', 'graphs');
+    localStorage.setItem('MASQUER.ui.statsViewMode', 'graphs');
     // Re-import to re-evaluate init (simulate fresh module).
     // In practice we test the read function directly:
-    expect(localStorage.getItem('localGamble.ui.statsViewMode')).toBe('graphs');
+    expect(localStorage.getItem('MASQUER.ui.statsViewMode')).toBe('graphs');
   });
 
   it('invalid persisted value falls back to "cards"', () => {
-    localStorage.setItem('localGamble.ui.statsViewMode', 'bogus');
+    localStorage.setItem('MASQUER.ui.statsViewMode', 'bogus');
     useUIStore.setState({ statsViewMode: 'cards' });
     // The init reader returns 'cards' for anything other than 'graphs'.
     expect(useUIStore.getState().statsViewMode).toBe('cards');
@@ -2121,7 +2121,7 @@ import { useUIStore } from '@/store/uiStore';
 
 describe('ViewModeToggle', () => {
   beforeEach(() => {
-    localStorage.removeItem('localGamble.ui.statsViewMode');
+    localStorage.removeItem('MASQUER.ui.statsViewMode');
     useUIStore.setState({ statsViewMode: 'cards' });
   });
 
@@ -2138,7 +2138,7 @@ describe('ViewModeToggle', () => {
     render(<ViewModeToggle />);
     await user.click(screen.getByRole('radio', { name: /graphs/i }));
     expect(useUIStore.getState().statsViewMode).toBe('graphs');
-    expect(localStorage.getItem('localGamble.ui.statsViewMode')).toBe('graphs');
+    expect(localStorage.getItem('MASQUER.ui.statsViewMode')).toBe('graphs');
   });
 
   it('clicking back to Cards restores the default', async () => {
@@ -2790,8 +2790,8 @@ import { resetDb } from '@/test/db-helpers';
 describe('StatsOverviewPage', () => {
   beforeEach(async () => {
     await resetDb();
-    localStorage.removeItem('localGamble.session.userId');
-    localStorage.removeItem('localGamble.ui.statsViewMode');
+    localStorage.removeItem('MASQUER.session.userId');
+    localStorage.removeItem('MASQUER.ui.statsViewMode');
     useSessionStore.setState({
       currentUser: null,
       isAdmin: false,
@@ -2888,7 +2888,7 @@ function renderAt(game: string) {
 describe('StatsPerGamePage', () => {
   beforeEach(async () => {
     await resetDb();
-    localStorage.removeItem('localGamble.session.userId');
+    localStorage.removeItem('MASQUER.session.userId');
     useSessionStore.setState({
       currentUser: null,
       isAdmin: false,
@@ -4890,9 +4890,9 @@ EOF
 )"
 ```
 
-- [ ] **Step 3: Update `project_localgamble_status` memory**
+- [ ] **Step 3: Update `project_masquer_status` memory**
 
-Open `/Users/adam/.claude/projects/-Users-adam/memory/project_localgamble_status.md`. Add the new release at top of the tagged-releases list and mark Phase 7 as done in the roadmap section.
+Open `/Users/adam/.claude/projects/-Users-adam/memory/project_masquer_status.md`. Add the new release at top of the tagged-releases list and mark Phase 7 as done in the roadmap section.
 
 ---
 

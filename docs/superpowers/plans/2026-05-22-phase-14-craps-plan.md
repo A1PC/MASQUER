@@ -841,7 +841,7 @@ gh pr create --title "phase-14(craps): PR E — enum + nav + BUILD_GUIDE" --body
 - [ ] **Step 1:** `git checkout main && git pull origin main`.
 - [ ] **Step 2:** `git tag -a v0.14-craps -m "Phase 14: full-table Craps" && git push origin v0.14-craps`.
 - [ ] **Step 3:** `gh release create v0.14-craps` — highlights: full-table single-player craps, per-bet resolver registry (~15+ bets), come-out/point machine, true-odds + field 2×/3× + hardways + props, table-session wallet (ADR-0041), ADR-0042. List PRs A-E + test delta. Note this **completes all gameplay phases — only Phase 15 Polish remains.**
-- [ ] **Step 4: Memory** — update `project_localgamble_status.md`: top entry `v0.14-craps`; **next phase = 15 Polish** (the final phase: sound, animation refinement, the rebrand from "localGamble", per-game bundle splitting, the deferred-features evaluation pass). Append Phase 14 deferred items (put/buy/lay, working-on-come-out toggle, fire bet, hop bets, hi-lo field paytable). Note ADR count → 42.
+- [ ] **Step 4: Memory** — update `project_masquer_status.md`: top entry `v0.14-craps`; **next phase = 15 Polish** (the final phase: sound, animation refinement, the rebrand from "MASQUER", per-game bundle splitting, the deferred-features evaluation pass). Append Phase 14 deferred items (put/buy/lay, working-on-come-out toggle, fire bet, hop bets, hi-lo field paytable). Note ADR count → 42.
 
 ---
 

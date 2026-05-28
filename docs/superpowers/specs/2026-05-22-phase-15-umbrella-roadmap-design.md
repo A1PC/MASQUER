@@ -3,13 +3,13 @@
 **Status:** Roadmap / master plan. This document is NOT a single implementation spec — it decomposes Phase 15 into independent sub-projects and locks the shared principles every sub-project must obey. Each sub-project gets its OWN `spec → plan → subagent PRs → release` cycle. Update the "Progress" table here as sub-projects ship.
 
 **Date:** 2026-05-22
-**Supersedes:** the single-row "Phase 15 — Polish" entry in `BUILD_GUIDE.md` §12 and `project_localgamble_status.md`.
+**Supersedes:** the single-row "Phase 15 — Polish" entry in `BUILD_GUIDE.md` §12 and `project_masquer_status.md`.
 
 ---
 
 ## 1. Goal
 
-Bring localGamble to a finished, cohesive, genuinely-fun state: a complete UI/UX overhaul across every screen, real animation and sound, a final brand, a triaged set of feature additions per game, an expanded + re-skinned admin area, and a closing integration/QA pass. The end state: the app feels like one designed product, not 14 phases of independently-built games.
+Bring MASQUER to a finished, cohesive, genuinely-fun state: a complete UI/UX overhaul across every screen, real animation and sound, a final brand, a triaged set of feature additions per game, an expanded + re-skinned admin area, and a closing integration/QA pass. The end state: the app feels like one designed product, not 14 phases of independently-built games.
 
 ## 2. Why decomposed
 
@@ -54,7 +54,7 @@ These are the cross-cutting contracts. Each sub-project's own spec inherits them
 
 ### 4.1 Brand & design language
 
-- North star: **old-school Vegas content, modern-web execution** (see `project_localgamble_design_philosophy`). Authentic casino vocabulary (felt, neon, gold, chips, classic card faces) rendered with crisp modern layout, centered scaling, smooth transitions, no jank.
+- North star: **old-school Vegas content, modern-web execution** (see `project_masquer_design_philosophy`). Authentic casino vocabulary (felt, neon, gold, chips, classic card faces) rendered with crisp modern layout, centered scaling, smooth transitions, no jank.
 - Final name/logo/palette/type/spacing scale are decided in **#0** and consumed everywhere via `src/theme/tokens.ts` + the tailwind config + the #1 component library. **No hard-coded hex** in components after the overhaul — tokens only (this is already a CLAUDE.md rule; the overhaul makes it real).
 
 ### 4.2 Motion
@@ -88,7 +88,7 @@ These are the cross-cutting contracts. Each sub-project's own spec inherits them
 
 ## 5. Deferred-features docket triage
 
-The `localgamble-deferred-features` memory catalogs per-game + admin feature candidates. It is NOT auto-included. When designing each game/admin sub-project, run that game's docket items through the docket's own evaluation framework (player impact / cost / polish synergy / maintenance burden) and decide ship-now / fold-in / defer. The chosen feature adds become part of that sub-project's spec.
+The `masquer-deferred-features` memory catalogs per-game + admin feature candidates. It is NOT auto-included. When designing each game/admin sub-project, run that game's docket items through the docket's own evaluation framework (player impact / cost / polish synergy / maintenance burden) and decide ship-now / fold-in / defer. The chosen feature adds become part of that sub-project's spec.
 
 ## 6. Per-sub-project workflow
 
@@ -103,7 +103,7 @@ This umbrella's **Progress** table is updated as each sub-project completes.
 
 ## 7. Open decisions (resolved in sub-project #0)
 
-- **Product name** — "localGamble" is a working title; the real name is chosen in #0.
+- **Product name** — "MASQUER" is a working title; the real name is chosen in #0.
 - **Logo** — wordmark/mark direction.
 - **Palette** — keep/evolve the current felt-green + casino-red + gold + cyan/magenta-neon, or re-pitch.
 - **Type scale** — current display (Bungee/Anton) + body (Inter) + mono (JetBrains) — confirm or revise.

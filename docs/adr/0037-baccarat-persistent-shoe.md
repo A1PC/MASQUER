@@ -12,7 +12,7 @@ the cut card is dealt out (mid-round usually), the shoe is finished and the
 table reshuffles between rounds.
 
 Phase 4 (Roulette) used a stateless RNG call per spin. Phase 5 (Slots) used
-the cumulative-table weighted pick. Baccarat is the first localGamble game
+the cumulative-table weighted pick. Baccarat is the first MASQUER game
 where draws are NOT independent — once a card is dealt, the probability of
 the next card changes (though the effect is tiny over 416 cards).
 

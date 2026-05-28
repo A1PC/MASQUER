@@ -15,7 +15,7 @@
 ## File Structure (after all 3 PRs merge)
 
 ```
-localGamble/
+MASQUER/
 ├── BUILD_GUIDE.md                                       # MODIFIED (PR A): §8.1 rule updates
 ├── CHANGELOG.md                                         # MODIFIED (release PR)
 ├── package.json                                         # MODIFIED (PR A): +xstate
@@ -2382,7 +2382,7 @@ in the project. The cards must feel "casino" but stay in the project's
 
 - Phase 3 spec §3 decisions #11, #12, #13
 - `src/games/blackjack/Card.tsx`, `src/games/blackjack/PIP_LAYOUT.ts`
-- Project design philosophy (memory: project-localgamble-design-philosophy)
+- Project design philosophy (memory: project-masquer-design-philosophy)
 ```
 
 ## Task B7: PR B local DoD + commit + push + open + merge

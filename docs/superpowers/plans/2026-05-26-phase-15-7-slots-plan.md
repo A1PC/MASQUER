@@ -20,7 +20,7 @@
 4. **Integer money. No `Math.random()`.** ESLint enforces.
 5. **Spec-first.** This plan + spec are merged before code. No new ADRs expected; if sound samples need an asset note, append a small section to ADR-0033.
 6. **No CLAUDE.md edits.**
-7. **Commit subject ≤ 100 chars** — commitlint Meta files fails otherwise (captured in `feedback-localgamble-commit-subject-limit`).
+7. **Commit subject ≤ 100 chars** — commitlint Meta files fails otherwise (captured in `feedback-masquer-commit-subject-limit`).
 8. **No skipping git hooks.** Husky + lint-staged + prettier must run on every commit. No `--no-verify`. No `--amend` — soft-reset + new commit if you need to rewrite.
 9. **DoD before opening the PR:**
    ```

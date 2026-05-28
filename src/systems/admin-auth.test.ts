@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { loginAdmin, logoutAdmin, restoreAdminSession } from './admin-auth';
 
-const ADMIN_KEY = 'localGamble.session.admin';
+const ADMIN_KEY = 'masquer.session.admin';
 
 describe('admin-auth', () => {
   beforeEach(() => {

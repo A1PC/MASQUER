@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build the localGamble Slots game end-to-end — weighted-symbol logic + XState v5 round machine + 5 symbol components + 3 scrolling reel components + paytable + page wiring with tiered win celebration — so it's fully playable from the lobby with the BUILD_GUIDE §8.3 paytable correctly returning ~86% RTP.
+**Goal:** Build the MASQUER Slots game end-to-end — weighted-symbol logic + XState v5 round machine + 5 symbol components + 3 scrolling reel components + paytable + page wiring with tiered win celebration — so it's fully playable from the lobby with the BUILD_GUIDE §8.3 paytable correctly returning ~86% RTP.
 
 **Architecture:** Mirrors the Phase 3/4 split-by-responsibility: `symbols.ts`/`logic.ts` are pure with ≥90% test coverage, `machine.ts` is a 3-state XState v5 machine, `SymbolView.tsx`/`ReelView.tsx`/`Paytable.tsx` are isolated and individually testable, `SlotsPage.tsx` is the only place wallet I/O happens. The result is decided by `rng.randomInt(0, 14)` (weighted via cumulative table) before any visual animation starts; the reels animate to their predetermined symbols. The single-handle wallet pattern from Coin Flip is reused (one `placeBet` per spin, one `settleRound` per round).
 

@@ -50,7 +50,7 @@ logged in; password is hashed in the DB."**
 | 5   | Route protection via `<RequireAuth>` wrapper component per protected route                                                                | Most common React Router pattern; easy to grep                                                | 0011               |
 | 6   | Username stored as entered (`username`) PLUS an indexed lowercase field (`usernameLower`) for unique lookups                              | Pretty display + case-insensitive uniqueness enforced by Dexie's `&` unique index             | —                  |
 | 7   | Avatar color randomly picked from a **curated 10-color palette** matching the retro Vegas theme                                           | Guarantees every avatar reads well on dark felt                                               | —                  |
-| 8   | Session persistence via `localStorage` key `localGamble.session.userId`                                                                   | Single string, synchronous read on app boot, survives refresh and tab close                   | 0010               |
+| 8   | Session persistence via `localStorage` key `MASQUER.session.userId`                                                                       | Single string, synchronous read on app boot, survives refresh and tab close                   | 0010               |
 | 9   | Three-PR sequence: data layer → auth system → UI wiring                                                                                   | Matches Phase 0 cadence; each PR's CI tests against its own additions                         | —                  |
 
 ## 4. Architecture overview
@@ -223,7 +223,7 @@ export class LocalGambleDB extends Dexie {
   balances!: EntityTable<Balance, 'userId'>;
   rounds!: EntityTable<Round, 'id'>;
 
-  constructor(name = 'localGamble') {
+  constructor(name = 'MASQUER') {
     super(name);
     this.version(1).stores({
       users: 'id, &usernameLower, createdAt',
@@ -412,7 +412,7 @@ import {
 } from '@/systems/crypto';
 import { pickRandomAvatarColor } from '@/systems/avatar';
 
-const SESSION_KEY = 'localGamble.session.userId';
+const SESSION_KEY = 'MASQUER.session.userId';
 const STARTING_CHIPS = 1000;
 
 export type RegisterError = 'username_taken' | 'unknown';
@@ -1106,7 +1106,7 @@ gh issue create --milestone "$PHASE_1_MS" --label "phase-1,chore" \
 
 1. `pnpm test:run` → new `db.test.ts` passes
 2. `pnpm typecheck` → schema types compile
-3. Open DevTools → IndexedDB → confirm no `localGamble` database exists yet (auth doesn't run on app boot until PR #3)
+3. Open DevTools → IndexedDB → confirm no `MASQUER` database exists yet (auth doesn't run on app boot until PR #3)
 
 ### PR #2
 
@@ -1120,9 +1120,9 @@ gh issue create --milestone "$PHASE_1_MS" --label "phase-1,chore" \
 1. `pnpm dev` → `/` redirects to `/lobby` → redirects to `/login`
 2. Click "Create an account" → fill `Adam`/`password123`/`password123` → submit
 3. Land on `/lobby` showing "Welcome, Adam" + avatar swatch
-4. DevTools → IndexedDB → `localGamble` → `users` has `Adam` with hashed password (verify long base64 string, NOT plaintext)
+4. DevTools → IndexedDB → `MASQUER` → `users` has `Adam` with hashed password (verify long base64 string, NOT plaintext)
 5. `balances` has Adam's userId with `chips: 1000`
-6. localStorage has `localGamble.session.userId` = Adam's UUID
+6. localStorage has `MASQUER.session.userId` = Adam's UUID
 7. Refresh → "Loading…" briefly → `/lobby` (still logged in)
 8. Click "Log out" → land on `/login` → localStorage key cleared
 9. Visit `/lobby` directly → redirects to `/login`
@@ -1170,7 +1170,7 @@ gh issue create --milestone "$PHASE_1_MS" --label "phase-1,chore" \
 ## 14. Rollback / recovery
 
 - **Bad merge to main:** revert via PR; subsequent Dependabot or feature PRs may need rebase.
-- **Dev IndexedDB corrupted during testing:** DevTools → Application → IndexedDB → delete `localGamble` → reload.
+- **Dev IndexedDB corrupted during testing:** DevTools → Application → IndexedDB → delete `MASQUER` → reload.
 - **Wrong PBKDF2 iteration count shipped:** future-version migration runs the new KDF on the user's stored password at next login. Phase 8 polish item; not a Phase 1 concern.
 - **Username encoding regression (e.g., emoji broke regex):** tighten or relax the regex; new accounts only — existing accounts are unaffected.
 

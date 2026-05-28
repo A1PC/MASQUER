@@ -2678,7 +2678,7 @@ Expected: ~1245 tests passing (~30 new in PR D).
 # PR E — Release v0.11-bingo
 
 **Branch:** `chore/release-v0.11-bingo` (off freshly-merged `main`)
-**Goal:** BUILD_GUIDE Phase 11 row marked ✅; new §10.6 Bingo section; tag `v0.11-bingo`; publish GitHub Release; update `[[project_localgamble_status]]` memory.
+**Goal:** BUILD_GUIDE Phase 11 row marked ✅; new §10.6 Bingo section; tag `v0.11-bingo`; publish GitHub Release; update `[[project_masquer_status]]` memory.
 
 ## Task E.1: BUILD_GUIDE update
 
@@ -2712,7 +2712,7 @@ git push origin v0.11-bingo
 gh release create v0.11-bingo --title "v0.11-bingo — Phase 11 complete" --notes "<release notes>"
 ```
 
-Update `/Users/adam/.claude/projects/-Users-adam/memory/project_localgamble_status.md` — add `v0.11-bingo` at the top of the tagged-releases list; mark Phase 11 ✅ in the roadmap; update the "stable, releasable state" line.
+Update `/Users/adam/.claude/projects/-Users-adam/memory/project_masquer_status.md` — add `v0.11-bingo` at the top of the tagged-releases list; mark Phase 11 ✅ in the roadmap; update the "stable, releasable state" line.
 
 ---
 
@@ -2727,6 +2727,6 @@ After PR D merges:
 - [ ] `prefers-reduced-motion`: WinBanner + ball-reveal both render correctly with reduced motion.
 - [ ] Manual smoke walkthrough (per Definition of Done above) passes.
 - [ ] GitHub Release `v0.11-bingo` published.
-- [ ] `[[project_localgamble_status]]` updated.
+- [ ] `[[project_masquer_status]]` updated.
 
 If anything fails, hot-fix on `main` with a `fix/bingo-*` branch.

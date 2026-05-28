@@ -63,7 +63,7 @@ Dispatch order: A → (B + C in parallel) → D. PR C can use `<DateRangeFilter>
 
 **`AdminLayout.tsx` retrofit:**
 
-- Root container: `flex h-full flex-col bg-felt-table text-ivory` (drops `min-h-screen` per [[localgamble-min-h-screen-in-pages]]; the AppLayout's `<main>` is the scrollable container).
+- Root container: `flex h-full flex-col bg-felt-table text-ivory` (drops `min-h-screen` per [[masquer-min-h-screen-in-pages]]; the AppLayout's `<main>` is the scrollable container).
 - Top-bar (already exists as part of layout): `bg-velvet-deep border-b border-brass/60`. Title `MASQUER · Admin` (font-display tracking-[0.18em] text-gold-bright). Logout button right-aligned, brand-tokened secondary (`border border-brass/60 text-ivory hover:bg-velvet`).
 - Sidebar:
   - `bg-velvet-deep border-r border-brass/60` chrome
@@ -302,8 +302,8 @@ Per `PHASE_15_PATTERNS.md §2`:
 9. **No `--no-verify`, no `--amend`.**
 10. **DoD per PR:** `pnpm lint && pnpm typecheck && pnpm exec vitest run && pnpm build && pnpm build-storybook && pnpm exec prettier --check .`
 11. **Tokens-only Tailwind** in rebuilt files.
-12. **AdminLayout root: `flex h-full flex-col`, NEVER `min-h-screen`** (per [[localgamble-min-h-screen-in-pages]]).
-13. **Visual verification via Playwright at 1440×900 before pushing each PR** (per [[localgamble-screenshot-before-pushing-ui]]).
+12. **AdminLayout root: `flex h-full flex-col`, NEVER `min-h-screen`** (per [[masquer-min-h-screen-in-pages]]).
+13. **Visual verification via Playwright at 1440×900 before pushing each PR** (per [[masquer-screenshot-before-pushing-ui]]).
 14. **`useLiveQuery` inferred-Promise pattern** — no explicit generic (Phase 9 trap).
 15. **Recharts uses `ChartTooltipShell`** — never the default `contentStyle` (per #251 pattern).
 
@@ -311,7 +311,7 @@ Per `PHASE_15_PATTERNS.md §2`:
 
 - **AdminLayout `min-h-screen` may be load-bearing.** Verify how admin pages are mounted (`RequireAdmin` wrapper). `flex h-full flex-col` should work; test by stepping through each admin page after PR A.
 - **DateRangeFilter retrofit is a wide diff** — 9 game admin pages touched + every page test updated for filter state. Mechanical but easy to typo. Test the aggregator's `sinceMs=undefined` path stays back-compatible by running full vitest after each page integration.
-- **`getLeaderboardLongestStreaks` walks per-user history** — O(N×R). At realistic localGamble scale (~50 users × ~100 rounds) this is fast. If profiling shows slowness at higher scale, cap to last 90 days.
+- **`getLeaderboardLongestStreaks` walks per-user history** — O(N×R). At realistic MASQUER scale (~50 users × ~100 rounds) this is fast. If profiling shows slowness at higher scale, cap to last 90 days.
 - **URL query params** require careful encoding. Use `useSearchParams` from react-router; never parse `window.location.search` manually.
 - **Existing AdminOverviewPage tests** pin specific text/charts — updates needed for new sections without regressing existing assertions.
 - **Per-page `localStorage` keys** for date-range need a consistent naming scheme: `admin.<page>.range` (e.g. `admin.plinko.range`, `admin.poker.range`).

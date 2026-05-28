@@ -15,7 +15,7 @@
 ## File Structure (after all three PRs merge)
 
 ```
-localGamble/
+MASQUER/
 ├── docs/
 │   └── adr/
 │       ├── 0008-discriminated-union-results.md            # PR #1
@@ -235,7 +235,7 @@ export class LocalGambleDB extends Dexie {
   balances!: EntityTable<Balance, 'userId'>;
   rounds!: EntityTable<Round, 'id'>;
 
-  constructor(name = 'localGamble') {
+  constructor(name = 'MASQUER') {
     super(name);
     this.version(1).stores({
       users: 'id, &usernameLower, createdAt',
@@ -579,7 +579,7 @@ just the userId, not credentials)." We need a place to put it.
 
 ## Decision
 
-Use `localStorage` with the key `localGamble.session.userId`. Read
+Use `localStorage` with the key `MASQUER.session.userId`. Read
 synchronously on app boot (in the Zustand store's `bootstrap()` action).
 Wrap all access in try/catch (Safari private mode has historically thrown).
 
@@ -1210,7 +1210,7 @@ import {
 } from '@/systems/crypto';
 import { pickRandomAvatarColor } from '@/systems/avatar';
 
-const SESSION_KEY = 'localGamble.session.userId';
+const SESSION_KEY = 'MASQUER.session.userId';
 const STARTING_CHIPS = 1000;
 
 export type RegisterError = 'username_taken' | 'unknown';
@@ -1351,7 +1351,7 @@ import { AVATAR_PALETTE } from '@/systems/avatar';
 import { PASSWORD_HASHING } from '@/systems/crypto';
 import { login, logout, register, restoreSession } from './auth';
 
-const SESSION_KEY = 'localGamble.session.userId';
+const SESSION_KEY = 'MASQUER.session.userId';
 
 describe('auth.register', () => {
   beforeEach(async () => {
@@ -1710,7 +1710,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { resetDb } from '@/test/db-helpers';
 import { useSessionStore } from './sessionStore';
 
-const SESSION_KEY = 'localGamble.session.userId';
+const SESSION_KEY = 'MASQUER.session.userId';
 
 function resetStore() {
   useSessionStore.setState({ currentUser: null, bootstrapping: true });
@@ -1833,7 +1833,7 @@ function resetStore() {
 describe('RequireAuth', () => {
   beforeEach(async () => {
     await resetDb();
-    localStorage.removeItem('localGamble.session.userId');
+    localStorage.removeItem('MASQUER.session.userId');
     resetStore();
   });
 
@@ -2010,7 +2010,7 @@ function resetStore() {
 
 beforeEach(async () => {
   await resetDb();
-  localStorage.removeItem('localGamble.session.userId');
+  localStorage.removeItem('MASQUER.session.userId');
   resetStore();
 });
 
@@ -2030,7 +2030,7 @@ it('renders /lobby when a user is logged in', async () => {
   resetStore();
   // Set the localStorage session so bootstrap() restores the user
   const user = await import('@/db').then(({ db }) => db.users.toArray());
-  localStorage.setItem('localGamble.session.userId', user[0]!.id);
+  localStorage.setItem('MASQUER.session.userId', user[0]!.id);
 
   render(
     <MemoryRouter initialEntries={['/lobby']}>
@@ -2129,7 +2129,7 @@ async function loginAdam() {
 describe('LobbyPage', () => {
   beforeEach(async () => {
     await resetDb();
-    localStorage.removeItem('localGamble.session.userId');
+    localStorage.removeItem('MASQUER.session.userId');
     resetStore();
   });
 
@@ -2322,7 +2322,7 @@ function renderLogin() {
 describe('LoginPage', () => {
   beforeEach(async () => {
     await resetDb();
-    localStorage.removeItem('localGamble.session.userId');
+    localStorage.removeItem('MASQUER.session.userId');
     resetStore();
   });
 
@@ -2543,7 +2543,7 @@ function renderRegister() {
 describe('RegisterPage', () => {
   beforeEach(async () => {
     await resetDb();
-    localStorage.removeItem('localGamble.session.userId');
+    localStorage.removeItem('MASQUER.session.userId');
     resetStore();
   });
 
@@ -2614,9 +2614,9 @@ Then in a browser at `http://localhost:5173`:
 1. Visit `http://localhost:5173` → redirects to `/lobby` → `RequireAuth` redirects to `/login`. Confirm "Sign in" heading.
 2. Click "Create an account" → land on `/register`.
 3. Fill `Adam` / `password123` / `password123` → click "Create account" → land on `/lobby` showing "Welcome, Adam".
-4. Open DevTools → Application → IndexedDB → `localGamble` → `users` table. Verify Adam row with a long base64 `passwordHash` (NOT the plaintext).
+4. Open DevTools → Application → IndexedDB → `MASQUER` → `users` table. Verify Adam row with a long base64 `passwordHash` (NOT the plaintext).
 5. `balances` table has Adam's userId with `chips: 1000`.
-6. Application → Local Storage → `http://localhost:5173` has key `localGamble.session.userId` = Adam's UUID.
+6. Application → Local Storage → `http://localhost:5173` has key `MASQUER.session.userId` = Adam's UUID.
 7. Refresh the page → see "Loading…" briefly → land on `/lobby` (still logged in).
 8. Click "Log out" → land on `/login`. DevTools shows the localStorage key gone.
 9. Visit `http://localhost:5173/lobby` directly → redirects to `/login`.
@@ -2894,6 +2894,6 @@ This plan was self-reviewed for:
 
 - **Spec coverage:** Every spec section maps to at least one task. Spec sections 6.1-6.15 (file contents) → Tasks 4-7, 14-21, 26-37. Spec section 9 (5 ADRs) → Task 9. Spec section 10 (risk register) → Task 8. Spec section 12 (smoke plan) → Task 38. Spec section 13 (DoD) → Task 41 step 5. Spec section 15 (release) → Tasks 40-41.
 - **Placeholders:** No "TBD" / "TODO" — every step has actual code or commands. Two intentional execution-time placeholders documented (bundle size in PR #3, milestone number in pre-flight) that can only be known at execution time.
-- **Type / name consistency:** `RegisterResult`, `LoginResult`, `RegisterError`, `LoginError`, `restoreSession`, `pickRandomAvatarColor`, `AVATAR_PALETTE`, `PASSWORD_HASHING.iterations`, `useCurrentUser`, `useSessionStore`, `RequireAuth`, `LocalGambleDB`, `User`, `Balance`, `Round`, `db.users`, `db.balances`, `db.rounds`, `usernameLower`, `passwordHash`, `passwordSalt`, `pbkdf2Iterations`, `avatarColor`, `localGamble.session.userId`, `STARTING_CHIPS=1000` — verified consistent across all 41 tasks.
+- **Type / name consistency:** `RegisterResult`, `LoginResult`, `RegisterError`, `LoginError`, `restoreSession`, `pickRandomAvatarColor`, `AVATAR_PALETTE`, `PASSWORD_HASHING.iterations`, `useCurrentUser`, `useSessionStore`, `RequireAuth`, `LocalGambleDB`, `User`, `Balance`, `Round`, `db.users`, `db.balances`, `db.rounds`, `usernameLower`, `passwordHash`, `passwordSalt`, `pbkdf2Iterations`, `avatarColor`, `MASQUER.session.userId`, `STARTING_CHIPS=1000` — verified consistent across all 41 tasks.
 - **Scope:** Phase 1 only. No wallet API, no game logic — those are Phases 2-6.
 - **Test count:** 59 total at end of PR #3 — 5 db + 5 crypto + 4 avatar + 9 schemas + 15 auth + 6 sessionStore + 3 RequireAuth + 2 App.test (rewritten from 1) + 2 LobbyPage + 4 LoginPage + 4 RegisterPage. Coverage on `src/systems/**/*.ts` ≥ 80% (ADR-0003 gate).

@@ -44,7 +44,7 @@ function renderProfile(initialEntry = '/profile') {
 describe('ProfilePage', () => {
   beforeEach(async () => {
     await resetDb();
-    localStorage.removeItem('localGamble.session.userId');
+    localStorage.removeItem('masquer.session.userId');
     useSessionStore.setState({ currentUser: null, bootstrapping: false });
     useWalletStore.setState({ balance: 1234, nextDailyEligibleAt: null, hydrating: false });
   });

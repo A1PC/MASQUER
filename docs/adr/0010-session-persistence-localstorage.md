@@ -11,7 +11,7 @@ just the userId, not credentials)." We need a place to put it.
 
 ## Decision
 
-Use `localStorage` with the key `localGamble.session.userId`. Read
+Use `localStorage` with the key `MASQUER.session.userId`. Read
 synchronously on app boot (in the Zustand store's `bootstrap()` action).
 Wrap all access in try/catch (Safari private mode has historically thrown).
 

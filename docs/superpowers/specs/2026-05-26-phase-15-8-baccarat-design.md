@@ -34,7 +34,7 @@ Both PRs follow the established pattern: implementer subagent, scoped allowlist,
 5. **Banker commission floor-round rule** (ADR-0036) — preserved exactly. The commission-of-0 UX label (in the deferred docket — when `floor(winnings * 0.05) === 0`) is **out of scope** for PR A unless it falls out trivially during the rules rewrite.
 6. **Spec-first per CLAUDE.md.** ADR amendments (if any) commit before code.
 7. **No CLAUDE.md edits.**
-8. **Commitlint header-max-length 100** (feedback memory `feedback-localgamble-commit-subject-limit`).
+8. **Commitlint header-max-length 100** (feedback memory `feedback-masquer-commit-subject-limit`).
 
 ---
 

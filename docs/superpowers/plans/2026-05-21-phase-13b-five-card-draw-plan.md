@@ -772,7 +772,7 @@ gh pr create --title "phase-13b(poker): PR D — activate variant + BUILD_GUIDE"
 - [ ] **Step 1:** `git checkout main && git pull origin main`
 - [ ] **Step 2:** `git tag -a v0.13b-five-card-draw -m "Phase 13b: No-Limit Five-Card Draw" && git push origin v0.13b-five-card-draw`
 - [ ] **Step 3:** `gh release create v0.13b-five-card-draw` — highlights: NLHE Five-Card Draw 2-6 vs archetype AI, single draw cap 3, archetype-flavoured discard AI, reuses the entire poker `_shared/` core (Hold'em untouched), tap-to-discard UI. List PRs A-D + test delta.
-- [ ] **Step 4: Memory** — update `project_localgamble_status.md`: top entry `v0.13b-five-card-draw`; next phase 13c (Omaha — uses `evaluateFrom(..., 'omaha')` already in `_shared`); milestones (poker variant reuse: a second variant in 4 PRs vs 13a's 6, validating the `_shared` split; `decideDiscard` heuristic). Append 13b deferred items to `localgamble-deferred-features`.
+- [ ] **Step 4: Memory** — update `project_masquer_status.md`: top entry `v0.13b-five-card-draw`; next phase 13c (Omaha — uses `evaluateFrom(..., 'omaha')` already in `_shared`); milestones (poker variant reuse: a second variant in 4 PRs vs 13a's 6, validating the `_shared` split; `decideDiscard` heuristic). Append 13b deferred items to `masquer-deferred-features`.
 
 ---
 

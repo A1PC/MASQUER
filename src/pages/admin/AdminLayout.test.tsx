@@ -5,7 +5,7 @@ import { createMemoryRouter, RouterProvider } from 'react-router';
 import AdminLayout from './AdminLayout';
 import { useSessionStore } from '@/store/sessionStore';
 
-const ADMIN_KEY = 'localGamble.session.admin';
+const ADMIN_KEY = 'masquer.session.admin';
 
 function renderLayoutAt(initial: string) {
   const router = createMemoryRouter(

@@ -54,7 +54,7 @@ Dispatch order: A first → B + C in parallel → D last (D needs the `_shared/`
 
 **`StatsPage.tsx` + `LeaderboardPage.tsx`:**
 
-- Root: `<div className="flex h-full flex-col bg-felt-table text-ivory">` (drops `min-h-screen` per [[localgamble-min-h-screen-in-pages]]).
+- Root: `<div className="flex h-full flex-col bg-felt-table text-ivory">` (drops `min-h-screen` per [[masquer-min-h-screen-in-pages]]).
 - Header: gold-bright title, brand-tokened `<ViewModeToggle />`.
 - `<main>` wrapper: `flex flex-1 overflow-auto p-6`.
 
@@ -237,8 +237,8 @@ Per `PHASE_15_PATTERNS.md §2`:
 7. **No `--no-verify`, no `--amend`.**
 8. **TS strict + exactOptionalPropertyTypes.**
 9. **Tokens-only Tailwind** in rebuilt files.
-10. **Page root MUST be `flex h-full flex-col`, NEVER `min-h-screen`** ([[localgamble-min-h-screen-in-pages]]).
-11. **Visual verification via Playwright at 1440×900 before pushing each PR** ([[localgamble-screenshot-before-pushing-ui]]).
+10. **Page root MUST be `flex h-full flex-col`, NEVER `min-h-screen`** ([[masquer-min-h-screen-in-pages]]).
+11. **Visual verification via Playwright at 1440×900 before pushing each PR** ([[masquer-screenshot-before-pushing-ui]]).
 12. **DoD per PR:**
     ```
     pnpm lint && pnpm typecheck && pnpm exec vitest run && pnpm build && pnpm build-storybook && pnpm exec prettier --check .

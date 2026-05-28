@@ -6,7 +6,7 @@ import { useUIStore } from '@/store/uiStore';
 
 describe('ViewModeToggle', () => {
   beforeEach(() => {
-    localStorage.removeItem('localGamble.ui.statsViewMode');
+    localStorage.removeItem('masquer.ui.statsViewMode');
     useUIStore.setState({ statsViewMode: 'cards' });
   });
 
@@ -23,7 +23,7 @@ describe('ViewModeToggle', () => {
     render(<ViewModeToggle />);
     await user.click(screen.getByRole('radio', { name: /graphs/i }));
     expect(useUIStore.getState().statsViewMode).toBe('graphs');
-    expect(localStorage.getItem('localGamble.ui.statsViewMode')).toBe('graphs');
+    expect(localStorage.getItem('masquer.ui.statsViewMode')).toBe('graphs');
   });
 
   it('clicking back to Cards restores the default', async () => {

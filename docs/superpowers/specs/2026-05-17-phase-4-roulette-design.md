@@ -46,7 +46,7 @@ Blackjack, Roulette, plus the stubs for Slots and Baccarat).
 - Statistics specific to Roulette (the global stats page already covers it via
   the rounds table from Phase 1)
 - Visual chip stacking physics (chips render as numerical stacks, not 3D piles)
-- Sound effects (all of localGamble is silent; Phase 8 polish if at all)
+- Sound effects (all of MASQUER is silent; Phase 8 polish if at all)
 
 ## 3. Game rules (canonical reference)
 

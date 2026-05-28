@@ -17,7 +17,7 @@
 ## File Structure (after this plan completes)
 
 ```
-localGamble/
+MASQUER/
 ├── package.json                              # MODIFIED: react-router-dom → react-router
 ├── pnpm-lock.yaml                            # AUTO-REGENERATED
 ├── CHANGELOG.md                              # MODIFIED: add to [Unreleased]
@@ -303,7 +303,7 @@ import RequireAuth from './RequireAuth';
 import LoginPage from '@/pages/LoginPage';
 import LobbyPage from '@/pages/LobbyPage';
 
-const SESSION_KEY = 'localGamble.session.userId';
+const SESSION_KEY = 'MASQUER.session.userId';
 
 function resetStore() {
   useSessionStore.setState({ currentUser: null, bootstrapping: false });
@@ -420,7 +420,7 @@ function FromCapture({ onCapture }: { onCapture: (from: string) => void }) {
 describe('RequireAuth', () => {
   beforeEach(async () => {
     await resetDb();
-    localStorage.removeItem('localGamble.session.userId');
+    localStorage.removeItem('MASQUER.session.userId');
     resetStore();
   });
 
@@ -542,7 +542,7 @@ function renderLogin() {
 describe('LoginPage', () => {
   beforeEach(async () => {
     await resetDb();
-    localStorage.removeItem('localGamble.session.userId');
+    localStorage.removeItem('MASQUER.session.userId');
     resetStore();
   });
 
@@ -633,7 +633,7 @@ function renderRegister() {
 describe('RegisterPage', () => {
   beforeEach(async () => {
     await resetDb();
-    localStorage.removeItem('localGamble.session.userId');
+    localStorage.removeItem('MASQUER.session.userId');
     resetStore();
   });
 
@@ -718,7 +718,7 @@ async function loginAdam() {
 describe('LobbyPage', () => {
   beforeEach(async () => {
     await resetDb();
-    localStorage.removeItem('localGamble.session.userId');
+    localStorage.removeItem('MASQUER.session.userId');
     resetStore();
   });
 
@@ -1016,6 +1016,6 @@ This plan was self-reviewed for:
 
 - **Spec coverage:** every spec section maps to at least one task. Spec section 5.4 verbatim drafts → Tasks 2, 3, 4, 5, 6, 7, 8, 9, 10. Spec section 5.5 ADR → Task 12. Spec section 6 test plan → Task 11 + 14. Spec section 7 PR plan → Task 15. Spec section 8 DoD → Task 14 + 15 step 4. Spec section 9 rollback procedure not duplicated (lives in spec).
 - **Placeholders:** no TBD/TODO. Two intentional execution-time placeholders (`<JS_SIZE>` and `<CSS_SIZE>` for bundle output, and `#NN` for the PR number).
-- **Type / name consistency:** verified across all 15 tasks: `router.tsx` (not `.ts`), `AppBootstrap`, `renderWithRouter`, `createMemoryRouter`, `RouteObject`, `useCurrentUser`, `useSessionStore`, `bootstrapping: false` in test resets (since AppBootstrap isn't in the test render), `localGamble.session.userId`. Branch name `chore/react-router-7-upgrade`.
+- **Type / name consistency:** verified across all 15 tasks: `router.tsx` (not `.ts`), `AppBootstrap`, `renderWithRouter`, `createMemoryRouter`, `RouteObject`, `useCurrentUser`, `useSessionStore`, `bootstrapping: false` in test resets (since AppBootstrap isn't in the test render), `MASQUER.session.userId`. Branch name `chore/react-router-7-upgrade`.
 - **Scope:** RR 7 upgrade only. No additional refactors. The plan touches exactly the files listed in spec section 5.
 - **Test count:** unchanged at 59 (we delete App.test.tsx with 2 tests, add AppBootstrap.test.tsx with 2 tests; net 0).

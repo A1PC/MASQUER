@@ -50,7 +50,7 @@ async function seedSessions(): Promise<{ users: string[] }> {
 describe('AdminSessionsPage', () => {
   beforeEach(async () => {
     await resetDb();
-    localStorage.removeItem('localGamble.session.userId');
+    localStorage.removeItem('masquer.session.userId');
   });
 
   it('renders empty-state when no sessions exist', async () => {

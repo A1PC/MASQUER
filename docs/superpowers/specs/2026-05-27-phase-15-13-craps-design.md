@@ -19,7 +19,7 @@ After this sub-project ships, only **#14 Admin overhaul** + **#15 Final integrat
 
 ## 2. Non-goals
 
-Out of scope (deferred per `localgamble-deferred-features.md`):
+Out of scope (deferred per `masquer-deferred-features.md`):
 
 - Multi-shooter / online multiplayer
 - Live dealer voice calls ("FIVE, NO FIELD!")
@@ -48,7 +48,7 @@ Pure game logic in `craps/bets.ts`, `dice.ts`, `resolveRoll.ts`, `machine.ts`, `
 
 **Chrome rewrite — `CrapsPage.tsx`:**
 
-- Root: `<div className="relative flex h-full flex-col bg-felt-table text-ivory">` (drops `min-h-screen` per [[localgamble-min-h-screen-in-pages]]).
+- Root: `<div className="relative flex h-full flex-col bg-felt-table text-ivory">` (drops `min-h-screen` per [[masquer-min-h-screen-in-pages]]).
 - Title block: `MASQUER · Craps` (font-display text-2xl tracking-[0.18em] text-gold-bright) + subtitle showing tier + phase + bankroll (text-xs ivory/55).
 - Top-left absolute: `<LobbyButton />`.
 - Top-right absolute: `<CrapsOddsHeader />` (NEW shared chrome — see §4.3).
@@ -241,8 +241,8 @@ Per `PHASE_15_PATTERNS.md §2`:
 10. **No `--no-verify`, no `--amend`.**
 11. **DoD per PR:** `pnpm lint && pnpm typecheck && pnpm exec vitest run && pnpm build && pnpm build-storybook && pnpm exec prettier --check .`
 12. **Tokens-only Tailwind** in rebuilt files.
-13. **Page root MUST be `flex h-full flex-col`, NEVER `min-h-screen`** (per [[localgamble-min-h-screen-in-pages]]).
-14. **Visual verification via Playwright at 1440×900 before pushing** (per [[localgamble-screenshot-before-pushing-ui]]).
+13. **Page root MUST be `flex h-full flex-col`, NEVER `min-h-screen`** (per [[masquer-min-h-screen-in-pages]]).
+14. **Visual verification via Playwright at 1440×900 before pushing** (per [[masquer-screenshot-before-pushing-ui]]).
 
 ## 7. Risks + watch-outs
 

@@ -5,7 +5,7 @@ import { AVATAR_PALETTE } from '@/systems/avatar';
 import { PASSWORD_HASHING } from '@/systems/crypto';
 import { login, logout, register, restoreSession } from './auth';
 
-const SESSION_KEY = 'localGamble.session.userId';
+const SESSION_KEY = 'masquer.session.userId';
 
 describe('auth.register', () => {
   beforeEach(async () => {

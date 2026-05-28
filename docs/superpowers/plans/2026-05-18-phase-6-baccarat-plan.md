@@ -1344,7 +1344,7 @@ the cut card is dealt out (mid-round usually), the shoe is finished and the
 table reshuffles between rounds.
 
 Phase 4 (Roulette) used a stateless RNG call per spin. Phase 5 (Slots) used
-the cumulative-table weighted pick. Baccarat is the first localGamble game
+the cumulative-table weighted pick. Baccarat is the first MASQUER game
 where draws are NOT independent — once a card is dealt, the probability of
 the next card changes (though the effect is tiny over 416 cards).
 
@@ -4398,7 +4398,7 @@ describe('BaccaratPage — integration', () => {
   beforeEach(async () => {
     MotionGlobalConfig.skipAnimations = true;
     await resetDb();
-    localStorage.removeItem('localGamble.session.userId');
+    localStorage.removeItem('MASQUER.session.userId');
     useSessionStore.setState({
       currentUser: null,
       isAdmin: false,
@@ -4664,9 +4664,9 @@ EOF
 
 Expected: a public release page at `https://github.com/A1PC/localGamble/releases/tag/v0.7-baccarat`.
 
-- [ ] **Step 3: Update `project_localgamble_status` memory**
+- [ ] **Step 3: Update `project_masquer_status` memory**
 
-Open `/Users/adam/.claude/projects/-Users-adam/memory/project_localgamble_status.md`. Add a new tagged-release entry at the top of the list:
+Open `/Users/adam/.claude/projects/-Users-adam/memory/project_masquer_status.md`. Add a new tagged-release entry at the top of the list:
 
 ```markdown
 - `v0.7-baccarat` — Phase 6 (Baccarat: all 9 zones, persistent shoe, third-card tableau, scoreboard, theatrical reveal, tier celebration, ~140 new tests, 6 PRs)
@@ -4688,6 +4688,6 @@ After finishing PR F (Task F.3 step 3), run this once before declaring Phase 6 d
 - [ ] **No floats in money** — all chip math goes through Math.floor for commission and Big/Small.
 - [ ] **Games sandboxed** — `grep -rE "from '@/db|from '@/store'" src/games/baccarat/` returns ONLY `BaccaratPage.tsx`.
 - [ ] **GitHub Release published** — link visible on the repo's Releases tab.
-- [ ] **Memory updated** — `project_localgamble_status.md` reflects v0.7 shipped.
+- [ ] **Memory updated** — `project_masquer_status.md` reflects v0.7 shipped.
 
 If anything fails, hot-fix on `main` with a `fix/baccarat-*` branch.

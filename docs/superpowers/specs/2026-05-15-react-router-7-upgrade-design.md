@@ -222,7 +222,7 @@ import RequireAuth from './RequireAuth';
 import LoginPage from '@/pages/LoginPage';
 import LobbyPage from '@/pages/LobbyPage';
 
-const SESSION_KEY = 'localGamble.session.userId';
+const SESSION_KEY = 'MASQUER.session.userId';
 
 function resetStore() {
   useSessionStore.setState({ currentUser: null, bootstrapping: true });

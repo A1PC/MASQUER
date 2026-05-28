@@ -46,7 +46,7 @@
 **Verbatim brief to subagent (copy-paste):**
 
 ```text
-Run a read-only consistency audit of localGamble in preparation for v1.0
+Run a read-only consistency audit of MASQUER in preparation for v1.0
 launch. Produce the audit doc at the path below. NO code changes. NO test
 changes.
 
@@ -296,7 +296,7 @@ DO NOT merge.
 
 - ✅ Already lazy: `LotteryPage`, `BingoPage`, `PlinkoPage`, `CrapsPage`, `HoldemPage`, `FiveCardDrawPage`, `OmahaPage`, `PokerLobbyPage`, `StatsPage`, `LeaderboardPage`, all admin routes.
 - ❌ Still eager: `LoginPage`, `RegisterPage`, `LobbyPage`, `ProfilePage`, `SettingsPage`, `CoinFlipPage`, `BlackjackPage`, `RoulettePage`, `SlotsPage`, `BaccaratPage`.
-- ❌ Suspense fallbacks are inlined 7 times (each ~10 lines) with `bg-felt-deep` (stale token) + `min-h-screen` (memory: `feedback_localgamble_min_h_screen_in_pages` says page roots under AppLayout must use `h-full`).
+- ❌ Suspense fallbacks are inlined 7 times (each ~10 lines) with `bg-felt-deep` (stale token) + `min-h-screen` (memory: `feedback_masquer_min_h_screen_in_pages` says page roots under AppLayout must use `h-full`).
 
 **Files:**
 
@@ -329,7 +329,7 @@ CURRENT STATE (read this before changing anything):
     CoinFlipPage, BlackjackPage, RoulettePage, SlotsPage, BaccaratPage.
   - Suspense fallbacks are inlined 7 times with stale tokens:
     `bg-felt-deep` (should be `bg-velvet-deep`) and `min-h-screen` (memory
-    feedback-localgamble-min-h-screen-in-pages says page roots under AppLayout
+    feedback-masquer-min-h-screen-in-pages says page roots under AppLayout
     must use `h-full`, not `min-h-screen`).
 
 WHAT TO DO:
@@ -616,7 +616,7 @@ Step 6. ABSOLUTELY DO NOT create, modify, or push any git tag. The PR body
   the smoke checklist:
 
     git fetch origin main
-    git tag -a v1.0 -m "localGamble v1.0 — MASQUER · Velvet Deco launch" origin/main
+    git tag -a v1.0 -m "MASQUER v1.0 — MASQUER · Velvet Deco launch" origin/main
     git push origin v1.0
 
   Phrase the PR body so the user understands the tag is staged, not pushed.
@@ -664,11 +664,11 @@ After PR E merges, the controller's autonomous work is **done**. The user runs:
 
   ```bash
   git fetch origin main
-  git tag -a v1.0 -m "localGamble v1.0 — MASQUER · Velvet Deco launch" origin/main
+  git tag -a v1.0 -m "MASQUER v1.0 — MASQUER · Velvet Deco launch" origin/main
   git push origin v1.0
   ```
 
-- [ ] **Launch.3: Update memory** — controller updates `project_localgamble_status.md` (v1.0 shipped + date + tag).
+- [ ] **Launch.3: Update memory** — controller updates `project_masquer_status.md` (v1.0 shipped + date + tag).
 
 ---
 

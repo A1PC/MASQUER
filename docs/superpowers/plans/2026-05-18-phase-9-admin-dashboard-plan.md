@@ -271,7 +271,7 @@ export class LocalGambleDB extends Dexie {
   gameVisits!: EntityTable<GameVisit, 'id'>;
   adjustments!: EntityTable<Adjustment, 'id'>;
 
-  constructor(name = 'localGamble') {
+  constructor(name = 'MASQUER') {
     super(name);
     this.version(1).stores({
       users: 'id, &usernameLower, createdAt',
@@ -467,7 +467,7 @@ describe('schema v2', () => {
 describe('schema v1 → v2 upgrade preserves existing data', () => {
   it('a user row created under v1 is still readable under v2', async () => {
     // Open a fresh v1-only database under a different name so we can test the upgrade.
-    const tmp = new Dexie('localGamble-upgrade-test');
+    const tmp = new Dexie('MASQUER-upgrade-test');
     tmp.version(1).stores({
       users: 'id, &usernameLower, createdAt',
       balances: 'userId',
@@ -487,7 +487,7 @@ describe('schema v1 → v2 upgrade preserves existing data', () => {
     tmp.close();
 
     // Re-open with v2 schema applied.
-    const upgraded = new Dexie('localGamble-upgrade-test');
+    const upgraded = new Dexie('MASQUER-upgrade-test');
     upgraded.version(1).stores({
       users: 'id, &usernameLower, createdAt',
       balances: 'userId',
@@ -510,7 +510,7 @@ describe('schema v1 → v2 upgrade preserves existing data', () => {
     expect(row.loginCount).toBeUndefined();
     expect(row.lastLoginAt).toBeUndefined();
     upgraded.close();
-    await Dexie.delete('localGamble-upgrade-test');
+    await Dexie.delete('MASQUER-upgrade-test');
   });
 });
 ```
@@ -623,8 +623,8 @@ by design — the local-only architecture makes secrecy impossible regardless.
 
 **Synthetic admin session.** No row in the `users` table. The admin session
 is recorded as a flag in `localStorage` under the key
-`localGamble.session.admin = '1'`, separate from the regular user session
-key `localGamble.session.userId`. Both keys can be set independently but a
+`MASQUER.session.admin = '1'`, separate from the regular user session
+key `MASQUER.session.userId`. Both keys can be set independently but a
 single tab will only ever have one or the other active in the UI (the
 route guards enforce this).
 
@@ -1145,7 +1145,7 @@ git commit -m "feat(auth): reject login for banned users (error: 'banned')"
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { loginAdmin, logoutAdmin, restoreAdminSession } from './admin-auth';
 
-const ADMIN_KEY = 'localGamble.session.admin';
+const ADMIN_KEY = 'MASQUER.session.admin';
 
 describe('admin-auth', () => {
   beforeEach(() => {
@@ -1227,7 +1227,7 @@ describe('admin-auth', () => {
 
 const ADMIN_USERNAME = 'admin';
 const ADMIN_PASSWORD = 'admin12345';
-const ADMIN_KEY = 'localGamble.session.admin';
+const ADMIN_KEY = 'MASQUER.session.admin';
 
 export type LoginAdminError = 'invalid_credentials';
 
@@ -1287,7 +1287,7 @@ import { register } from '@/systems/auth';
 import { db } from '@/db';
 import { resetDb } from '@/test/db-helpers';
 
-const SESSION_KEY = 'localGamble.session.userId';
+const SESSION_KEY = 'MASQUER.session.userId';
 
 describe('admin.banUser / admin.unbanUser', () => {
   beforeEach(async () => {
@@ -1640,7 +1640,7 @@ git commit -m "feat(session): extend store with isAdmin + currentSessionId + adm
 describe('sessionStore.login — session tracking', () => {
   beforeEach(async () => {
     await resetDb();
-    localStorage.removeItem('localGamble.session.userId');
+    localStorage.removeItem('MASQUER.session.userId');
     useSessionStore.setState({
       currentUser: null,
       isAdmin: false,
@@ -1691,7 +1691,7 @@ describe('sessionStore.login — session tracking', () => {
 
     // Simulate a tab close without logout — clear currentSessionId in memory but leave the DB row open.
     useSessionStore.setState({ currentSessionId: null, currentUser: null });
-    localStorage.removeItem('localGamble.session.userId');
+    localStorage.removeItem('MASQUER.session.userId');
 
     // Confirm the row is still open.
     const orphan = await db.sessions.get(firstSessionId);
@@ -1794,7 +1794,7 @@ git commit -m "feat(session): write sessions row + bump loginCount + orphan clea
 describe('sessionStore.logout — session tracking', () => {
   beforeEach(async () => {
     await resetDb();
-    localStorage.removeItem('localGamble.session.userId');
+    localStorage.removeItem('MASQUER.session.userId');
     useSessionStore.setState({
       currentUser: null,
       isAdmin: false,
@@ -2003,7 +2003,7 @@ import { resetDb } from '@/test/db-helpers';
 describe('useGameVisit', () => {
   beforeEach(async () => {
     await resetDb();
-    localStorage.removeItem('localGamble.session.userId');
+    localStorage.removeItem('MASQUER.session.userId');
     useSessionStore.setState({
       currentUser: null,
       isAdmin: false,
@@ -2233,7 +2233,7 @@ The `useIsAdmin` selector hook was added in Task B.7. Pin its behaviour with a t
 ```ts
 describe('sessionStore — admin methods', () => {
   beforeEach(() => {
-    localStorage.removeItem('localGamble.session.admin');
+    localStorage.removeItem('MASQUER.session.admin');
     useSessionStore.setState({
       currentUser: null,
       isAdmin: false,
@@ -2242,7 +2242,7 @@ describe('sessionStore — admin methods', () => {
     });
   });
   afterEach(() => {
-    localStorage.removeItem('localGamble.session.admin');
+    localStorage.removeItem('MASQUER.session.admin');
     useSessionStore.setState({
       currentUser: null,
       isAdmin: false,
@@ -2255,7 +2255,7 @@ describe('sessionStore — admin methods', () => {
     const r = useSessionStore.getState().loginAdmin({ username: 'admin', password: 'admin12345' });
     expect(r).toEqual({ ok: true });
     expect(useSessionStore.getState().isAdmin).toBe(true);
-    expect(localStorage.getItem('localGamble.session.admin')).toBe('1');
+    expect(localStorage.getItem('MASQUER.session.admin')).toBe('1');
   });
 
   it('loginAdmin with wrong creds leaves isAdmin false', () => {
@@ -2268,11 +2268,11 @@ describe('sessionStore — admin methods', () => {
     useSessionStore.getState().loginAdmin({ username: 'admin', password: 'admin12345' });
     useSessionStore.getState().logoutAdmin();
     expect(useSessionStore.getState().isAdmin).toBe(false);
-    expect(localStorage.getItem('localGamble.session.admin')).toBeNull();
+    expect(localStorage.getItem('MASQUER.session.admin')).toBeNull();
   });
 
   it('bootstrap restores admin session if localStorage has the key', async () => {
-    localStorage.setItem('localGamble.session.admin', '1');
+    localStorage.setItem('MASQUER.session.admin', '1');
     await useSessionStore.getState().bootstrap();
     expect(useSessionStore.getState().isAdmin).toBe(true);
   });
@@ -2489,7 +2489,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import AdminLoginPage from './AdminLoginPage';
 import { useSessionStore } from '@/store/sessionStore';
 
-const ADMIN_KEY = 'localGamble.session.admin';
+const ADMIN_KEY = 'MASQUER.session.admin';
 
 function renderPage() {
   return render(
@@ -2659,7 +2659,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import AdminLayout from './AdminLayout';
 import { useSessionStore } from '@/store/sessionStore';
 
-const ADMIN_KEY = 'localGamble.session.admin';
+const ADMIN_KEY = 'MASQUER.session.admin';
 
 function renderLayoutAt(initial: string) {
   return render(
@@ -3207,7 +3207,7 @@ import {
   getTopLosers,
 } from './queries';
 
-const SESSION_KEY = 'localGamble.session.userId';
+const SESSION_KEY = 'MASQUER.session.userId';
 
 async function seedTwoUsersWithRounds() {
   await resetDb();
@@ -3980,7 +3980,7 @@ import { resetDb } from '@/test/db-helpers';
 describe('AdminOverviewPage', () => {
   beforeEach(async () => {
     await resetDb();
-    localStorage.removeItem('localGamble.session.userId');
+    localStorage.removeItem('MASQUER.session.userId');
   });
 
   it('renders the four stat cards and three chart sections when data exists', async () => {
@@ -4126,7 +4126,7 @@ import { resetDb } from '@/test/db-helpers';
 describe('AdminUsersListPage', () => {
   beforeEach(async () => {
     await resetDb();
-    localStorage.removeItem('localGamble.session.userId');
+    localStorage.removeItem('MASQUER.session.userId');
   });
 
   it('lists registered users with username + balance + net change columns', async () => {
@@ -4461,7 +4461,7 @@ import { WALLET_CONFIG } from '@/systems/wallet';
 describe('AdjustCreditsModal', () => {
   beforeEach(async () => {
     await resetDb();
-    localStorage.removeItem('localGamble.session.userId');
+    localStorage.removeItem('MASQUER.session.userId');
   });
 
   it('does not render when open is false', () => {
@@ -4702,7 +4702,7 @@ function renderAt(userId: string) {
 describe('AdminUserPage', () => {
   beforeEach(async () => {
     await resetDb();
-    localStorage.removeItem('localGamble.session.userId');
+    localStorage.removeItem('MASQUER.session.userId');
   });
 
   it('renders username + stats + ban + adjust buttons + chart for an existing user', async () => {
@@ -4980,7 +4980,7 @@ import { resetDb } from '@/test/db-helpers';
 describe('AdminAuditPage', () => {
   beforeEach(async () => {
     await resetDb();
-    localStorage.removeItem('localGamble.session.userId');
+    localStorage.removeItem('MASQUER.session.userId');
   });
 
   it('renders empty-state when no adjustments exist', async () => {
@@ -5122,7 +5122,7 @@ import { resetDb } from '@/test/db-helpers';
 describe('AdminSessionsPage', () => {
   beforeEach(async () => {
     await resetDb();
-    localStorage.removeItem('localGamble.session.userId');
+    localStorage.removeItem('MASQUER.session.userId');
   });
 
   it('renders empty-state when no sessions exist', async () => {
@@ -5277,7 +5277,7 @@ Run through the entire Phase 9 DoD checklist (from the plan header):
 12. Modal closes. Alice's balance increased by 500. Audit history row appears.
 13. Click "Adjust credits" again. Enter amount `-9999999`, reason `over-debit`. Apply → expect "would go negative" error. Cancel.
 14. Click "Ban" → button switches to "Unban", banned badge appears in header.
-15. Log out admin → open a fresh incognito window or clear `localGamble.session.userId` → log in as alice → expect "Account suspended" (or whatever wording the login form shows for `error: 'banned'`).
+15. Log out admin → open a fresh incognito window or clear `MASQUER.session.userId` → log in as alice → expect "Account suspended" (or whatever wording the login form shows for `error: 'banned'`).
 16. Log back in as admin → drill into alice → click "Unban" → log out admin → alice can log in again.
 17. **Adjustments page:** the `+500` for alice (and any from step 13 — there shouldn't be one since it failed) appears newest-first.
 18. **Sessions page:** at least 2 sessions for alice (initial register-login, post-unban login) — durations non-null for closed ones, possibly "Active" for current.
@@ -5542,9 +5542,9 @@ EOF
 
 Expected: a public release page on GitHub at `https://github.com/A1PC/localGamble/releases/tag/v0.9-admin-dashboard`.
 
-- [ ] **Step 5: Update [[project_localgamble_status]] memory**
+- [ ] **Step 5: Update [[project_masquer_status]] memory**
 
-Open `/Users/adam/.claude/projects/-Users-adam/memory/project_localgamble_status.md` and update the body:
+Open `/Users/adam/.claude/projects/-Users-adam/memory/project_masquer_status.md` and update the body:
 
 ```markdown
 Phases 0-5 + 9 complete as of 2026-05-XX. (Phase 9 shipped early to enable
@@ -5570,7 +5570,7 @@ After finishing PR F (Task F.3 step 5), run through this checklist before declar
 - [ ] **Reserved-username works** — quick check: try registering `admin` in the running app, expect rejection.
 - [ ] **Reduced motion** — admin pages still render with `prefers-reduced-motion: reduce`.
 - [ ] **GitHub Release published** — link visible on the repo's Releases tab.
-- [ ] **Memory updated** — `project_localgamble_status.md` reflects v0.9 shipped.
+- [ ] **Memory updated** — `project_masquer_status.md` reflects v0.9 shipped.
 
 If anything fails, hot-fix it on `main` with a `fix/admin-*` branch; don't roll the release back unless something is genuinely broken.
 

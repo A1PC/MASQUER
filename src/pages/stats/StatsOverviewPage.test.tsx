@@ -11,8 +11,8 @@ import { resetDb } from '@/test/db-helpers';
 describe('StatsOverviewPage', () => {
   beforeEach(async () => {
     await resetDb();
-    localStorage.removeItem('localGamble.session.userId');
-    localStorage.removeItem('localGamble.ui.statsViewMode');
+    localStorage.removeItem('masquer.session.userId');
+    localStorage.removeItem('masquer.ui.statsViewMode');
     useSessionStore.setState({
       currentUser: null,
       isAdmin: false,

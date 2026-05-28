@@ -232,7 +232,7 @@ Row-based layout, no community board. Cards reuse `_shared/PlayingCard` (the bla
 
 ## 9. Out of scope
 
-→ append to `localgamble-deferred-features`:
+→ append to `masquer-deferred-features`:
 
 - Keep-an-ace-draw-4 rule (capped at 3 here).
 - Multiple draw rounds / Triple Draw.

@@ -23,13 +23,13 @@
 4. **Integer money. No `Math.random()`.** ESLint enforces.
 5. **Spec-first.** BUILD_GUIDE §14 amendment in the first commit of PR A.
 6. **No CLAUDE.md edits.**
-7. **Commit subject ≤ 100 chars** ([[localgamble-commit-subject-limit]]).
+7. **Commit subject ≤ 100 chars** ([[masquer-commit-subject-limit]]).
 8. **Conventional Commits.** Scopes: `craps` (game-side), `admin` (NOT `admin-craps` — PR B), `stats` (aggregations), `routing` (router/nav), `docs` (spec/BUILD_GUIDE).
 9. **No `--no-verify`. No `--amend`.** Reset + new commit on hook failure.
 10. **TS strict + exactOptionalPropertyTypes.** Optional fields via `{...(cond ? {key: val} : {})}` spread.
 11. **Tokens-only Tailwind** in rebuilt files.
-12. **Page root MUST be `flex h-full flex-col`, NEVER `min-h-screen`** ([[localgamble-min-h-screen-in-pages]]).
-13. **Visual verification via Playwright at 1440×900 before pushing** ([[localgamble-screenshot-before-pushing-ui]]).
+12. **Page root MUST be `flex h-full flex-col`, NEVER `min-h-screen`** ([[masquer-min-h-screen-in-pages]]).
+13. **Visual verification via Playwright at 1440×900 before pushing** ([[masquer-screenshot-before-pushing-ui]]).
 14. **DoD per PR:**
     ```
     pnpm lint && pnpm typecheck && pnpm exec vitest run && pnpm build && pnpm build-storybook && pnpm exec prettier --check .
@@ -119,7 +119,7 @@ Old pre-PR-A sessions don't have this field → PR B's chart handles `undefined`
 - [ ] **Step 4**: Read `src/games/poker/holdem/HoldemPage.tsx` for the canonical chrome + outcome-banner shape — direct port for the banner JSX + state.
 - [ ] **Step 5**: Read `src/games/_shared/{LobbyButton,OddsInfoBox,RulesButton,RulesModal}.tsx` to confirm the shared chrome API.
 - [ ] **Step 6**: Read `src/games/craps/machine.ts` carefully — note `phase` / `point` / `lastRoll` / `lastResolution` shapes, plus the bet-resolution outcome shape needed for §4.6 BetSpot flash.
-- [ ] **Step 7**: Read memories `feedback-localgamble-min-h-screen-in-pages` + `feedback-localgamble-screenshot-before-pushing-ui`.
+- [ ] **Step 7**: Read memories `feedback-masquer-min-h-screen-in-pages` + `feedback-masquer-screenshot-before-pushing-ui`.
 
 ### Task A.1 — CrapsOddsHeader + CrapsRulesModal + LeaveConfirmModal (build shared chrome first)
 

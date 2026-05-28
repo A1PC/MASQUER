@@ -40,7 +40,7 @@ The rest of the system (draw RNG, payouts table for non-jackpot tiers, daily 20:
 6. **Dexie schema** — no version bump. The 4 tables (lotteryDraws / lotteryTickets / lotteryLines / lotteryFavorites) stay as-is.
 7. **Integer money. No `Math.random()`.** ESLint enforces.
 8. **No CLAUDE.md edits.**
-9. **Commitlint header-max-length 100** — feedback memory `feedback-localgamble-commit-subject-limit`.
+9. **Commitlint header-max-length 100** — feedback memory `feedback-masquer-commit-subject-limit`.
 
 ---
 

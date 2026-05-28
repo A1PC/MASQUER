@@ -28,7 +28,7 @@ vi.mock('@/store/walletStore', () => ({
   useNextDailyEligibleAt: () => null,
 }));
 
-const SESSION_KEY = 'localGamble.session.userId';
+const SESSION_KEY = 'masquer.session.userId';
 
 function resetStore() {
   useSessionStore.setState({

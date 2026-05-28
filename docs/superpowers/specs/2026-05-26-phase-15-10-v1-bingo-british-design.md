@@ -49,7 +49,7 @@ The rest (logic, machine, ball-caller scheduler, CPU AI, claim semantics, per-di
 4. **Integer money. No `Math.random()`.** Existing ESLint enforces.
 5. **Spec-first per CLAUDE.md.** No ADR changes expected (no new ADR; no amendments).
 6. **No CLAUDE.md edits.**
-7. **Commitlint header-max-length 100** (`feedback-localgamble-commit-subject-limit`); only `admin` (not `admin-bingo`) is a valid scope (`reference-localgamble-commitlint-scopes`).
+7. **Commitlint header-max-length 100** (`feedback-masquer-commit-subject-limit`); only `admin` (not `admin-bingo`) is a valid scope (`reference-masquer-commitlint-scopes`).
 8. **`/admin/bingo` page untouched** — already ships per-difficulty tuning controls from Phase 11.5; not in this PR's scope.
 
 ---
@@ -256,7 +256,7 @@ Tests pin each aggregation against a ~15-row bingo fixture covering both variant
 
 ### 4.9 Out of scope (deferred docket items + 10.v2 territory)
 
-Deferred-docket items (per `localgamble-deferred-features`):
+Deferred-docket items (per `masquer-deferred-features`):
 
 - Pattern Bingo (X, T, postage stamp etc.) — out.
 - Speed Bingo / Coverall jackpot — out.

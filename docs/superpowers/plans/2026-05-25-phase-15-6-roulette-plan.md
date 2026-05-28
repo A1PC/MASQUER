@@ -19,7 +19,7 @@
 3. **One `rounds` row per spin** (ADR-0016). Zero-bet auto-spins produce zero rows — the page settle-bridge no-ops when `bets.length === 0`.
 4. **Integer money. No `Math.random()`.** Existing ESLint enforces.
 5. **Spec-first.** ADR amendments + BUILD_GUIDE §8.2 update commit first; code follows.
-6. **Conventional Commits**, scope `roulette` (game), `adr` (ADR docs), `build-guide` or `docs` (BUILD_GUIDE), `stats` (PR B systems/stats.ts), `admin` (PR B admin page). **Subject ≤ 100 chars** — commitlint fails Meta files otherwise (captured in `feedback-localgamble-commit-subject-limit`).
+6. **Conventional Commits**, scope `roulette` (game), `adr` (ADR docs), `build-guide` or `docs` (BUILD_GUIDE), `stats` (PR B systems/stats.ts), `admin` (PR B admin page). **Subject ≤ 100 chars** — commitlint fails Meta files otherwise (captured in `feedback-masquer-commit-subject-limit`).
 7. **No skipping git hooks.** Husky + lint-staged + prettier --write must run on every commit. No `--no-verify`. No `--amend` — soft-reset + new commit if you need to rewrite.
 8. **DoD per task batch / before opening a PR:**
    ```

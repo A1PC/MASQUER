@@ -24,8 +24,8 @@
 8. **No `--no-verify`. No `--amend`.** Reset + new commit on hook failure.
 9. **TS strict + exactOptionalPropertyTypes.** Optional fields via spread.
 10. **Tokens-only Tailwind** in rebuilt files.
-11. **Page root MUST be `flex h-full flex-col`, NEVER `min-h-screen`** (per `localgamble-min-h-screen-in-pages`).
-12. **Visual verification via Playwright at 1440×900 before pushing** (per `localgamble-screenshot-before-pushing-ui`).
+11. **Page root MUST be `flex h-full flex-col`, NEVER `min-h-screen`** (per `masquer-min-h-screen-in-pages`).
+12. **Visual verification via Playwright at 1440×900 before pushing** (per `masquer-screenshot-before-pushing-ui`).
 13. **DoD per PR:**
     ```
     pnpm lint && pnpm typecheck && pnpm exec vitest run && pnpm build && pnpm build-storybook && pnpm exec prettier --check .
@@ -96,7 +96,7 @@ git checkout main && git pull origin main && git checkout -b phase-15-12-v3-omah
   - `src/games/poker/omaha/{OmahaPage,OmahaTable,OmahaSeat}.tsx`
   - Their `.test.tsx` siblings to find pinned assertions that need flipping
 - [ ] **Step 6:** Read `src/games/poker/_shared/handEvaluator.ts` and confirm the `evaluateFrom(holeCards, board, rule)` signature + the `'omaha'` rule branch. Verify the export name before writing imports.
-- [ ] **Step 7:** Read project memories `feedback-localgamble-min-h-screen-in-pages` + `feedback-localgamble-screenshot-before-pushing-ui`.
+- [ ] **Step 7:** Read project memories `feedback-masquer-min-h-screen-in-pages` + `feedback-masquer-screenshot-before-pushing-ui`.
 
 ---
 

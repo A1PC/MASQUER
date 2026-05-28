@@ -15,7 +15,7 @@
 ## File Structure
 
 ```
-localGamble/
+MASQUER/
 ├── tsconfig.app.json          # MODIFIED: drop "baseUrl" line
 ├── package.json               # MODIFIED: typescript ^5.6.3 → ^6.x
 ├── pnpm-lock.yaml             # AUTO-REGENERATED

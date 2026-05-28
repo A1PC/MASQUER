@@ -87,7 +87,7 @@ not a security boundary.
 - Login: `POST` to admin-auth's `loginAdmin({ username, password })`.
   Pure synchronous check of the two strings (no PBKDF2 since the password
   is already public). On match: write `localStorage` key
-  `localGamble.session.admin = '1'`. On mismatch: return
+  `MASQUER.session.admin = '1'`. On mismatch: return
   `{ ok: false, error: 'invalid_credentials' }`.
 - Restore: `restoreAdminSession()` reads the localStorage key and returns
   `{ isAdmin: boolean }`.
@@ -95,8 +95,8 @@ not a security boundary.
 
 The admin session and user session keys are **independent**:
 
-- `localGamble.session.userId` — regular user session (existing)
-- `localGamble.session.admin` — admin session (new)
+- `MASQUER.session.userId` — regular user session (existing)
+- `MASQUER.session.admin` — admin session (new)
 
 A browser tab can have one or the other or neither, but not both
 simultaneously (the route guard for `/admin/*` requires admin; the
@@ -484,7 +484,7 @@ success path writes both balance and adjustment row atomically.
 Fixed left sidebar (160px) + content area. Sidebar:
 
 ```
-🎰 localGamble · ADMIN
+🎰 MASQUER · ADMIN
 ─────────────────────
 📊 Overview              ← active highlight
 👥 Users

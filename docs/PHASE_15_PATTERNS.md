@@ -145,8 +145,8 @@ These come from CLAUDE.md + the umbrella's §4.4 — never violate:
 5. **Spec-first.** Update BUILD_GUIDE + any ADR amendment in the first commit; code follows.
 6. **No CLAUDE.md edits.**
 7. **TS strict + exactOptionalPropertyTypes.** Optional fields via `{...(cond ? {key: val} : {})}` spread, never `key: undefined`.
-8. **Commit subject ≤ 100 chars** (commitlint header-max-length; captured in `feedback-localgamble-commit-subject-limit`).
-9. **Commit scope**: use the game name (`blackjack` / `roulette` / etc.) for game-side, `admin` (NOT `admin-<game>`) for admin pages, `stats` for `src/systems/stats.ts`, `theme` for shared UI primitives. Full list: `reference-localgamble-commitlint-scopes`.
+8. **Commit subject ≤ 100 chars** (commitlint header-max-length; captured in `feedback-masquer-commit-subject-limit`).
+9. **Commit scope**: use the game name (`blackjack` / `roulette` / etc.) for game-side, `admin` (NOT `admin-<game>`) for admin pages, `stats` for `src/systems/stats.ts`, `theme` for shared UI primitives. Full list: `reference-masquer-commitlint-scopes`.
 10. **No `--no-verify`. No `--amend`.** Soft-reset + new commit if you need to rewrite.
 11. **DoD per PR:**
     ```

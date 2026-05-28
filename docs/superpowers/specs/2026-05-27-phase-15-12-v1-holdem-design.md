@@ -22,7 +22,7 @@ The four user-locked decisions for this sub-project (see §3):
 
 ## 2. Non-goals
 
-Out of scope for this sub-project (deferred per `localgamble-deferred-features.md`):
+Out of scope for this sub-project (deferred per `masquer-deferred-features.md`):
 
 - Multi-table / tournament mode (blind escalation, sit-and-go)
 - Hand-history viewer (per-hand log table is its own schema migration)
@@ -73,7 +73,7 @@ Modified files in `src/games/poker/_shared/`:
 In `src/games/poker/holdem/`:
 
 - **`HoldemPage.tsx`** — full rewrite of the page chrome:
-  - Root: `flex h-full flex-col bg-felt-table text-ivory` (drops `min-h-screen` — see [memory `localgamble-min-h-screen-in-pages`](../../../.claude/projects/-Users-adam/memory/feedback_localgamble_min_h_screen_in_pages.md)).
+  - Root: `flex h-full flex-col bg-felt-table text-ivory` (drops `min-h-screen` — see [memory `masquer-min-h-screen-in-pages`](../../../.claude/projects/-Users-adam/memory/feedback_masquer_min_h_screen_in_pages.md)).
   - Title block: `MASQUER · Hold'em` (gold-bright, `font-display tracking-[0.18em] text-2xl`) + variant subtitle `Texas · No-Limit · Cash` (small, ivory/55).
   - `<LobbyButton />` absolute top-left, `<PokerOddsHeader variant="holdem" />` absolute top-right, `<RulesButton />` bottom-left.
   - Bust prompt screen + session-over screen restyled with brand tokens, `bg-velvet-deep` panel, brass-bordered, ivory body text, gold-bright headings.
@@ -310,7 +310,7 @@ Recharts stacked bar — one stack per day, 3 stacked segments (Hold'em gold / D
 - **`Card` type re-export.** `_shared/handEvaluator.ts` and `_shared/ai/decide.ts` consume a `Card` type. If MasquerCard's type shape differs, keep `_shared/PlayingCard.tsx` as a 5-line type-only shim re-exporting from `@/components/brand/PlayingCard`. Verify type compatibility before deleting.
 - **Reduced-motion swap.** Replacing `useReducedMotion` (framer-motion) with `useEffectiveReducedMotion` (project) changes return semantics (boolean vs `boolean | null`). Update truthy checks accordingly.
 - **Showdown stagger collides with auto-next-hand timer.** Current `HoldemPage` schedules `START_HAND` 1.2 s after entering `idle` (post hand-complete). New stagger reveal can take up to 2.1 s. Mitigation: extend the auto-next-hand delay to `max(1200, revealDurationMs + 400)`, OR fire the next hand only after `ShowdownReveal.onRevealComplete`.
-- **Setup panel sizing** — apply the [`localgamble-screenshot-before-pushing-ui`](../../../.claude/projects/-Users-adam/memory/feedback_localgamble_screenshot_before_pushing_ui.md) lesson — verify visually before pushing if any layout sizing is uncertain.
+- **Setup panel sizing** — apply the [`masquer-screenshot-before-pushing-ui`](../../../.claude/projects/-Users-adam/memory/feedback_masquer_screenshot_before_pushing_ui.md) lesson — verify visually before pushing if any layout sizing is uncertain.
 - **Existing PlayerCard test pins.** Hold'em / Draw / Omaha component tests likely assert against poker's local `PlayingCard` data-attrs or `aria-label` shape. Migration may force test updates; treat that as part of PR A scope.
 
 ## 8. Definition of done

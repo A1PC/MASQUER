@@ -23,8 +23,8 @@ by design — the local-only architecture makes secrecy impossible regardless.
 
 **Synthetic admin session.** No row in the `users` table. The admin session
 is recorded as a flag in `localStorage` under the key
-`localGamble.session.admin = '1'`, separate from the regular user session
-key `localGamble.session.userId`. Both keys can be set independently but a
+`MASQUER.session.admin = '1'`, separate from the regular user session
+key `MASQUER.session.userId`. Both keys can be set independently but a
 single tab will only ever have one or the other active in the UI (the
 route guards enforce this).
 

@@ -1,4 +1,4 @@
-# Contributing to localGamble
+# Contributing to MASQUER
 
 ## Local setup
 

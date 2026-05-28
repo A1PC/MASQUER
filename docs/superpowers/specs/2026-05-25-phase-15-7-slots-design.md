@@ -32,7 +32,7 @@ All non-negotiable, per umbrella roadmap §4.4 + CLAUDE.md:
 4. **Integer money. No `Math.random()`.** ESLint enforces.
 5. **Spec-first.** This doc + any ADR amendment commit before code (no new ADRs expected; if a sound sample needs an asset note, that's an inline ADR-0033 amendment).
 6. **No CLAUDE.md edits.**
-7. **Commitlint header-max-length 100** — feedback memory `feedback-localgamble-commit-subject-limit` flags this.
+7. **Commitlint header-max-length 100** — feedback memory `feedback-masquer-commit-subject-limit` flags this.
 
 ---
 

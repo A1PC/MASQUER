@@ -1086,7 +1086,7 @@ Then in the browser:
 7. Click HIT → card added to player hand → total updates. Bust if over 21.
 8. Click STAND → dealer reveals hole card → dealer hits per H17 rule → settled.
 9. Win/loss/push pill appears. RecentResults rail gains an entry with W/L/P/BJ pill.
-10. DevTools → Application → IndexedDB → `localGamble` → `rounds` table has a new row with `game='blackjack'` and `details.hands[]` populated.
+10. DevTools → Application → IndexedDB → `MASQUER` → `rounds` table has a new row with `game='blackjack'` and `details.hands[]` populated.
 11. Place a bet → if dealt a pair (e.g. 8-8), SPLIT button enables → click → 2 hands appear side-by-side → play each.
 12. Bet larger amount → if dealt 11 against dealer non-10, DOUBLE button enables → click → exactly one card dealt → hand resolved.
 13. Test the insurance flow: get an Ace as dealer up → TAKE → 25 chips deducted (assuming 50 bet) → if dealer has BJ, insurance pays 50 + main bet lost; if not, insurance lost + round proceeds normally.

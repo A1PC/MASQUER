@@ -179,7 +179,7 @@ export class LocalGambleDB extends Dexie {
   bingoConfig!: Dexie.Table<BingoConfigRow, 'easy' | 'medium' | 'hard'>;
   prefs!: EntityTable<Prefs, 'userId'>;
 
-  constructor(name = 'localGamble') {
+  constructor(name = 'masquer') {
     super(name);
     this.version(1).stores({
       users: 'id, &usernameLower, createdAt',

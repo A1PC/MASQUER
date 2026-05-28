@@ -6,8 +6,8 @@
 
 ## Name & Tagline
 
-- **Product name:** **MASQUER** — replaces the working title "localGamble" in all
-  user-facing surfaces (the git repo and internal docs may keep `localGamble`).
+- **Product name:** **MASQUER** — replaces the working title "MASQUER" in all
+  user-facing surfaces (the git repo and internal docs may keep `MASQUER`).
 - **Tagline:** _A local, offline, play-money casino._
 - **Aesthetic:** **"Velvet Deco"** — old-school Vegas / Monte-Carlo content (felt,
   velvet, brass, masquerade) executed with modern web craft (art-deco geometry,

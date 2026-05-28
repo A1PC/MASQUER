@@ -1,4 +1,4 @@
-# localGamble
+# MASQUER
 
 A **local, offline, play-money casino** that runs entirely in your browser on a single machine. No internet, no real money, no remote server — just a polished retro-Vegas casino with a growing lineup of games, a shared chip wallet, persistent stats, and a local leaderboard.
 
@@ -26,7 +26,7 @@ A **local, offline, play-money casino** that runs entirely in your browser on a 
 
 ## What it is
 
-localGamble is a browser-based casino for one machine. You register a local profile, get a starting stack of **1,000 chips**, and play. Every game settles into one shared wallet; every completed round is recorded; stats and a leaderboard aggregate across all local profiles. A daily top-up keeps you in the game.
+MASQUER is a browser-based casino for one machine. You register a local profile, get a starting stack of **1,000 chips**, and play. Every game settles into one shared wallet; every completed round is recorded; stats and a leaderboard aggregate across all local profiles. A daily top-up keeps you in the game.
 
 The visual style is **Retro Vegas**: neon signage, deep velvet reds, gold trim, dark felt-green backgrounds, chunky display fonts for headings, clean sans-serif for numbers. Animations are tasteful and respect `prefers-reduced-motion`.
 

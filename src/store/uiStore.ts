@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 
-const SIDEBAR_KEY = 'localGamble.ui.sidebarCollapsed';
-const STATS_VIEW_KEY = 'localGamble.ui.statsViewMode';
+const SIDEBAR_KEY = 'masquer.ui.sidebarCollapsed';
+const STATS_VIEW_KEY = 'masquer.ui.statsViewMode';
 
 export type StatsViewMode = 'cards' | 'graphs';
 

@@ -6,7 +6,7 @@
 
 ## Context
 
-Phase 15 #2 adds a sound layer to localGamble. The app is offline-first
+Phase 15 #2 adds a sound layer to MASQUER. The app is offline-first
 (no runtime network dependency) and play-money, so sound is pure feedback —
 chip placements, card deals, reel spins, win/loss stingers, and a quiet lounge
 ambience. We need: a stable sound vocabulary the rest of the app can call into;

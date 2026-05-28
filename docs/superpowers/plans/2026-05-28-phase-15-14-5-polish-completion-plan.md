@@ -25,13 +25,13 @@
 2. **Games sandbox preserved.** Admin code under `src/pages/admin/**` may read from `src/db/**` / `src/store/**` / `src/systems/**`.
 3. **Integer money. No `Math.random()`.** ESLint enforces.
 4. **No CLAUDE.md edits.**
-5. **Commit subject ≤ 100 chars** ([[localgamble-commit-subject-limit]]).
+5. **Commit subject ≤ 100 chars** ([[masquer-commit-subject-limit]]).
 6. **Conventional Commits.** Scopes: `admin`, `stats`, `ui`, `routing`, `theme` (cross-codebase brand sweep where it doesn't fit a game scope), `docs`. Never `admin-blackjack` etc. Never `sound` (reverted earlier).
 7. **No `--no-verify`. No `--amend`.** Reset + new commit on hook failure.
 8. **TS strict + exactOptionalPropertyTypes.** Use `{...(cond ? {key: val} : {})}` spread for optional fields.
 9. **Tokens-only Tailwind** in rebuilt files. Pairings from [`PHASE_15_PATTERNS.md §1.4`](../../PHASE_15_PATTERNS.md#14-brand-tokens-velvet-deco).
-10. **Page roots MUST be `flex h-full flex-col`, NEVER `min-h-screen`** ([[localgamble-min-h-screen-in-pages]]).
-11. **Visual verification via Playwright at 1440×900 before pushing each PR** ([[localgamble-screenshot-before-pushing-ui]]).
+10. **Page roots MUST be `flex h-full flex-col`, NEVER `min-h-screen`** ([[masquer-min-h-screen-in-pages]]).
+11. **Visual verification via Playwright at 1440×900 before pushing each PR** ([[masquer-screenshot-before-pushing-ui]]).
 12. **DoD per PR:**
     ```
     pnpm lint && pnpm typecheck && pnpm exec vitest run && pnpm build && pnpm build-storybook && pnpm exec prettier --check .
@@ -99,7 +99,7 @@ git checkout main && git pull origin main && git checkout -b phase-15-14-5-pr-a
 - [ ] **Step 2:** Read `src/pages/stats/{StatsPage,StatsLeftRail,StatsOverviewPage,StatsPerGamePage,StatCardGrid,ViewModeToggle,EmptyState}.tsx` + `formatters.ts`.
 - [ ] **Step 3:** Read `src/pages/leaderboard/{LeaderboardPage,LeaderboardLeftRail,LeaderboardOverviewPage,LeaderboardPerGamePage,Board,MeAllToggle}.tsx`. Note `LeaderboardLeftRail` is a thin wrapper around `StatsLeftRail`.
 - [ ] **Step 4:** Read `src/pages/admin/AdminLayout.tsx` (post #14) as the canonical MASQUER sidebar/page chrome pattern.
-- [ ] **Step 5:** Memories `feedback-localgamble-min-h-screen-in-pages` + `feedback-localgamble-screenshot-before-pushing-ui`.
+- [ ] **Step 5:** Memories `feedback-masquer-min-h-screen-in-pages` + `feedback-masquer-screenshot-before-pushing-ui`.
 
 ### Task A.1 — `StatsLeftRail` brand pass (shared by Stats + Leaderboard)
 
