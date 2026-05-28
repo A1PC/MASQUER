@@ -71,7 +71,7 @@ export default function TicketCart({
       )}
       <div className="mt-3 flex items-center justify-between text-xs text-ivory/80">
         <span>Total cost</span>
-        <span className="font-display tabular-nums text-gold-bright">
+        <span className="font-numeral tabular-nums text-gold-bright">
           {totalCost.toLocaleString()} chips
         </span>
       </div>
