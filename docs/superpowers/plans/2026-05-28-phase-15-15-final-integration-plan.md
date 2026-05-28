@@ -261,9 +261,9 @@ DO NOT merge.
 | G13 | 13  | Craps          | `phase-15-15-g13-craps`         | `craps`      | `src/games/craps/`                | §2.13         |
 
 > **Note on Lottery (G6):** Lottery is a top-level page (ADR-0040), not under `src/games/`. The additive constraint for G6 applies to `src/systems/lottery.ts`, `src/systems/lottery-unread.ts`, and `src/pages/lottery/useLotteryCart.ts` — those are logic and stay byte-stable; presentational components like `LotteryPage.tsx`, `HeroSection.tsx`, `YourTicketsSlide.tsx`, `HistorySlide.tsx`, `NumberGrid.tsx`, `TicketCart.tsx`, `FavoritesDropdown.tsx`, `DrawAnimationModal.tsx`, `LotteryRules.tsx` are in scope.
-
+>
 > **Note on Bingo British/American (G7/G8):** Shared bingo components under `src/games/bingo/_shared/` (if any) may be touched by EITHER G7 or G8 but not both. Whichever runs second must not regress the first. The audit subsection §2.7 vs §2.8 must distinguish "British-only" vs "shared" findings.
-
+>
 > **Note on Poker trio (G10/G11/G12):** Shared poker chrome (`src/games/poker/_shared/`) was already swept in #12.v1. Per-game PRs G10–G12 focus on each variant's page-specific surfaces; any shared-poker finding belongs in G10 (lock the language) with G11/G12 inheriting.
 
 ### Per-game controller workflow (run once per G-PR, in release order, on user "start next" prompt)
