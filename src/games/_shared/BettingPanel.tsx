@@ -90,13 +90,15 @@ export default function BettingPanel({
   return (
     <div className="mx-auto max-w-[720px]">
       <div className="mb-2.5 flex items-baseline justify-between">
-        <span className="font-display text-[11px] tracking-wider text-gold">YOUR BET</span>
-        <span className="font-mono text-[11px] text-white/50">
+        <span className="font-display text-[11px] tracking-[0.18em] text-gold-bright">
+          YOUR BET
+        </span>
+        <span className="font-mono text-[11px] text-ivory/55">
           Balance: {balance.toLocaleString()}
         </span>
       </div>
       <div className="mb-2.5 flex items-center gap-2">
-        <span className="mr-1 text-[11px] uppercase tracking-wider text-white/50">Add:</span>
+        <span className="mr-1 text-[11px] uppercase tracking-wider text-ivory/55">Add:</span>
         {denominations.map((d) => (
           <ChipDenominationButton
             key={d}
@@ -109,7 +111,7 @@ export default function BettingPanel({
         {lastBet !== undefined && lastBet > 0 && !locked && (
           <button
             onClick={onRepeat}
-            className="ml-auto rounded-md border border-gold bg-gold/15 px-3 py-2 text-xs text-gold-bright hover:bg-gold/25"
+            className="ml-auto rounded-md border border-brass/60 px-3 py-2 font-display text-xs tracking-[0.18em] text-ivory hover:bg-velvet"
           >
             ↻ Repeat {lastBet}
           </button>
@@ -117,14 +119,14 @@ export default function BettingPanel({
       </div>
 
       <div className="mb-3 flex items-center gap-2.5">
-        <div className="flex flex-1 items-center justify-between rounded-md border border-gold/30 bg-felt px-3.5 py-2.5">
-          <span className="text-[11px] text-white/60">Bet amount</span>
+        <div className="flex flex-1 items-center justify-between rounded-md border border-brass/30 bg-felt-table px-3.5 py-2.5">
+          <span className="text-[11px] text-ivory/60">Bet amount</span>
           <span className="font-mono text-xl font-bold text-gold-bright">{amount}</span>
         </div>
         <button
           onClick={onClear}
           disabled={amount === 0 || locked}
-          className="rounded-md border border-white/20 bg-transparent px-3.5 py-2.5 text-xs text-white/60 hover:bg-white/5 disabled:opacity-40"
+          className="rounded-md px-3.5 py-2.5 text-xs text-ivory hover:text-gold-bright disabled:opacity-40"
         >
           Clear
         </button>
@@ -132,7 +134,7 @@ export default function BettingPanel({
           <button
             onClick={onCommitClick}
             disabled={amount < min || amount > balance}
-            className="rounded-md bg-casino-red px-4 py-2.5 font-display text-sm tracking-wider text-white shadow-gold-glow hover:bg-casino-red-deep disabled:opacity-40"
+            className="rounded-md border-2 border-brass bg-velvet px-4 py-2.5 font-display text-xs tracking-[0.18em] text-gold-bright shadow-gold-glow hover:bg-velvet-deep disabled:opacity-40"
           >
             PLACE BET
           </button>

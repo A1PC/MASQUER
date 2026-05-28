@@ -35,7 +35,7 @@ export default function SettingsPage(): JSX.Element {
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-8">
-      <h1 className="mb-6 font-display text-2xl tracking-[0.06em] text-gold">Settings</h1>
+      <h1 className="mb-6 font-display text-2xl tracking-[0.18em] text-gold-bright">Settings</h1>
       <div className="flex flex-col gap-6">
         <SoundCard prefs={prefs} update={update} />
         <MotionCard prefs={prefs} update={update} />
@@ -295,9 +295,11 @@ function AccountCard({ userId }: { userId: string | null }): JSX.Element {
           </div>
         </Modal>
 
-        <div className="mt-3 border-t border-brass/15 pt-4">
-          <p className="mb-2 font-body text-sm text-chip-loss">Delete account</p>
-          <p className="mb-3 font-body text-xs text-ivory/55">
+        <div className="mt-5 rounded-lg border-2 border-casino-red/60 bg-casino-red/5 p-4">
+          <p className="mb-2 font-display text-xs uppercase tracking-[0.18em] text-casino-red">
+            Danger zone
+          </p>
+          <p className="mb-3 font-body text-xs text-ivory/70">
             Permanently delete your account and all of your data — balance, play history, sessions,
             and lottery entries. This cannot be undone.
           </p>

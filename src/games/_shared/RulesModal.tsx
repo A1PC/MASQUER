@@ -37,7 +37,7 @@ export default function RulesModal({ open, title, children, onClose }: Props): J
       {open && (
         <motion.div
           key="rules-backdrop"
-          className="fixed inset-0 z-40 flex items-center justify-center bg-black/70 px-4"
+          className="fixed inset-0 z-40 flex items-center justify-center bg-black/60 px-4 backdrop-blur-sm"
           initial={reduce ? { opacity: 1 } : { opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={reduce ? { opacity: 0 } : { opacity: 0 }}
@@ -51,14 +51,14 @@ export default function RulesModal({ open, title, children, onClose }: Props): J
             role="dialog"
             aria-modal="true"
             aria-labelledby="rules-modal-title"
-            className="relative max-h-[85vh] w-full max-w-2xl overflow-hidden rounded-lg border-2 border-gold bg-felt-deep shadow-gold-glow"
+            className="relative max-h-[85vh] w-full max-w-2xl overflow-hidden rounded-lg border border-brass/60 bg-velvet-deep shadow-2xl"
             initial={reduce ? { scale: 1, opacity: 1 } : { scale: 0.94, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={reduce ? { scale: 1, opacity: 0 } : { scale: 0.96, opacity: 0 }}
             transition={{ duration: reduce ? 0 : 0.18, ease: 'easeOut' }}
             onClick={(e) => e.stopPropagation()}
           >
-            <header className="flex items-center justify-between border-b border-gold/40 px-5 py-3">
+            <header className="flex items-center justify-between border-b border-brass/60 px-5 py-3">
               <h2
                 id="rules-modal-title"
                 className="font-display text-base tracking-[0.18em] text-gold-bright"
@@ -70,7 +70,7 @@ export default function RulesModal({ open, title, children, onClose }: Props): J
                 type="button"
                 onClick={onClose}
                 aria-label="Close rules"
-                className="grid h-7 w-7 place-items-center rounded-full border border-white/30 text-white/70 hover:bg-white/10 hover:text-white"
+                className="grid h-7 w-7 place-items-center rounded-full border border-brass/60 text-ivory/70 hover:bg-velvet hover:text-gold-bright"
               >
                 ×
               </button>
@@ -85,7 +85,7 @@ export default function RulesModal({ open, title, children, onClose }: Props): J
                 // `max-h-[60vh]` ensures the body never exceeds the readable
                 // sweet spot regardless of viewport size, and `overflow-y-auto`
                 // turns clipped content into a vertical scroll region.
-                'max-h-[60vh] overflow-y-auto px-5 py-4 text-sm leading-relaxed text-white/85 ' +
+                'max-h-[60vh] overflow-y-auto px-5 py-4 text-sm leading-relaxed text-ivory/85 ' +
                 '[mask-image:linear-gradient(to_bottom,transparent,#000_24px,#000_calc(100%-24px),transparent)]'
               }
             >
