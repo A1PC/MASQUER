@@ -1,5 +1,6 @@
 import type { JSX } from 'react';
 import { useState } from 'react';
+import { Button } from '@/components/ui';
 
 interface Props {
   toCall: number;
@@ -58,36 +59,39 @@ export default function BettingControls({
     >
       {/* Primary action row */}
       <div className="flex gap-2">
-        <button
-          className="flex-1 rounded border border-brass/40 bg-velvet py-2 font-display text-xs tracking-[0.18em] text-ivory
-            hover:bg-velvet-deep disabled:cursor-not-allowed disabled:opacity-40"
+        <Button
+          variant="secondary"
+          size="sm"
+          className="flex-1 rounded border border-brass/40 bg-velvet font-display tracking-[0.18em] text-ivory hover:bg-velvet-deep"
           disabled={disabled}
           onClick={onFold}
           data-action="fold"
         >
           FOLD
-        </button>
+        </Button>
 
         {canCheck ? (
-          <button
-            className="flex-1 rounded border border-brass/40 bg-felt-table-deep py-2 font-display text-xs tracking-[0.18em] text-ivory
-              hover:border-brass disabled:cursor-not-allowed disabled:opacity-40"
+          <Button
+            variant="secondary"
+            size="sm"
+            className="flex-1 rounded border border-brass/40 bg-felt-table-deep font-display tracking-[0.18em] text-ivory hover:border-brass"
             disabled={disabled}
             onClick={onCheck}
             data-action="check"
           >
             CHECK
-          </button>
+          </Button>
         ) : (
-          <button
-            className="flex-1 rounded border border-brass/60 bg-felt-table-deep py-2 font-display text-xs tracking-[0.18em] text-ivory
-              hover:border-brass disabled:cursor-not-allowed disabled:opacity-40"
+          <Button
+            variant="secondary"
+            size="sm"
+            className="flex-1 rounded border border-brass/60 bg-felt-table-deep font-display tracking-[0.18em] text-ivory hover:border-brass"
             disabled={disabled}
             onClick={onCall}
             data-action="call"
           >
             CALL {toCall.toLocaleString()}
-          </button>
+          </Button>
         )}
       </div>
 
@@ -95,7 +99,10 @@ export default function BettingControls({
       <div className="flex flex-col gap-1">
         <div className="flex items-center justify-between">
           <span className="font-display text-[10px] tracking-[0.18em] text-ivory/55">RAISE</span>
-          <span className="font-mono text-[12px] tabular-nums text-gold-bright" data-raise-amount>
+          <span
+            className="font-numeral text-[12px] tabular-nums text-gold-bright"
+            data-raise-amount
+          >
             {sliderVal.toLocaleString()}
           </span>
         </div>
@@ -120,28 +127,30 @@ export default function BettingControls({
             { label: 'POT', amount: fullPot },
             { label: 'ALL-IN', amount: allIn },
           ].map(({ label, amount }) => (
-            <button
+            <Button
               key={label}
-              className="flex-1 rounded border border-brass/40 py-1 font-display text-[9px] tracking-[0.18em]
-                text-ivory/85 hover:bg-velvet disabled:cursor-not-allowed disabled:opacity-40"
+              variant="secondary"
+              size="sm"
+              className="flex-1 rounded border border-brass/40 px-0 py-1 font-display text-[9px] tracking-[0.18em] text-ivory/85 hover:bg-velvet"
               disabled={disabled}
               onClick={() => quickRaise(amount)}
               data-quick={label}
             >
               {label}
-            </button>
+            </Button>
           ))}
         </div>
 
-        <button
-          className="w-full rounded bg-gold py-2 font-display text-xs tracking-[0.18em] text-felt-deep
-            hover:bg-gold-bright disabled:cursor-not-allowed disabled:opacity-40"
+        <Button
+          variant="primary"
+          size="sm"
+          className="w-full rounded font-display tracking-[0.18em]"
           disabled={disabled}
           onClick={() => onRaise(sliderVal)}
           data-action="raise"
         >
           RAISE TO {sliderVal.toLocaleString()}
-        </button>
+        </Button>
       </div>
     </div>
   );

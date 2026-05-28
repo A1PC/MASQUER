@@ -6,78 +6,26 @@ import { useBalance } from '@/store/walletStore';
 import { useGameRound } from '@/games/_shared/useGameRound';
 import LobbyButton from '@/games/_shared/LobbyButton';
 import RulesButton from '@/games/_shared/RulesButton';
+import { Button } from '@/components/ui';
 import { useSound } from '@/systems/sound/useSound';
 import { useEffectiveReducedMotion } from '@/motion/useEffectiveReducedMotion';
 import type { BetHandle } from '@/systems/wallet';
-import type { Archetype } from '../_shared/ai/archetypes';
 import { decide } from '../_shared/ai/decide';
 import { assignMaskName } from '../_shared/maskNames';
 import PokerOddsHeader from '../_shared/PokerOddsHeader';
 import PokerRulesModal from '../_shared/PokerRulesModal';
+import {
+  mulberry32,
+  stringSeed,
+  pickArchetype,
+  buildMachineInput,
+  makeSessionId,
+  pickWinTier,
+} from '../_shared/sessionBootstrap';
 import { holdemMachine, type MachineInput, type PokerContext } from './machine';
 import SetupPanel from './SetupPanel';
 import PokerTable from './PokerTable';
 import type { WinTier } from './ShowdownReveal';
-
-// ── Seeded mulberry32 (same algo as deck.ts, but per-session) ────────────────
-
-function mulberry32(seed: number): () => number {
-  let a = seed >>> 0;
-  return () => {
-    a = (a + 0x6d2b79f5) >>> 0;
-    let t = a;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4_294_967_296;
-  };
-}
-
-function stringSeed(s: string): number {
-  let h = 5381;
-  for (let i = 0; i < s.length; i += 1) {
-    h = ((h << 5) + h + s.charCodeAt(i)) | 0;
-  }
-  return h >>> 0;
-}
-
-function pickArchetype(rng: () => number): Archetype {
-  const archetypes: Archetype[] = ['rock', 'station', 'maniac', 'shark'];
-  return archetypes[Math.floor(rng() * archetypes.length)]!;
-}
-
-function buildMachineInput(
-  sessionId: string,
-  buyIn: number,
-  tableSize: number,
-  stakes: { sb: number; bb: number },
-  rng: () => number,
-): MachineInput {
-  // Mask names mask the archetype from the player — `decide()` still
-  // gets the real archetype internally; the UI only ever sees the mask name.
-  const maskNames = assignMaskName(rng, tableSize);
-  const aiArchetypes = Array.from({ length: tableSize - 1 }, (_, i) => {
-    const archetype = pickArchetype(rng);
-    const name = maskNames[i]!;
-    const stack = stakes.bb * 80;
-    return { archetype, name, stack };
-  });
-  return { sessionId, buyIn, tableSize, stakes, aiArchetypes };
-}
-
-function makeSessionId(): string {
-  const seedBuf = new Uint32Array(1);
-  crypto.getRandomValues(seedBuf);
-  return `poker-${Date.now()}-${seedBuf[0]!}`;
-}
-
-/** Win-tier classification per spec §4.4. */
-function pickWinTier(wonAmount: number, committed: number): WinTier {
-  if (wonAmount <= 0) return 'loss';
-  const ratio = wonAmount / Math.max(1, committed);
-  if (ratio >= 20) return 'jackpot';
-  if (ratio >= 2) return 'medium';
-  return 'small';
-}
 
 interface SitDownConfig {
   tableSize: number;
@@ -429,21 +377,25 @@ function HoldemSession({ session, onSessionOver, onReset }: HoldemSessionProps):
           <h2 className="font-display text-xl tracking-[0.18em] text-casino-red">OUT OF CHIPS</h2>
           <p className="text-ivory/85">You busted. Rebuy to continue.</p>
           {canRebuy && (
-            <button
-              className="rounded-md bg-gold px-6 py-3 font-display text-sm tracking-[0.18em] text-felt-deep hover:bg-gold-bright"
+            <Button
+              variant="primary"
+              size="lg"
+              className="rounded-md font-display tracking-[0.18em]"
               onClick={() => handleRebuy(rebuyAmount)}
               data-rebuy
             >
               REBUY {rebuyAmount.toLocaleString()}
-            </button>
+            </Button>
           )}
-          <button
-            className="rounded-md border border-brass/60 px-6 py-3 font-display text-sm tracking-[0.18em] text-ivory hover:bg-velvet"
+          <Button
+            variant="secondary"
+            size="lg"
+            className="rounded-md font-display tracking-[0.18em]"
             onClick={handleLeave}
             data-leave-bust
           >
             LEAVE TABLE
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -468,19 +420,22 @@ function HoldemSession({ session, onSessionOver, onReset }: HoldemSessionProps):
             <span className="text-ivory/70">Bought in: {ctx.totalBoughtIn.toLocaleString()}</span>
             <span className="text-ivory/70">Final stack: {finalStack.toLocaleString()}</span>
             <span
-              className={`font-mono text-xl font-bold ${net >= 0 ? 'text-chip-win' : 'text-casino-red'}`}
+              className={`font-numeral text-xl font-bold tabular-nums ${net >= 0 ? 'text-chip-win' : 'text-casino-red'}`}
+              data-session-over-net
             >
               {net >= 0 ? '+' : ''}
               {net.toLocaleString()}
             </span>
           </div>
-          <button
-            className="rounded-md bg-gold px-6 py-3 font-display text-sm tracking-[0.18em] text-felt-deep hover:bg-gold-bright"
+          <Button
+            variant="primary"
+            size="lg"
+            className="rounded-md font-display tracking-[0.18em]"
             onClick={onReset}
             data-play-again
           >
             PLAY AGAIN
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -537,22 +492,26 @@ function HoldemSession({ session, onSessionOver, onReset }: HoldemSessionProps):
                 {Math.ceil(graceRemainingMs / 1000)}s
               </span>
             </span>
-            <button
+            <Button
               type="button"
+              variant="danger"
+              size="sm"
               onClick={handleLeave}
-              className="rounded-md border border-casino-red/60 px-4 py-2 font-display text-xs tracking-[0.18em] text-casino-red hover:bg-casino-red/10"
+              className="rounded-md font-display tracking-[0.18em]"
               data-leave-grace
             >
               LEAVE NOW
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant="secondary"
+              size="sm"
               onClick={handleDealNow}
-              className="rounded-md border border-brass/60 px-4 py-2 font-display text-xs tracking-[0.18em] text-ivory hover:bg-velvet"
+              className="rounded-md font-display tracking-[0.18em] text-ivory"
               data-deal-now
             >
               DEAL NOW
-            </button>
+            </Button>
           </div>
         </div>
       )}
@@ -577,7 +536,7 @@ export default function HoldemPage(): JSX.Element | null {
         const result = await placeBet(config.buyIn, { min: config.buyIn, max: config.buyIn * 3 });
         if (!result.ok) return;
 
-        const sessionId = makeSessionId();
+        const sessionId = makeSessionId('poker');
         const rng = mulberry32(stringSeed(sessionId));
         const input = buildMachineInput(
           sessionId,
