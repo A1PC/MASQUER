@@ -66,7 +66,7 @@ export default function LobbyHero({ username }: Props): JSX.Element {
     >
       <MaskMark size={52} variant="simple" className="shrink-0" title="" />
       <div className="min-w-0">
-        <h1 className="font-display text-xl tracking-[0.04em] text-gold-bright sm:text-2xl">
+        <h1 className="font-display text-xl tracking-[0.18em] text-gold-bright sm:text-2xl">
           Welcome back, {username}
         </h1>
         <p className="mt-1 text-[10px] uppercase tracking-[0.18em] text-ivory/55">Balance</p>
