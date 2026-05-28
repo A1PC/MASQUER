@@ -88,13 +88,20 @@ export default function CoinFlipPage(): JSX.Element | null {
     }
   };
 
+  // Recent-items badges reference the brand coin palette via CSS vars
+  // (declared on :root by the <style> block below) so the heads gradient and
+  // the tails face stay byte-identical to the BrandCoin disc + the M glyph.
+  // Same pattern as Slots' `--brand-jewel-magenta` and Baccarat's
+  // `--brand-scoreboard-*` so a future brand retune touches one block.
   const items: RecentResultItem[] = rounds.map((r) => {
     const d = r.details as CoinFlipDetails;
     return {
       key: r.id,
       badgeText: d.landed === 'heads' ? 'H' : 'T',
-      badgeColor: d.landed === 'heads' ? 'linear-gradient(135deg,#fbe6a0,#d4af37)' : '#0c1711',
-      badgeTextColor: d.landed === 'heads' ? '#5b4310' : '#e6c068',
+      badgeColor:
+        d.landed === 'heads' ? 'var(--brand-coin-heads-gradient)' : 'var(--brand-coin-tails-face)',
+      badgeTextColor:
+        d.landed === 'heads' ? 'var(--brand-coin-heads-ink)' : 'var(--brand-coin-tails-ink)',
       betLabel: String(r.betAmount),
       netChips: r.netChange,
       accent: r.outcome,
@@ -102,69 +109,88 @@ export default function CoinFlipPage(): JSX.Element | null {
   });
 
   return (
-    <GameShell
-      title="MASQUER · Coin Flip"
-      game="coin-flip"
-      recentItems={items}
-      rules={<CoinFlipRules />}
-      lobbyButton={<LobbyButton />}
-      oddsInfo={<OddsInfoBox>Win 1:1</OddsInfoBox>}
-      bettingPanel={
-        <BettingPanel
-          key={betPanelKey}
-          min={COIN_FLIP_CONFIG.MIN_BET}
-          max={COIN_FLIP_CONFIG.MAX_BET}
-          balance={balance}
-          {...(lastBet !== undefined ? { lastBet } : {})}
-          locked={handle !== null || flipping || resolving}
-          autoCommitRepeat
-          onCommit={(amount) => void onCommit(amount)}
-          callButtons={(committedAmount) => (
-            <div className="flex gap-2.5">
-              <Button
-                variant="primary"
-                size="md"
-                onClick={() => void onCall('heads')}
-                disabled={committedAmount === null || flipping || resolving}
-                className="flex-1"
-              >
-                Heads
-              </Button>
-              <Button
-                variant="secondary"
-                size="md"
-                onClick={() => void onCall('tails')}
-                disabled={committedAmount === null || flipping || resolving}
-                className="flex-1"
-              >
-                Tails
-              </Button>
-            </div>
-          )}
-        />
+    <>
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
+      :root {
+        --brand-coin-heads-gradient: linear-gradient(135deg,#fbe6a0,#d4af37);
+        --brand-coin-heads-ink: #5b4310;
+        --brand-coin-tails-face: #0c1711;
+        --brand-coin-tails-ink: #e6c068;
       }
-    >
-      <div className="flex flex-col items-center gap-4 py-4">
-        {streak >= 2 && (
-          <Badge tone="win" icon="Flame" aria-label={`${streak} win streak`}>
-            {streak} win streak
-          </Badge>
-        )}
-        <BrandCoin side={displayFace} flipping={flipping} />
-        {lastNet !== null && !flipping && (
-          <Badge tone={lastNet > 0 ? 'win' : 'loss'}>
-            {lastNet > 0 ? `+${lastNet} chips` : `−${Math.abs(lastNet)} chips`}
-          </Badge>
-        )}
-        {error && (
-          <p className="text-sm text-state-loss" role="alert">
-            {error}
-          </p>
-        )}
-        {lastNet === null && !flipping && !error && (
-          <p className="text-sm text-ivory/70">Place a bet, then call heads or tails.</p>
-        )}
-      </div>
-    </GameShell>
+    `,
+        }}
+      />
+      <GameShell
+        title="MASQUER · Coin Flip"
+        game="coin-flip"
+        recentItems={items}
+        rules={<CoinFlipRules />}
+        lobbyButton={<LobbyButton />}
+        oddsInfo={<OddsInfoBox>Win 1:1</OddsInfoBox>}
+        bettingPanel={
+          <BettingPanel
+            key={betPanelKey}
+            min={COIN_FLIP_CONFIG.MIN_BET}
+            max={COIN_FLIP_CONFIG.MAX_BET}
+            balance={balance}
+            {...(lastBet !== undefined ? { lastBet } : {})}
+            locked={handle !== null || flipping || resolving}
+            autoCommitRepeat
+            onCommit={(amount) => void onCommit(amount)}
+            callButtons={(committedAmount) => (
+              <div className="flex gap-2.5">
+                <Button
+                  variant="primary"
+                  size="md"
+                  onClick={() => void onCall('heads')}
+                  disabled={committedAmount === null || flipping || resolving}
+                  className="flex-1"
+                >
+                  Heads
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="md"
+                  onClick={() => void onCall('tails')}
+                  disabled={committedAmount === null || flipping || resolving}
+                  className="flex-1"
+                >
+                  Tails
+                </Button>
+              </div>
+            )}
+          />
+        }
+      >
+        <div className="flex flex-col items-center gap-4 py-4">
+          {/* Win-streak Flame starts at 2 by design: a single win is the
+              expected outcome (1:1 / 50% odds — celebrating every win
+              cheapens the badge and turns it into noise). Two-in-a-row
+              is the first run-of-luck signal worth a flourish.
+              See rules.tsx → "WIN-STREAK FLAME". */}
+          {streak >= 2 && (
+            <Badge tone="win" icon="Flame" aria-label={`${streak} win streak`}>
+              {streak} win streak
+            </Badge>
+          )}
+          <BrandCoin side={displayFace} flipping={flipping} />
+          {lastNet !== null && !flipping && (
+            <Badge tone={lastNet > 0 ? 'win' : 'loss'}>
+              {lastNet > 0 ? `+${lastNet} chips` : `−${Math.abs(lastNet)} chips`}
+            </Badge>
+          )}
+          {error && (
+            <p className="text-sm text-state-loss" role="alert">
+              {error}
+            </p>
+          )}
+          {lastNet === null && !flipping && !error && (
+            <p className="text-sm italic text-ivory/70">Choose your side. The house is watching.</p>
+          )}
+        </div>
+      </GameShell>
+    </>
   );
 }
