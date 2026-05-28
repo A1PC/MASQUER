@@ -266,7 +266,7 @@ export default function BingoPage(): JSX.Element | null {
   void reduceMotion;
 
   return (
-    <div className="flex min-h-screen bg-felt-table text-ivory">
+    <div className="flex h-full flex-col bg-felt-table text-ivory">
       <main className="flex-1 overflow-auto p-6">
         <header className="mb-4 flex w-full items-start justify-between gap-4">
           <div className="flex-shrink-0">

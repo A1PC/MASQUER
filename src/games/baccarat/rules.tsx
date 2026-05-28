@@ -14,7 +14,9 @@ export default function BaccaratRules(): JSX.Element {
   return (
     <div className="space-y-4">
       <section>
-        <h3 className="mb-1 font-display text-xs uppercase tracking-[0.18em] text-gold">Object</h3>
+        <h3 className="mb-1 font-display text-xs uppercase tracking-[0.18em] text-gold-bright">
+          Object
+        </h3>
         <p className="text-sm text-ivory/85">
           Bet on which side wins — PLAYER or BANKER — or that they TIE. Each side is dealt at least
           two cards. The hand total is the <em>ones digit</em> of the card-value sum (7 + 8 = 15 →
@@ -23,7 +25,7 @@ export default function BaccaratRules(): JSX.Element {
       </section>
 
       <section>
-        <h3 className="mb-1 font-display text-xs uppercase tracking-[0.18em] text-gold">
+        <h3 className="mb-1 font-display text-xs uppercase tracking-[0.18em] text-gold-bright">
           Card values
         </h3>
         <p className="text-sm text-ivory/85">
@@ -33,7 +35,7 @@ export default function BaccaratRules(): JSX.Element {
       </section>
 
       <section>
-        <h3 className="mb-1 font-display text-xs uppercase tracking-[0.18em] text-gold">
+        <h3 className="mb-1 font-display text-xs uppercase tracking-[0.18em] text-gold-bright">
           Naturals
         </h3>
         <p className="text-sm text-ivory/85">
@@ -44,7 +46,7 @@ export default function BaccaratRules(): JSX.Element {
       </section>
 
       <section>
-        <h3 className="mb-1 font-display text-xs uppercase tracking-[0.18em] text-gold">
+        <h3 className="mb-1 font-display text-xs uppercase tracking-[0.18em] text-gold-bright">
           Third-card rules
         </h3>
         <p className="text-sm text-ivory/85">
@@ -65,7 +67,7 @@ export default function BaccaratRules(): JSX.Element {
       </section>
 
       <section>
-        <h3 className="mb-1 font-display text-xs uppercase tracking-[0.18em] text-gold">
+        <h3 className="mb-1 font-display text-xs uppercase tracking-[0.18em] text-gold-bright">
           Main bets
         </h3>
         <table className="w-full text-left text-sm text-ivory/85">
@@ -108,7 +110,7 @@ export default function BaccaratRules(): JSX.Element {
       </section>
 
       <section>
-        <h3 className="mb-1 font-display text-xs uppercase tracking-[0.18em] text-gold">
+        <h3 className="mb-1 font-display text-xs uppercase tracking-[0.18em] text-gold-bright">
           Side bets
         </h3>
         <table className="w-full text-left text-sm text-ivory/85">
@@ -143,7 +145,7 @@ export default function BaccaratRules(): JSX.Element {
       </section>
 
       <section>
-        <h3 className="mb-1 font-display text-xs uppercase tracking-[0.18em] text-gold">
+        <h3 className="mb-1 font-display text-xs uppercase tracking-[0.18em] text-gold-bright">
           Dragon Bonus
         </h3>
         <p className="mb-2 text-sm text-ivory/85">
@@ -196,7 +198,7 @@ export default function BaccaratRules(): JSX.Element {
       </section>
 
       <section>
-        <h3 className="mb-1 font-display text-xs uppercase tracking-[0.18em] text-gold">
+        <h3 className="mb-1 font-display text-xs uppercase tracking-[0.18em] text-gold-bright">
           Shoe + cut card
         </h3>
         <p className="text-sm text-ivory/85">
@@ -208,7 +210,7 @@ export default function BaccaratRules(): JSX.Element {
       </section>
 
       <section>
-        <h3 className="mb-1 font-display text-xs uppercase tracking-[0.18em] text-gold">
+        <h3 className="mb-1 font-display text-xs uppercase tracking-[0.18em] text-gold-bright">
           Bet limits
         </h3>
         <ul className="ml-5 list-disc space-y-1 text-sm text-ivory/85">
@@ -222,7 +224,7 @@ export default function BaccaratRules(): JSX.Element {
       </section>
 
       <section>
-        <h3 className="mb-1 font-display text-xs uppercase tracking-[0.18em] text-gold">
+        <h3 className="mb-1 font-display text-xs uppercase tracking-[0.18em] text-gold-bright">
           Scoreboard
         </h3>
         <ul className="ml-5 list-disc space-y-1 text-sm text-ivory/85">

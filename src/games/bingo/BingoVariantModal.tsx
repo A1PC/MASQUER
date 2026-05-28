@@ -56,7 +56,7 @@ export default function BingoVariantModal({ open, onClose }: Props): JSX.Element
           <button
             type="button"
             onClick={() => go('british')}
-            className="min-h-[44px] rounded-lg border-2 border-brass/50 bg-felt-table-deep p-6 text-center transition hover:border-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
+            className="min-h-[44px] rounded-lg border-2 border-brass/50 bg-felt-table-deep p-6 text-center transition hover:border-brass focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brass"
             data-variant-choice="british"
           >
             <div className="mb-2 text-4xl">🇬🇧</div>
@@ -70,7 +70,7 @@ export default function BingoVariantModal({ open, onClose }: Props): JSX.Element
           <button
             type="button"
             onClick={() => go('american')}
-            className="min-h-[44px] rounded-lg border-2 border-brass/50 bg-felt-table-deep p-6 text-center transition hover:border-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
+            className="min-h-[44px] rounded-lg border-2 border-brass/50 bg-felt-table-deep p-6 text-center transition hover:border-brass focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brass"
             data-variant-choice="american"
           >
             <div className="mb-2 text-4xl">🇺🇸</div>

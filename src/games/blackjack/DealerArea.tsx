@@ -29,7 +29,7 @@ export default function DealerArea({
   return (
     <Panel surface="felt" className="w-full max-w-[520px] px-5 py-4 text-center">
       <div className="mx-auto mb-2 flex max-w-[320px] items-baseline justify-center">
-        <span className="font-display text-[11px] tracking-[0.18em] text-gold">DEALER</span>
+        <span className="font-display text-[11px] tracking-[0.18em] text-gold-bright">DEALER</span>
       </div>
       <div className="flex justify-center">
         <HandView

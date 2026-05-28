@@ -243,7 +243,9 @@ export default function BettingLayout({
   return (
     <div className="mx-auto max-w-[700px]">
       <div className="mb-2 flex items-center justify-between gap-3 px-1">
-        <span className="font-display text-[11px] tracking-[0.18em] text-gold">TOTAL BET</span>
+        <span className="font-display text-[11px] tracking-[0.18em] text-gold-bright">
+          TOTAL BET
+        </span>
         <span className="font-mono text-sm text-gold-bright">{total}</span>
         {onClearAll && (
           <button
@@ -255,7 +257,7 @@ export default function BettingLayout({
             className={[
               'rounded-md border border-brass/40 bg-transparent px-2 py-1 text-[11px] text-ivory/65',
               'hover:bg-ivory/5 disabled:opacity-40',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2 focus-visible:ring-offset-felt-table-deep',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brass focus-visible:ring-offset-2 focus-visible:ring-offset-felt-table-deep',
             ].join(' ')}
             aria-label="Clear all bets"
           >
@@ -310,7 +312,7 @@ export default function BettingLayout({
                   disabled={disabled}
                   onClick={() => handleStraight(n)}
                   aria-label={`Straight bet on ${n}`}
-                  className="absolute flex items-center justify-center font-display text-white"
+                  className="absolute flex items-center justify-center font-display text-ivory"
                   style={{
                     left: cellLeft(c),
                     top: cellTop(r),
@@ -343,7 +345,7 @@ export default function BettingLayout({
                   });
                 }}
                 aria-label={`Column bet on column ${rouletteCol}`}
-                className="absolute flex items-center justify-center font-display text-[10px] text-white"
+                className="absolute flex items-center justify-center font-display text-[10px] text-ivory"
                 style={{
                   left: cellLeft(13),
                   top: cellTop(row),
@@ -376,7 +378,7 @@ export default function BettingLayout({
                 onPlaceBet({ ...makeBet({ type: 'dozen', dozen }), amount: chipAmount });
               }}
               aria-label={`Dozen bet on ${label}`}
-              className="absolute flex items-center justify-center font-display text-[11px] text-white"
+              className="absolute flex items-center justify-center font-display text-[11px] text-ivory"
               style={{
                 left: cellLeft(1 + (dozen - 1) * 4),
                 top: 3 * CELL_H + GUTTER,
@@ -411,7 +413,7 @@ export default function BettingLayout({
                 onPlaceBet({ ...makeBet({ type }), amount: chipAmount });
               }}
               aria-label={label === 'RED' ? 'Red' : label === 'BLACK' ? 'Black' : label}
-              className="absolute flex items-center justify-center font-display text-[11px] text-white"
+              className="absolute flex items-center justify-center font-display text-[11px] text-ivory"
               style={{
                 left: cellLeft(1 + i * 2),
                 top: 3 * CELL_H + GUTTER + DOZEN_H + GUTTER,
@@ -458,7 +460,7 @@ export default function BettingLayout({
                 }
               }}
               aria-label={o.label}
-              className="absolute z-20 cursor-pointer bg-transparent hover:bg-gold/60"
+              className="absolute z-20 cursor-pointer bg-transparent hover:bg-brass/60"
               style={{ ...o.style, border: 'none' }}
             />
           ))}

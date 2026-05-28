@@ -81,7 +81,7 @@ function Half({
       aria-label={`Bet zone: ${label}, pays ${payoutText}, current bet ${amount} chips`}
       className={[
         'relative flex flex-1 flex-col items-center justify-center p-2 transition',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-gold',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brass',
         disabled ? 'cursor-not-allowed opacity-50' : 'hover:bg-ivory/[0.04]',
       ].join(' ')}
     >
@@ -93,7 +93,7 @@ function Half({
           initial={{ scale: 0.6, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ duration: 0.18, ease: 'easeOut' }}
-          className="mt-2 rounded-full border border-brass bg-felt-table-deep px-3 py-1 font-display text-sm text-gold"
+          className="mt-2 rounded-full border border-brass bg-felt-table-deep px-3 py-1 font-display text-sm text-gold-bright"
           aria-label={`Current bet: ${amount} chips`}
         >
           {amount}

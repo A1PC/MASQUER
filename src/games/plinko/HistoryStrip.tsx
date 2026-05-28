@@ -9,7 +9,7 @@ interface Props {
 function pillTier(multi: number): string {
   if (multi >= 100) return 'bg-jewel-magenta/50 text-ivory border-brass';
   if (multi >= 5) return 'bg-velvet text-gold-bright border-brass/80';
-  if (multi >= 1) return 'bg-felt-table-deep text-gold border-brass/60';
+  if (multi >= 1) return 'bg-felt-table-deep text-gold-bright border-brass/60';
   if (multi >= 0.85) return 'bg-felt-table-deep/70 text-ivory/80 border-brass/40';
   return 'bg-felt-table-deep/50 text-ivory/55 border-brass/30';
 }

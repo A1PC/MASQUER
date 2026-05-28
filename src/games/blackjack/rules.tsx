@@ -11,15 +11,17 @@ export default function BlackjackRules(): JSX.Element {
   return (
     <div className="space-y-4">
       <section>
-        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold">OBJECT</h3>
-        <p className="text-white/85">
+        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold-bright">OBJECT</h3>
+        <p className="text-ivory/85">
           Beat the dealer&rsquo;s hand without going over 21 (a &ldquo;bust&rdquo;).
         </p>
       </section>
 
       <section>
-        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold">CARD VALUES</h3>
-        <ul className="ml-5 list-disc space-y-1 text-white/85">
+        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold-bright">
+          CARD VALUES
+        </h3>
+        <ul className="ml-5 list-disc space-y-1 text-ivory/85">
           <li>2&ndash;10 count at face value.</li>
           <li>J / Q / K count as 10.</li>
           <li>
@@ -30,17 +32,19 @@ export default function BlackjackRules(): JSX.Element {
       </section>
 
       <section>
-        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold">NATURAL BLACKJACK</h3>
-        <p className="text-white/85">
+        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold-bright">
+          NATURAL BLACKJACK
+        </h3>
+        <p className="text-ivory/85">
           Ace + any 10-value (10/J/Q/K) on your opening two cards pays <strong>3:2</strong>.
         </p>
       </section>
 
       <section>
-        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold">
+        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold-bright">
           VELVET DUEL ALTERNATION
         </h3>
-        <p className="text-white/85">
+        <p className="text-ivory/85">
           After each Hit or Stand the dealer reveals one card before you act again. The duel
           continues until the dealer reaches 17 or higher (<strong>H17</strong>: dealer stands on
           soft 17).
@@ -48,23 +52,27 @@ export default function BlackjackRules(): JSX.Element {
       </section>
 
       <section>
-        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold">MINIMUM STAND 14</h3>
-        <p className="text-white/85">
+        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold-bright">
+          MINIMUM STAND 14
+        </h3>
+        <p className="text-ivory/85">
           Stand is disabled while your hand total is below 14 — a house rule unique to MASQUER.
         </p>
       </section>
 
       <section>
-        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold">5-CARD CHARLIE</h3>
-        <p className="text-white/85">
+        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold-bright">
+          5-CARD CHARLIE
+        </h3>
+        <p className="text-ivory/85">
           Holding 5 cards without busting (and without a natural Blackjack) pays{' '}
           <strong>3:2</strong>.
         </p>
       </section>
 
       <section>
-        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold">SIDE PLAYS</h3>
-        <ul className="ml-5 list-disc space-y-1 text-white/85">
+        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold-bright">SIDE PLAYS</h3>
+        <ul className="ml-5 list-disc space-y-1 text-ivory/85">
           <li>
             <strong>Split</strong> — matching opening pair? Split into two hands; one extra bet per
             split (up to 4 hands).
@@ -83,8 +91,10 @@ export default function BlackjackRules(): JSX.Element {
       </section>
 
       <section>
-        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold">BUST AUTO-SETTLE</h3>
-        <p className="text-white/85">
+        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold-bright">
+          BUST AUTO-SETTLE
+        </h3>
+        <p className="text-ivory/85">
           Busting yourself ends the hand immediately. If the dealer busts mid-alternation, every one
           of your live hands is paid instantly.
         </p>

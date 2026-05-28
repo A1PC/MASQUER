@@ -40,7 +40,7 @@ function tierClass(tier: ReturnType<typeof binTier>, isEdge: boolean): string {
     case 'big':
       return 'bg-velvet-deep text-gold-bright border-brass/80';
     case 'small':
-      return 'bg-felt-table-deep text-gold border-brass/60';
+      return 'bg-felt-table-deep text-gold-bright border-brass/60';
     case 'push':
       return 'bg-felt-table-deep/80 text-ivory/80 border-brass/40';
     case 'loss':
@@ -70,7 +70,7 @@ export default function BinRow({ risk, flashedBinIdx = null }: Props): JSX.Eleme
               'absolute flex h-5 -translate-x-1/2 items-center justify-center overflow-hidden rounded-sm border text-center',
               'font-mono text-[7px] tabular-nums leading-none',
               tierClass(tier, isEdge),
-              flash ? 'ring-2 ring-gold shadow-[0_0_8px_rgba(232,189,109,0.85)]' : '',
+              flash ? 'ring-2 ring-brass shadow-[0_0_8px_rgba(232,189,109,0.85)]' : '',
             ].join(' ')}
             style={{
               left: `${centre}%`,

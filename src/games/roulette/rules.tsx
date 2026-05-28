@@ -5,14 +5,14 @@ import type { JSX } from 'react';
  * auto-spin timer (ADR-0046), bet maximums (ADR-0030 amendment),
  * result determination, and the "repeat last bets" deferred note.
  *
- * Uses the same `<h3 class="font-display ... text-gold">` heading style as
+ * Uses the same `<h3 class="font-display ... text-gold-bright">` heading style as
  * the Blackjack / Coin-flip rules.
  */
 export default function RouletteRules(): JSX.Element {
   return (
     <div className="space-y-4">
       <section>
-        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold">OBJECT</h3>
+        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold-bright">OBJECT</h3>
         <p className="text-ivory/80">
           Predict the pocket the ball lands in. You can place many bets per spin — the wheel pays
           every bet that covers the winning number.
@@ -20,7 +20,7 @@ export default function RouletteRules(): JSX.Element {
       </section>
 
       <section>
-        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold">
+        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold-bright">
           BET TYPES &amp; PAYOUTS
         </h3>
         <table className="w-full text-left text-sm">
@@ -87,7 +87,7 @@ export default function RouletteRules(): JSX.Element {
       </section>
 
       <section>
-        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold">THE ZERO</h3>
+        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold-bright">THE ZERO</h3>
         <p className="text-ivory/80">
           European single-zero wheel — one zero, no double-zero (2.7% house edge). All even-money
           and outside bets <strong>lose</strong> on 0. Inside bets that include the zero (Straight
@@ -96,7 +96,7 @@ export default function RouletteRules(): JSX.Element {
       </section>
 
       <section>
-        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold">AUTO-SPIN</h3>
+        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold-bright">AUTO-SPIN</h3>
         <p className="text-ivory/80">
           You get <strong>30 seconds</strong> to place your first bets after entering the table,
           then <strong>10 seconds</strong> between rounds. The <strong>SPIN&nbsp;NOW</strong> button
@@ -106,7 +106,9 @@ export default function RouletteRules(): JSX.Element {
       </section>
 
       <section>
-        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold">BET MAXIMUMS</h3>
+        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold-bright">
+          BET MAXIMUMS
+        </h3>
         <p className="text-ivory/80">
           Up to <strong>1000 chips per position</strong> · <strong>unlimited positions</strong> per
           spin. Your total stake is bounded only by your chip balance.
@@ -114,7 +116,7 @@ export default function RouletteRules(): JSX.Element {
       </section>
 
       <section>
-        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold">
+        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold-bright">
           RESULT DETERMINATION
         </h3>
         <p className="text-ivory/80">
@@ -125,7 +127,9 @@ export default function RouletteRules(): JSX.Element {
       </section>
 
       <section>
-        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold">REPEAT LAST BETS</h3>
+        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold-bright">
+          REPEAT LAST BETS
+        </h3>
         <p className="text-ivory/70">Not yet supported; coming in a future polish.</p>
       </section>
     </div>

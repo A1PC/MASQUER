@@ -46,7 +46,9 @@ export default function ActionPanel({
     <TooltipProvider delayDuration={150}>
       <div className="mx-auto max-w-[720px]">
         <div className="mb-3 flex items-baseline justify-between">
-          <span className="font-display text-[11px] tracking-[0.18em] text-gold">YOUR MOVE</span>
+          <span className="font-display text-[11px] tracking-[0.18em] text-gold-bright">
+            YOUR MOVE
+          </span>
           <span className="font-mono text-[11px] text-ivory/55">
             Balance: {balance.toLocaleString()} · Bet: {active?.betAmount ?? 0}
           </span>

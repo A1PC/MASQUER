@@ -116,14 +116,14 @@ export default function EndScreen({
         <button
           type="button"
           onClick={onPlayAgain}
-          className="min-h-[44px] w-full rounded-md border-2 border-gold bg-velvet py-2 font-display text-sm tracking-[0.18em] text-ivory hover:bg-velvet-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
+          className="min-h-[44px] w-full rounded-md border-2 border-brass bg-velvet py-2 font-display text-sm tracking-[0.18em] text-gold-bright hover:bg-velvet-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brass"
         >
           PLAY AGAIN
         </button>
         <button
           type="button"
           onClick={onChangeVariant}
-          className="min-h-[44px] w-full rounded-md border border-brass/60 bg-felt-table-deep py-2 text-xs text-ivory/80 hover:border-brass focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
+          className="min-h-[44px] w-full rounded-md border border-brass/60 bg-felt-table-deep py-2 text-xs text-ivory/80 hover:border-brass focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brass"
         >
           CHANGE VARIANT
         </button>

@@ -70,7 +70,7 @@ export default function SetupPanel({
       </h2>
 
       <section>
-        <h3 className="mb-2 font-display text-[11px] tracking-[0.18em] text-gold">RISK</h3>
+        <h3 className="mb-2 font-display text-[11px] tracking-[0.18em] text-gold-bright">RISK</h3>
         <div role="radiogroup" aria-label="Risk level" className="flex gap-2">
           {(['safe', 'low', 'medium', 'high'] as const).map((r) => (
             <button
@@ -93,12 +93,14 @@ export default function SetupPanel({
       </section>
 
       <section>
-        <h3 className="mb-2 font-display text-[11px] tracking-[0.18em] text-gold">BIN PREVIEW</h3>
+        <h3 className="mb-2 font-display text-[11px] tracking-[0.18em] text-gold-bright">
+          BIN PREVIEW
+        </h3>
         <BinRow risk={risk} />
       </section>
 
       <section>
-        <h3 className="mb-2 font-display text-[11px] tracking-[0.18em] text-gold">
+        <h3 className="mb-2 font-display text-[11px] tracking-[0.18em] text-gold-bright">
           BET PER BALL{' '}
           <span className="ml-2 text-[10px] text-ivory/55">
             ({BET_MIN.toLocaleString()}&ndash;{BET_MAX.toLocaleString()} chips)
@@ -148,7 +150,7 @@ export default function SetupPanel({
       </section>
 
       <section>
-        <h3 className="mb-2 font-display text-[11px] tracking-[0.18em] text-gold">MODE</h3>
+        <h3 className="mb-2 font-display text-[11px] tracking-[0.18em] text-gold-bright">MODE</h3>
         <div role="radiogroup" aria-label="Drop mode" className="flex gap-2">
           {(['manual', 'auto'] as const).map((m) => (
             <button
@@ -173,7 +175,7 @@ export default function SetupPanel({
       {mode === 'auto' && (
         <section className="grid grid-cols-2 gap-3">
           <div>
-            <h3 className="mb-2 font-display text-[11px] tracking-[0.18em] text-gold">
+            <h3 className="mb-2 font-display text-[11px] tracking-[0.18em] text-gold-bright">
               BALLS{' '}
               <span className="ml-1 text-[10px] text-ivory/55">
                 (max {AUTO_BALLS_MAX.toLocaleString()})
@@ -198,7 +200,9 @@ export default function SetupPanel({
             />
           </div>
           <div>
-            <h3 className="mb-2 font-display text-[11px] tracking-[0.18em] text-gold">INTERVAL</h3>
+            <h3 className="mb-2 font-display text-[11px] tracking-[0.18em] text-gold-bright">
+              INTERVAL
+            </h3>
             <div role="radiogroup" aria-label="Auto interval" className="flex gap-1">
               {(['slow', 'normal', 'fast'] as const).map((k) => (
                 <button
@@ -232,7 +236,7 @@ export default function SetupPanel({
           type="button"
           onClick={onDrop}
           disabled={!canAffordOne}
-          className="mt-2 w-full rounded-md border-2 border-brass bg-velvet py-3 font-display text-sm tracking-[0.18em] text-ivory disabled:cursor-not-allowed disabled:opacity-40"
+          className="mt-2 w-full rounded-md border-2 border-brass bg-velvet py-3 font-display text-sm tracking-[0.18em] text-gold-bright hover:bg-velvet-deep disabled:cursor-not-allowed disabled:opacity-40"
           data-drop-button
         >
           DROP ({bet.toLocaleString()})
@@ -242,7 +246,7 @@ export default function SetupPanel({
           type="button"
           onClick={onStartAuto}
           disabled={!canAffordOne}
-          className="mt-2 w-full rounded-md border-2 border-brass bg-velvet py-3 font-display text-sm tracking-[0.18em] text-ivory disabled:cursor-not-allowed disabled:opacity-40"
+          className="mt-2 w-full rounded-md border-2 border-brass bg-velvet py-3 font-display text-sm tracking-[0.18em] text-gold-bright hover:bg-velvet-deep disabled:cursor-not-allowed disabled:opacity-40"
           data-start-auto-button
         >
           START AUTO ({autoBalls.toLocaleString()} &times; {bet.toLocaleString()} ={' '}

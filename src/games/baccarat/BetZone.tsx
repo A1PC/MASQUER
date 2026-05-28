@@ -52,7 +52,7 @@ export default function BetZone({
       aria-label={`Bet zone: ${label}, pays ${payoutText}, current bet ${amount} chips`}
       className={[
         'relative flex h-full w-full flex-col items-center justify-center rounded-md border-2 p-2 transition',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2 focus-visible:ring-offset-felt-table-deep',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brass focus-visible:ring-offset-2 focus-visible:ring-offset-felt-table-deep',
         VARIANT_CLASSES[variant],
         disabled ? 'cursor-not-allowed opacity-50' : 'hover:brightness-125',
       ].join(' ')}
@@ -65,7 +65,7 @@ export default function BetZone({
           initial={{ scale: 0.6, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ duration: 0.18, ease: 'easeOut' }}
-          className="mt-2 rounded-full border border-brass bg-felt-table-deep px-3 py-1 font-display text-sm text-gold shadow-gold-glow"
+          className="mt-2 rounded-full border border-brass bg-felt-table-deep px-3 py-1 font-display text-sm text-gold-bright shadow-gold-glow"
           aria-label={`Current bet: ${amount} chips`}
         >
           {amount}
