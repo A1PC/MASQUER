@@ -1293,6 +1293,13 @@ export interface PlinkoAllTimeStats {
   edgeBinHits: number;
   /** Landed in the centre bin (worst payout). */
   centreBinHits: number;
+  // Phase 15 #14.5 PR B — additive KPIs (see spec §4.3.3).
+  /** Average bet per ball (rounded). 0 when no drops. */
+  avgBallDrop: number;
+  /** edgeBinHits / ballsDropped (null when no drops). */
+  edgeBinHitRate: number | null;
+  /** Biggest single-ball net win. 0 when no positive drops. */
+  biggestSingleBall: number;
 }
 
 export interface PlinkoBinDistribution {
@@ -1316,6 +1323,7 @@ export async function getPlinkoAllTimeStats(sinceMs?: number): Promise<PlinkoAll
   let jackpotHits = 0;
   let edgeBinHits = 0;
   let centreBinHits = 0;
+  let biggestSingleBall = 0;
   const perRisk: Record<PlinkoRisk, { drops: number; wagered: number; paid: number }> = {
     safe: { drops: 0, wagered: 0, paid: 0 },
     low: { drops: 0, wagered: 0, paid: 0 },
@@ -1328,6 +1336,7 @@ export async function getPlinkoAllTimeStats(sinceMs?: number): Promise<PlinkoAll
     ballsDropped += 1;
     totalWagered += r.betAmount;
     totalPaid += r.payout;
+    if (r.netChange > biggestSingleBall) biggestSingleBall = r.netChange;
     const bucket = perRisk[d.risk];
     bucket.drops += 1;
     bucket.wagered += r.betAmount;
@@ -1378,6 +1387,9 @@ export async function getPlinkoAllTimeStats(sinceMs?: number): Promise<PlinkoAll
     jackpotHits,
     edgeBinHits,
     centreBinHits,
+    avgBallDrop: ballsDropped > 0 ? Math.round(totalWagered / ballsDropped) : 0,
+    edgeBinHitRate: ballsDropped > 0 ? edgeBinHits / ballsDropped : null,
+    biggestSingleBall,
   };
 }
 
@@ -1463,6 +1475,15 @@ export interface PokerAllTimeStats {
   actualRtp: number | null;
   /** Maximum `biggestPotWon` value across all sessions. */
   biggestPotEver: number;
+  // Phase 15 #14.5 PR B — additive KPIs (see spec §4.3.3).
+  /** hands / sessions (rounded). 0 when no sessions. */
+  avgHandsPerSession: number;
+  /** Fraction of sessions where netChange > 0. null when no sessions. */
+  winRate: number | null;
+  /** totalWagered / sessions (rounded). 0 when no sessions. */
+  avgBuyIn: number;
+  /** All-in frequency — not tracked in persisted details, exposed as null. */
+  allInFrequency: number | null;
 }
 
 export interface PokerSessionsByVariantDay {
@@ -1494,6 +1515,7 @@ export async function getPokerAllTimeStats(
   let totalWagered = 0;
   let totalPaid = 0;
   let biggestPotEver = 0;
+  let winningSessions = 0;
   for (const r of rows) {
     if (!isPokerDetails(r.details)) continue;
     if (variant !== undefined && r.details.variant !== variant) continue;
@@ -1501,6 +1523,7 @@ export async function getPokerAllTimeStats(
     hands += r.details.handsPlayed;
     totalWagered += r.betAmount;
     totalPaid += r.payout;
+    if (r.netChange > 0) winningSessions += 1;
     if (r.details.biggestPotWon > biggestPotEver) {
       biggestPotEver = r.details.biggestPotWon;
     }
@@ -1516,7 +1539,44 @@ export async function getPokerAllTimeStats(
     netPlayerChips: -netHouseChips + 0,
     actualRtp: totalWagered > 0 ? totalPaid / totalWagered : null,
     biggestPotEver,
+    avgHandsPerSession: sessions > 0 ? Math.round(hands / sessions) : 0,
+    winRate: sessions > 0 ? winningSessions / sessions : null,
+    avgBuyIn: sessions > 0 ? Math.round(totalWagered / sessions) : 0,
+    // Not derivable from current persisted details — spec §4.3.3 lists it
+    // as a target KPI; surface as null + render '—' until details extends.
+    allInFrequency: null,
   };
+}
+
+// Phase 15 #14.5 PR B — table-size win-rate (degraded proxy for the spec's
+// "win rate by seat position"; per-seat data isn't persisted). One row per
+// observed tableSize value, sorted ascending.
+export interface PokerWinRateByTableSize {
+  tableSize: number;
+  sessions: number;
+  winRate: number;
+}
+
+export async function getPokerWinRateByTableSize(
+  sinceMs?: number,
+): Promise<PokerWinRateByTableSize[]> {
+  let rows = await db.rounds.where('game').equals('poker').toArray();
+  if (sinceMs !== undefined) rows = rows.filter((r) => r.playedAt > sinceMs);
+  const byTable = new Map<number, { sessions: number; wins: number }>();
+  for (const r of rows) {
+    if (!isPokerDetails(r.details)) continue;
+    const cur = byTable.get(r.details.tableSize) ?? { sessions: 0, wins: 0 };
+    cur.sessions += 1;
+    if (r.netChange > 0) cur.wins += 1;
+    byTable.set(r.details.tableSize, cur);
+  }
+  return [...byTable.entries()]
+    .map(([tableSize, v]) => ({
+      tableSize,
+      sessions: v.sessions,
+      winRate: v.sessions > 0 ? v.wins / v.sessions : 0,
+    }))
+    .sort((a, b) => a.tableSize - b.tableSize);
 }
 
 /** YYYY-MM-DD in UTC for an epoch-ms timestamp. */
