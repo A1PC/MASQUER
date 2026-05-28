@@ -147,6 +147,42 @@ describe('BetSpot', () => {
     expect(container.querySelector('[data-payout-badge]')).toBeNull();
   });
 
+  it('exposes role=button + aria-disabled + tabIndex parity for screen readers (cold-look G13)', () => {
+    // Lockout state — the audit (§2.13) called out that `tabIndex={-1}` alone
+    // wasn't enough; AT users still hear "button" without an "unavailable"
+    // hint. Lock the parity contract: role=button + aria-disabled=true +
+    // tabIndex=-1 + data-disabled=true all align on canPlace=false.
+    const { container, rerender } = render(
+      <BetSpot
+        betId="pass"
+        label="Pass Line"
+        chips={[...noChips]}
+        canPlace={false}
+        onPlace={vi.fn()}
+      />,
+    );
+    const disabled = container.querySelector('[data-bet-spot="pass"]')!;
+    expect(disabled.getAttribute('role')).toBe('button');
+    expect(disabled.getAttribute('aria-disabled')).toBe('true');
+    expect(disabled.getAttribute('tabindex')).toBe('-1');
+    expect(disabled.getAttribute('data-disabled')).toBe('true');
+
+    rerender(
+      <BetSpot
+        betId="pass"
+        label="Pass Line"
+        chips={[...noChips]}
+        canPlace={true}
+        onPlace={vi.fn()}
+      />,
+    );
+    const enabled = container.querySelector('[data-bet-spot="pass"]')!;
+    expect(enabled.getAttribute('role')).toBe('button');
+    expect(enabled.getAttribute('aria-disabled')).toBe('false');
+    expect(enabled.getAttribute('tabindex')).toBe('0');
+    expect(enabled.getAttribute('data-disabled')).toBe('false');
+  });
+
   it('remove button fires onRemove without bubbling to onPlace', async () => {
     const onPlace = vi.fn();
     const onRemove = vi.fn();
