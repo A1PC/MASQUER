@@ -87,18 +87,17 @@ export default function WinCelebration({
         <>
           <div
             aria-hidden
-            className="absolute inset-0"
+            className="absolute inset-0 animate-baccaratJackpot"
             style={{
               background:
                 'radial-gradient(circle, color-mix(in srgb, var(--brand-jewel-magenta) 18%, transparent) 0%, transparent 70%)',
-              animation: 'baccaratJackpot 1500ms ease-out',
             }}
           />
           {Array.from({ length: 12 }).map((_, i) => (
             <div
               key={i}
               aria-hidden
-              className="absolute"
+              className="absolute animate-baccaratCoinFall"
               style={{
                 top: 0,
                 left: `${(i * 100) / 12 + ((i * 7) % 5)}%`,
@@ -108,7 +107,7 @@ export default function WinCelebration({
                 background:
                   'radial-gradient(circle at 30% 30%, var(--brand-gold-bright), var(--brand-gold))',
                 boxShadow: '0 0 4px color-mix(in srgb, var(--brand-gold) 80%, transparent)',
-                animation: `baccaratCoinFall 1500ms ease-out ${i * 80}ms forwards`,
+                animationDelay: `${i * 80}ms`,
                 opacity: 0,
               }}
             />
@@ -118,13 +117,12 @@ export default function WinCelebration({
       {tier === 'medium' && !reducedMotion && (
         <div
           aria-hidden
-          className="absolute"
+          className="absolute animate-baccaratMediumBurst"
           style={{
             width: 360,
             height: 100,
             background:
               'radial-gradient(ellipse at center, color-mix(in srgb, var(--brand-gold-bright) 50%, transparent) 0%, transparent 70%)',
-            animation: 'baccaratMediumBurst 800ms ease-out',
           }}
         />
       )}

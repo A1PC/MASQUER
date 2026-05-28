@@ -83,22 +83,22 @@ export default function BaccaratRules(): JSX.Element {
               <td className="py-1.5 pr-4">
                 <span className="font-display text-scoreboard-player">PLAYER</span> wins
               </td>
-              <td className="py-1.5 pr-4 font-mono text-gold-bright">1 : 1</td>
-              <td className="py-1.5 font-mono">5 – 2000</td>
+              <td className="py-1.5 pr-4 font-numeral tabular-nums text-gold-bright">1 : 1</td>
+              <td className="py-1.5 font-numeral tabular-nums">5 – 2000</td>
             </tr>
             <tr className="border-b border-brass/15">
               <td className="py-1.5 pr-4">
                 <span className="font-display text-scoreboard-banker">BANKER</span> wins
               </td>
-              <td className="py-1.5 pr-4 font-mono text-gold-bright">1 : 1 − 5%</td>
-              <td className="py-1.5 font-mono">5 – 2000</td>
+              <td className="py-1.5 pr-4 font-numeral tabular-nums text-gold-bright">1 : 1 − 5%</td>
+              <td className="py-1.5 font-numeral tabular-nums">5 – 2000</td>
             </tr>
             <tr>
               <td className="py-1.5 pr-4">
                 <span className="font-display text-scoreboard-tie">TIE</span>
               </td>
-              <td className="py-1.5 pr-4 font-mono text-gold-bright">8 : 1</td>
-              <td className="py-1.5 font-mono">5 – 2000</td>
+              <td className="py-1.5 pr-4 font-numeral tabular-nums text-gold-bright">8 : 1</td>
+              <td className="py-1.5 font-numeral tabular-nums">5 – 2000</td>
             </tr>
           </tbody>
         </table>
@@ -125,17 +125,19 @@ export default function BaccaratRules(): JSX.Element {
             <tr className="border-b border-brass/15">
               <td className="py-1.5 pr-4">Player Pair · Banker Pair</td>
               <td className="py-1.5 pr-4">That side&rsquo;s first two cards are the same rank</td>
-              <td className="py-1.5 font-mono text-gold-bright">11 : 1</td>
+              <td className="py-1.5 font-numeral tabular-nums text-gold-bright">11 : 1</td>
             </tr>
             <tr className="border-b border-brass/15">
               <td className="py-1.5 pr-4">Small</td>
               <td className="py-1.5 pr-4">Exactly 4 cards dealt (no third for either side)</td>
-              <td className="py-1.5 font-mono text-gold-bright">1.5 : 1 (floor)</td>
+              <td className="py-1.5 font-numeral tabular-nums text-gold-bright">1.5 : 1 (floor)</td>
             </tr>
             <tr>
               <td className="py-1.5 pr-4">Big</td>
               <td className="py-1.5 pr-4">5 or 6 cards dealt (either side drew a third)</td>
-              <td className="py-1.5 font-mono text-gold-bright">0.54 : 1 (floor)</td>
+              <td className="py-1.5 font-numeral tabular-nums text-gold-bright">
+                0.54 : 1 (floor)
+              </td>
             </tr>
           </tbody>
         </table>
@@ -163,31 +165,31 @@ export default function BaccaratRules(): JSX.Element {
           <tbody>
             <tr className="border-b border-brass/15">
               <td className="py-1.5 pr-4">Natural win (2-card 8 or 9)</td>
-              <td className="py-1.5 font-mono text-gold-bright">1 : 1</td>
+              <td className="py-1.5 font-numeral tabular-nums text-gold-bright">1 : 1</td>
             </tr>
             <tr className="border-b border-brass/15">
               <td className="py-1.5 pr-4">Non-natural win by 4</td>
-              <td className="py-1.5 font-mono text-gold-bright">1 : 1</td>
+              <td className="py-1.5 font-numeral tabular-nums text-gold-bright">1 : 1</td>
             </tr>
             <tr className="border-b border-brass/15">
               <td className="py-1.5 pr-4">Win by 5</td>
-              <td className="py-1.5 font-mono text-gold-bright">2 : 1</td>
+              <td className="py-1.5 font-numeral tabular-nums text-gold-bright">2 : 1</td>
             </tr>
             <tr className="border-b border-brass/15">
               <td className="py-1.5 pr-4">Win by 6</td>
-              <td className="py-1.5 font-mono text-gold-bright">4 : 1</td>
+              <td className="py-1.5 font-numeral tabular-nums text-gold-bright">4 : 1</td>
             </tr>
             <tr className="border-b border-brass/15">
               <td className="py-1.5 pr-4">Win by 7</td>
-              <td className="py-1.5 font-mono text-gold-bright">6 : 1</td>
+              <td className="py-1.5 font-numeral tabular-nums text-gold-bright">6 : 1</td>
             </tr>
             <tr className="border-b border-brass/15">
               <td className="py-1.5 pr-4">Win by 8</td>
-              <td className="py-1.5 font-mono text-gold-bright">10 : 1</td>
+              <td className="py-1.5 font-numeral tabular-nums text-gold-bright">10 : 1</td>
             </tr>
             <tr className="border-b border-brass/15">
               <td className="py-1.5 pr-4">Win by 9</td>
-              <td className="py-1.5 font-mono text-jewel-magenta">30 : 1</td>
+              <td className="py-1.5 font-numeral tabular-nums text-jewel-magenta">30 : 1</td>
             </tr>
             <tr>
               <td className="py-1.5 pr-4">Tie with both sides natural</td>
