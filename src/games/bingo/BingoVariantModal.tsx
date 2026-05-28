@@ -47,7 +47,13 @@ export default function BingoVariantModal({ open, onClose }: Props): JSX.Element
         <h2 className="mb-2 text-center font-display text-lg tracking-[0.18em] text-gold-bright">
           PICK YOUR BINGO STYLE
         </h2>
-        <p className="mb-4 text-center text-xs text-ivory/60">Choose a variant to begin.</p>
+        <p
+          className="mx-auto mb-4 max-w-md text-center text-xs leading-relaxed text-ivory/65"
+          data-bingo-variant-subtitle
+        >
+          Two flavours, same buy-in. British 90-ball is a longer game with three escalating tiers;
+          American 75-ball is faster with a free centre and a four-corners kicker.
+        </p>
         <div
           className="grid grid-cols-2 gap-4 overflow-y-auto"
           style={{ maxHeight: '60vh' }}
@@ -63,8 +69,9 @@ export default function BingoVariantModal({ open, onClose }: Props): JSX.Element
             <div className="font-display text-base tracking-[0.18em] text-gold-bright">
               BRITISH 90-BALL
             </div>
-            <p className="mt-2 text-[11px] text-ivory/60">
-              3&times;9 cards. Line &rarr; double line &rarr; full house.
+            <p className="mt-2 text-[11px] leading-relaxed text-ivory/65">
+              3&times;9 strip, 15 numbered cells. Line &rarr; double line &rarr; full house. Slower
+              build, three pay tiers.
             </p>
           </button>
           <button
@@ -77,8 +84,9 @@ export default function BingoVariantModal({ open, onClose }: Props): JSX.Element
             <div className="font-display text-base tracking-[0.18em] text-gold-bright">
               AMERICAN 75-BALL
             </div>
-            <p className="mt-2 text-[11px] text-ivory/60">
-              5&times;5 cards with free centre. Line &rarr; four corners &rarr; blackout.
+            <p className="mt-2 text-[11px] leading-relaxed text-ivory/65">
+              5&times;5 grid with free centre. Line &rarr; four corners &rarr; blackout. Tighter
+              card, faster swings.
             </p>
           </button>
         </div>

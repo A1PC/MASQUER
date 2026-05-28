@@ -70,6 +70,20 @@ describe('BingoVariantModal', () => {
     expect(body.style.maxHeight).toBe('60vh');
   });
 
+  it('renders a subtitle that differentiates British vs American before pick', () => {
+    render(
+      <MemoryRouter>
+        <BingoVariantModal open={true} onClose={vi.fn()} />
+      </MemoryRouter>,
+    );
+    const subtitle = document.querySelector('[data-bingo-variant-subtitle]') as HTMLElement;
+    expect(subtitle).not.toBeNull();
+    // Subtitle must reference both variants by name so first-mount users get
+    // the at-a-glance British-vs-American context without clicking.
+    expect(subtitle.textContent).toMatch(/British/);
+    expect(subtitle.textContent).toMatch(/American/);
+  });
+
   it('uses brand-token chrome (velvet-deep + brass)', () => {
     const { container } = render(
       <MemoryRouter>
