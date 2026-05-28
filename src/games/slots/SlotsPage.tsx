@@ -180,36 +180,14 @@ export default function SlotsPage(): JSX.Element | null {
 
   if (!user) return null;
 
+  // Phase 15 #15 G4: the brand CSS vars referenced below (`--brand-jewel-magenta`,
+  // `--brand-gold`, `--brand-state-*`, `--brand-felt-table-deep`,
+  // `--brand-coin-gold-*`) are declared globally on `:root` in src/index.css.
+  // The slots-specific keyframes (`slotsJackpotTint`, `slotsMediumBurst`,
+  // `slotsCoinFall`) live in tailwind.config.ts as `animate-*` utilities so the
+  // celebration FX register once at build time instead of on every mount.
   return (
     <>
-      <style
-        dangerouslySetInnerHTML={{
-          __html: `
-      :root {
-        --brand-jewel-magenta: #ff5cf2;
-        --brand-gold: #e6c068;
-        --brand-state-win: #3dd17a;
-        --brand-state-loss: #7a1f2b;
-        --brand-felt-table-deep: #0e2e21;
-      }
-      @keyframes slotsJackpotTint {
-        0% { opacity: 0; }
-        20% { opacity: 1; }
-        100% { opacity: 0; }
-      }
-      @keyframes slotsMediumBurst {
-        0% { opacity: 0; transform: scale(0.6); }
-        40% { opacity: 1; transform: scale(1.1); }
-        100% { opacity: 0; transform: scale(1.3); }
-      }
-      @keyframes slotsCoinFall {
-        0% { transform: translateY(-30px); opacity: 0; }
-        20% { opacity: 1; }
-        100% { transform: translateY(320px); opacity: 0; }
-      }
-    `,
-        }}
-      />
       <GameShell
         title="MASQUER · Slots"
         game="slots"
@@ -242,6 +220,15 @@ export default function SlotsPage(): JSX.Element | null {
                   inBetting && amount >= SLOTS_CONFIG.MIN_BET && amount <= balance && !inSpinning;
                 return (
                   <div className="flex justify-center">
+                    {/*
+                     * TODO(#15-followup): extract into a shared
+                     * <GameActionButton> primitive alongside Roulette's
+                     * SPIN NOW and Baccarat's DEAL — see audit §2.3
+                     * (P2). All three rebuild the same min-h-[44px]
+                     * rounded-md border border-brass bg-velvet … focus
+                     * ring + glow surface. Out of scope here per the
+                     * per-game additive constraint (PR B territory).
+                     */}
                     <button
                       type="button"
                       onClick={() => void handlePlaceAndSpin(amount)}
@@ -282,11 +269,11 @@ export default function SlotsPage(): JSX.Element | null {
           <div className="relative flex items-center justify-center gap-5">
             <div
               aria-hidden="true"
-              className="pointer-events-none absolute inset-x-0 top-1/3 z-10 h-[2px] bg-brass shadow-[0_0_6px_rgba(212,175,55,0.6)]"
+              className="pointer-events-none absolute inset-x-0 top-1/3 z-10 h-[2px] bg-brass shadow-brass-glow"
             />
             <div
               aria-hidden="true"
-              className="pointer-events-none absolute inset-x-0 top-2/3 z-10 h-[2px] bg-brass shadow-[0_0_6px_rgba(212,175,55,0.6)]"
+              className="pointer-events-none absolute inset-x-0 top-2/3 z-10 h-[2px] bg-brass shadow-brass-glow"
             />
             {[0, 1, 2].map((i) => (
               <ReelView
@@ -324,12 +311,15 @@ function WinCelebration({
   // Only render visual content for non-none tiers.
   const isJackpot = tier === 'jackpot';
   const hasVisual = tier !== 'none';
+  // Casino vernacular: net=0 is a "Push", matching Blackjack and Baccarat
+  // copy. Phase 15 #15 G4 swapped from the flat "Even" per audit §2.4 (P3) so
+  // the three games speak with one voice on a zero-net settle.
   const verdict =
     netChange > 0
       ? `You won $${netChange}`
       : netChange < 0
         ? `You lost $${Math.abs(netChange)}`
-        : 'Even';
+        : 'Push';
 
   return (
     <div
@@ -339,12 +329,17 @@ function WinCelebration({
     >
       {isJackpot && !reducedMotion && (
         <>
+          {/*
+           * Jackpot tint uses `color-mix` against the brand magenta token
+           * (declared on :root) so the rgba alpha and the colour family
+           * stay together — change the token, the tint follows.
+           */}
           <div
             aria-hidden
-            className="absolute inset-0"
+            className="absolute inset-0 animate-slotsJackpotTint"
             style={{
-              background: 'radial-gradient(circle, rgba(255,92,242,0.18) 0%, transparent 70%)',
-              animation: 'slotsJackpotTint 1500ms ease-out',
+              background:
+                'radial-gradient(circle, color-mix(in srgb, var(--brand-jewel-magenta) 18%, transparent) 0%, transparent 70%)',
             }}
           />
           {Array.from({ length: 12 }).map((_, i) => (
@@ -353,16 +348,18 @@ function WinCelebration({
               data-coin-particle
               data-particle-index={i}
               aria-hidden
-              className="absolute"
+              className="absolute animate-slotsCoinFall"
               style={{
                 top: 0,
                 left: `${(i * 100) / 12 + ((i * 7) % 5)}%`,
                 width: 10,
                 height: 10,
                 borderRadius: '50%',
-                background: 'radial-gradient(circle at 30% 30%, #ffd23f, #d4af37)',
-                boxShadow: '0 0 4px rgba(212,175,55,0.8)',
-                animation: `slotsCoinFall 1500ms ease-out ${i * 80}ms forwards`,
+                background:
+                  'radial-gradient(circle at 30% 30%, var(--brand-coin-gold-bright), var(--brand-coin-gold-deep))',
+                boxShadow:
+                  '0 0 4px color-mix(in srgb, var(--brand-coin-gold-deep) 80%, transparent)',
+                animationDelay: `${i * 80}ms`,
                 opacity: 0,
               }}
             />
@@ -373,13 +370,12 @@ function WinCelebration({
       {tier === 'medium' && !reducedMotion && (
         <div
           aria-hidden
-          className="absolute"
+          className="absolute animate-slotsMediumBurst"
           style={{
             width: 360,
             height: 100,
             background:
-              'radial-gradient(ellipse at center, rgba(255,224,102,0.5) 0%, transparent 70%)',
-            animation: 'slotsMediumBurst 800ms ease-out',
+              'radial-gradient(ellipse at center, color-mix(in srgb, var(--brand-gold-bright) 50%, transparent) 0%, transparent 70%)',
           }}
         />
       )}
@@ -390,7 +386,9 @@ function WinCelebration({
           style={{
             borderColor: isJackpot ? 'var(--brand-jewel-magenta)' : 'var(--brand-gold)',
             color: isJackpot ? 'var(--brand-jewel-magenta)' : 'var(--brand-gold)',
-            textShadow: isJackpot ? '0 0 8px rgba(255,92,242,0.8)' : 'none',
+            textShadow: isJackpot
+              ? '0 0 8px color-mix(in srgb, var(--brand-jewel-magenta) 80%, transparent)'
+              : 'none',
             marginTop: -240,
           }}
         >

@@ -60,6 +60,14 @@ export const shadow = {
   'gold-glow': '0 0 18px rgba(230,192,104,0.45)',
   'velvet-panel': 'inset 0 0 24px rgba(0,0,0,0.4)',
   'deco-frame': '0 0 0 1px rgba(199,154,75,0.4), inset 0 0 0 4px rgba(7,16,11,0.6)',
+  /**
+   * Phase 15 #15 G4: 6px brass halo used by the Slots payline indicator
+   * lines. Promoted from raw `shadow-[0_0_6px_rgba(212,175,55,0.6)]` so the
+   * line glow stays tied to the brass family rather than a one-off hex.
+   * Sidebar's casino-red status dot uses the same shadow shape — if that
+   * needs a token later, mirror this pattern with `casino-red-glow`.
+   */
+  'brass-glow': '0 0 6px rgba(199,154,75,0.6)',
 } as const;
 
 export type BrandColors = typeof colors;

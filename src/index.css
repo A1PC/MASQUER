@@ -5,6 +5,25 @@
 @tailwind utilities;
 
 @layer base {
+  /*
+   * MASQUER brand CSS variables — declared once globally so per-game pages
+   * (Slots, Blackjack, Coin-flip, Baccarat) can `var(--brand-…)` without
+   * each one re-injecting an inline `<style>` tag on mount. Mirrors the
+   * tokens in src/theme/tokens.ts; Phase 15 #15 G4 promoted Slots' set
+   * here first, the other game pages will follow as their G-PRs land.
+   */
+  :root {
+    --brand-jewel-magenta: #ff5cf2;
+    --brand-gold: #e6c068;
+    --brand-gold-bright: #f0c64a;
+    --brand-state-win: #3dd17a;
+    --brand-state-loss: #7a1f2b;
+    --brand-felt-table-deep: #0e2e21;
+    --brand-ivory: #f2e7cc;
+    /* Slots coin-shower particle colours (Phase 15 #15 G4). */
+    --brand-coin-gold-bright: #ffd23f;
+    --brand-coin-gold-deep: #d4af37;
+  }
   html,
   body,
   #root {
