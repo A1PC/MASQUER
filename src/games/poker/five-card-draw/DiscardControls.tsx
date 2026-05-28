@@ -1,5 +1,6 @@
 import type { JSX } from 'react';
 import { useState } from 'react';
+import { Button } from '@/components/ui';
 import PlayingCard from '../_shared/PlayingCard';
 import type { Card } from '../_shared/types';
 
@@ -31,14 +32,23 @@ export default function DiscardControls({
         {holeCards.map((card, i) => {
           const isMarked = marked.includes(i);
           return (
+            // Toggle-card buttons stay as raw <button>: aria-pressed semantics
+            // (cf. lottery NumberGrid) + the shared <Button> would force the
+            // gradient/uppercase chrome and a ui.click on every mark/unmark
+            // (5 cards × repeated taps = audio spam). We do adopt the gold
+            // focus-ring + disabled treatment for consistency with the
+            // brand-tokened surfaces around it.
             <button
               key={i}
               type="button"
               onClick={() => toggle(i)}
               disabled={disabled}
               aria-pressed={isMarked}
+              aria-label={`${isMarked ? 'Unmark' : 'Mark'} card ${i + 1} for discard`}
               className={[
-                'rounded-md transition',
+                'rounded-md transition motion-safe:transition-transform',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2 focus-visible:ring-offset-felt-table-deep',
+                'disabled:cursor-not-allowed disabled:opacity-40',
                 isMarked
                   ? 'translate-y-2 opacity-50 grayscale ring-2 ring-gold-bright'
                   : 'hover:-translate-y-1',
@@ -54,15 +64,17 @@ export default function DiscardControls({
       <span className="text-[11px] text-ivory/85" data-discard-caption>
         Select up to 3 cards to replace
       </span>
-      <button
+      <Button
         type="button"
+        variant="secondary"
+        size="md"
         onClick={() => onDraw(marked)}
         disabled={disabled}
-        className="rounded-md border-2 border-brass bg-velvet px-4 py-2 font-display text-xs tracking-[0.18em] text-ivory hover:bg-velvet-deep disabled:cursor-not-allowed disabled:opacity-40"
+        className="rounded-md border-2 border-brass bg-velvet text-ivory font-display tracking-[0.18em] hover:bg-velvet-deep"
         data-draw-button
       >
         {marked.length === 0 ? 'STAND PAT' : `DRAW ${marked.length}`}
-      </button>
+      </Button>
     </div>
   );
 }
