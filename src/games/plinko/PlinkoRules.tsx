@@ -13,7 +13,7 @@ export default function PlinkoRules(): JSX.Element {
   return (
     <div className="space-y-4">
       <section>
-        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold">OBJECT</h3>
+        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold-bright">OBJECT</h3>
         <p className="text-ivory/85">
           Drop a ball from the top of a triangular peg pyramid (26 rows). It bounces left or right
           at every peg and lands in one of 27 buckets at the base. Your payout is{' '}
@@ -22,7 +22,9 @@ export default function PlinkoRules(): JSX.Element {
       </section>
 
       <section>
-        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold">RISK LEVELS</h3>
+        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold-bright">
+          RISK LEVELS
+        </h3>
         <p className="text-ivory/85">
           Four curves over the same board &mdash; <strong>Safe</strong>, <strong>Low</strong>,{' '}
           <strong>Medium</strong>, <strong>High</strong>. The peg walk is identical (Binomial(26,
@@ -32,7 +34,9 @@ export default function PlinkoRules(): JSX.Element {
       </section>
 
       <section>
-        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold">MULTIPLIERS</h3>
+        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold-bright">
+          MULTIPLIERS
+        </h3>
         <table className="w-full text-left text-xs">
           <thead>
             <tr className="border-b border-brass/40 text-ivory/60">
@@ -82,7 +86,9 @@ export default function PlinkoRules(): JSX.Element {
       </section>
 
       <section>
-        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold">MANUAL VS AUTO</h3>
+        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold-bright">
+          MANUAL VS AUTO
+        </h3>
         <p className="text-ivory/85">
           <strong>Manual</strong> &mdash; click DROP to release a single ball. A 150 ms cooldown
           prevents stack-clicking. <strong>Auto</strong> &mdash; queue up to{' '}
@@ -92,7 +98,7 @@ export default function PlinkoRules(): JSX.Element {
       </section>
 
       <section>
-        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold">BET LIMITS</h3>
+        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold-bright">BET LIMITS</h3>
         <p className="text-ivory/85">
           <strong>10 chips</strong> minimum per ball,{' '}
           <strong className="text-gold-bright">1,000,000 chips</strong> maximum per ball. Auto
@@ -102,7 +108,9 @@ export default function PlinkoRules(): JSX.Element {
       </section>
 
       <section>
-        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold">REDUCED MOTION</h3>
+        <h3 className="mb-1 font-display text-xs tracking-[0.18em] text-gold-bright">
+          REDUCED MOTION
+        </h3>
         <p className="text-ivory/85">
           Animations collapse to instant (ball jumps to its bucket) and the peg-ping sound coalesces
           into a single per-ball tick when your OS or in-app preference asks for reduced motion. The
