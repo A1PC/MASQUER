@@ -1853,6 +1853,15 @@ export interface CrapsAllTimeStats {
   actualRtp: number | null;
   /** Maximum `biggestRollWin` value across all sessions. */
   biggestRollWin: number;
+  // Phase 15 #14.5 PR B — additive KPIs (see spec §4.3.3).
+  /** totalRolls / sessions (rounded). 0 when no sessions. */
+  avgRollsPerSession: number;
+  /** Seven-out rate — not derivable from current persisted details, null. */
+  sevenOutRate: number | null;
+  /** Point-made rate — not derivable from current persisted details, null. */
+  pointMadeRate: number | null;
+  /** Distinct bet types observed in `betTypeWagered` across all sessions. */
+  betTypeVariety: number;
 }
 
 export interface CrapsBetTypeWagered {
@@ -1877,6 +1886,7 @@ export async function getCrapsAllTimeStats(sinceMs?: number): Promise<CrapsAllTi
   let totalWagered = 0;
   let totalPaid = 0;
   let biggestRollWin = 0;
+  const betTypesObserved = new Set<string>();
   for (const r of rows) {
     if (!isCrapsDetails(r.details)) continue;
     sessions += 1;
@@ -1885,6 +1895,10 @@ export async function getCrapsAllTimeStats(sinceMs?: number): Promise<CrapsAllTi
     totalPaid += r.payout;
     if (r.details.biggestRollWin > biggestRollWin) {
       biggestRollWin = r.details.biggestRollWin;
+    }
+    const wagered = readCrapsBetTypeWagered(r.details);
+    if (wagered !== null) {
+      for (const k of Object.keys(wagered)) betTypesObserved.add(k);
     }
   }
   const netHouseChips = totalWagered - totalPaid;
@@ -1898,6 +1912,11 @@ export async function getCrapsAllTimeStats(sinceMs?: number): Promise<CrapsAllTi
     netPlayerChips: -netHouseChips + 0,
     actualRtp: totalWagered > 0 ? totalPaid / totalWagered : null,
     biggestRollWin,
+    // Phase 15 #14.5 PR B — additive KPIs.
+    avgRollsPerSession: sessions > 0 ? Math.round(totalRolls / sessions) : 0,
+    sevenOutRate: null,
+    pointMadeRate: null,
+    betTypeVariety: betTypesObserved.size,
   };
 }
 

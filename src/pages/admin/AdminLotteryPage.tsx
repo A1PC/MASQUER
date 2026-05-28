@@ -8,11 +8,17 @@ import DateRangeFilter, {
   type RangePreset,
 } from '@/components/admin/DateRangeFilter';
 import {
+  getLotteryAdminExtras,
   getLotteryAdminStats,
+  getLotteryPrizeTierDistribution,
   getNumberFrequency,
+  type LotteryAdminExtras,
   type LotteryAdminStats,
+  type LotteryPrizeTierBin,
 } from '@/systems/lottery';
 import { db, type LotteryDraw, type LotteryLine, type LotteryMatchTier } from '@/db';
+import TopPlayersPanel from '@/components/admin/TopPlayersPanel';
+import LotteryPrizeTierBar from '@/components/charts/LotteryPrizeTierBar';
 
 const EMPTY_STATS: LotteryAdminStats = {
   ticketsSoldToday: 0,
@@ -24,6 +30,14 @@ const EMPTY_STATS: LotteryAdminStats = {
 const EMPTY_FREQ: number[] = [];
 const EMPTY_DRAWS: readonly LotteryDraw[] = [];
 const EMPTY_LINES: readonly LotteryLine[] = [];
+const EMPTY_EXTRAS: LotteryAdminExtras = {
+  avgTicketSpend: 0,
+  avgLinesPerTicket: 0,
+  biggestSinglePayout: 0,
+  jackpotNearMisses: 0,
+  tierHits: { '6': 0, '5+bonus': 0, '5': 0, '4': 0, '3': 0, '2': 0 },
+};
+const EMPTY_TIERS: readonly LotteryPrizeTierBin[] = [];
 
 /**
  * AdminLotteryPage — operator dashboard. Restyled in Phase 15 #9 to match the
@@ -69,6 +83,14 @@ export default function AdminLotteryPage(): JSX.Element {
     EMPTY_LINES,
   );
   const bestTierByDraw = bestTierPerDraw(allLines);
+
+  // Phase 15 #14.5 PR B — additive extras + prize-tier distribution.
+  const extras = useLiveQuery(() => getLotteryAdminExtras(sinceMs), [sinceMs], EMPTY_EXTRAS);
+  const prizeTiers = useLiveQuery(
+    () => getLotteryPrizeTierDistribution(sinceMs),
+    [sinceMs],
+    EMPTY_TIERS,
+  );
 
   return (
     <div className="flex flex-col gap-6">
@@ -172,6 +194,56 @@ export default function AdminLotteryPage(): JSX.Element {
           </table>
         )}
       </section>
+
+      {/* Phase 15 #14.5 PR B — NEW additive sections (KPI grid + prize-tier
+          chart + per-user drill-down). None of the existing top StatCards /
+          main+bonus frequency charts / recent draws table is modified or
+          moved. */}
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-5" data-admin-kpi-grid>
+        <StatCard
+          label="Avg ticket spend"
+          value={extras.avgTicketSpend === 0 ? '—' : extras.avgTicketSpend.toLocaleString()}
+        />
+        <StatCard
+          label="Per-prize-tier hit rate"
+          value={
+            Object.values(extras.tierHits).reduce((s, n) => s + n, 0) === 0
+              ? '—'
+              : Object.values(extras.tierHits)
+                  .reduce((s, n) => s + n, 0)
+                  .toLocaleString()
+          }
+          sub="total wins (all tiers)"
+        />
+        <StatCard
+          label="Jackpot near-misses"
+          value={extras.jackpotNearMisses.toLocaleString()}
+          sub="5-match w/o bonus"
+        />
+        <StatCard
+          label="Avg lines / ticket"
+          value={extras.avgLinesPerTicket === 0 ? '—' : extras.avgLinesPerTicket.toFixed(1)}
+        />
+        <StatCard
+          label="Biggest single payout"
+          value={
+            extras.biggestSinglePayout === 0
+              ? '—'
+              : `+${extras.biggestSinglePayout.toLocaleString()}`
+          }
+        />
+      </div>
+
+      <section aria-label="Lottery prize-tier distribution">
+        <h2 className="mb-2 font-display text-xs tracking-[0.18em] text-ivory/60">
+          PRIZE-TIER HIT DISTRIBUTION
+        </h2>
+        <div className="rounded-md border border-brass/60 bg-velvet-deep p-4">
+          <LotteryPrizeTierBar data={prizeTiers} />
+        </div>
+      </section>
+
+      <TopPlayersPanel game="lottery" {...(sinceMs !== undefined ? { sinceMs } : {})} />
     </div>
   );
 }

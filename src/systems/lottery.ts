@@ -570,6 +570,96 @@ export async function getLotteryAdminStats(
   }
 }
 
+// ─── Phase 15 #14.5 PR B — additive lottery KPIs + prize-tier chart ──────
+// All-additive. None of the existing aggregator return shapes change. New
+// functions only.
+
+export interface LotteryAdminExtras {
+  /** Mean spend per ticket across all tickets. 0 when no tickets. */
+  avgTicketSpend: number;
+  /** Mean lines per ticket across all tickets. 0 when no tickets. */
+  avgLinesPerTicket: number;
+  /** Biggest single line payout across all settled lines. 0 when no wins. */
+  biggestSinglePayout: number;
+  /**
+   * "Near-miss" — settled lines that matched 5 mains but missed the bonus
+   * (so the tier was '5', not '5+bonus' or '6'). One step away from the
+   * jackpot tier. 0 when no near-misses.
+   */
+  jackpotNearMisses: number;
+  /** Per-tier hit count (lines that landed each tier). */
+  tierHits: Record<LotteryMatchTier, number>;
+}
+
+export async function getLotteryAdminExtras(sinceMs?: number): Promise<LotteryAdminExtras> {
+  try {
+    let tickets = await db.lotteryTickets.toArray();
+    if (sinceMs !== undefined) tickets = tickets.filter((t) => t.purchasedAt > sinceMs);
+    const ticketCount = tickets.length;
+    const totalCost = tickets.reduce((s, t) => s + t.totalCost, 0);
+    const totalLines = tickets.reduce((s, t) => s + t.lineCount, 0);
+    let lines = await db.lotteryLines.toArray();
+    if (sinceMs !== undefined) {
+      // Use the line's parent ticket purchasedAt as a proxy — fall back to
+      // include the line if its drawId resolves to a draw within range.
+      const draws = new Map<string, number>();
+      for (const d of await db.lotteryDraws.toArray()) draws.set(d.id, d.drawAt);
+      lines = lines.filter((l) => {
+        const drawAt = draws.get(l.drawId);
+        return drawAt !== undefined && drawAt > sinceMs;
+      });
+    }
+    let biggestSinglePayout = 0;
+    let jackpotNearMisses = 0;
+    const tierHits: Record<LotteryMatchTier, number> = {
+      '6': 0,
+      '5+bonus': 0,
+      '5': 0,
+      '4': 0,
+      '3': 0,
+      '2': 0,
+    };
+    for (const l of lines) {
+      if (!l.settled) continue;
+      if (l.payout > biggestSinglePayout) biggestSinglePayout = l.payout;
+      if (l.matchTier === '5') jackpotNearMisses += 1;
+      if (l.matchTier !== null) tierHits[l.matchTier] += 1;
+    }
+    return {
+      avgTicketSpend: ticketCount > 0 ? Math.round(totalCost / ticketCount) : 0,
+      avgLinesPerTicket: ticketCount > 0 ? Math.round((totalLines / ticketCount) * 10) / 10 : 0,
+      biggestSinglePayout,
+      jackpotNearMisses,
+      tierHits,
+    };
+  } catch (e) {
+    if (isDatabaseClosedError(e)) {
+      return {
+        avgTicketSpend: 0,
+        avgLinesPerTicket: 0,
+        biggestSinglePayout: 0,
+        jackpotNearMisses: 0,
+        tierHits: { '6': 0, '5+bonus': 0, '5': 0, '4': 0, '3': 0, '2': 0 },
+      };
+    }
+    throw e;
+  }
+}
+
+export interface LotteryPrizeTierBin {
+  tier: LotteryMatchTier;
+  count: number;
+}
+
+const LOTTERY_TIER_ORDER: readonly LotteryMatchTier[] = ['6', '5+bonus', '5', '4', '3', '2'];
+
+export async function getLotteryPrizeTierDistribution(
+  sinceMs?: number,
+): Promise<LotteryPrizeTierBin[]> {
+  const extras = await getLotteryAdminExtras(sinceMs);
+  return LOTTERY_TIER_ORDER.map((tier) => ({ tier, count: extras.tierHits[tier] }));
+}
+
 /** Returns array of length MAIN_POOL_SIZE (or BONUS_POOL_SIZE) where index i = times
  *  number (i+1) appeared in a draw, historically. Phase 15 #14 PR B adds an
  *  optional `sinceMs` filter so the admin date-range tabs can scope the

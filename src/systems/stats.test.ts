@@ -1280,6 +1280,11 @@ describe('queries.getRouletteAllTimeStats', () => {
       highCount: 0,
       dozenCounts: [0, 0, 0],
       columnCounts: [0, 0, 0],
+      // Phase 15 #14.5 PR B — additive KPI fields with empty defaults.
+      avgSpinPayout: 0,
+      biggestSingleWin: 0,
+      coldNumber: null,
+      hotNumber: null,
     });
   });
 
@@ -1653,6 +1658,11 @@ describe('queries.getSlotsAllTimeStats', () => {
       targetRtp: 0.86,
       tierCounts: { none: 0, small: 0, medium: 0, jackpot: 0 },
       jackpotsHit: 0,
+      // Phase 15 #14.5 PR B — additive KPI fields with empty defaults.
+      avgPayout: 0,
+      avgSpinCost: 0,
+      avgSessionLength: 0,
+      biggestSingleWin: 0,
     });
   });
 
@@ -2424,6 +2434,12 @@ describe('queries.getBaccaratAllTimeStats', () => {
       smallCount: 0,
       playerDragons: 0,
       bankerDragons: 0,
+      // Phase 15 #14.5 PR B — additive KPI fields with empty defaults.
+      playerWinRate: null,
+      bankerWinRate: null,
+      tieRate: null,
+      avgShoeLength: null,
+      biggestSingleWin: 0,
     });
   });
 
@@ -3059,6 +3075,9 @@ describe('queries.getBingoAllTimeStats', () => {
       doubleLineWins: 0,
       totalBonusesPaid: 0,
       totalPotsWonByPlayer: 0,
+      // Phase 15 #14.5 PR B — additive KPI fields with empty defaults.
+      avgCallCount: null,
+      biggestSingleWin: 0,
     });
   });
 

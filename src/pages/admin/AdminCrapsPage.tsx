@@ -7,6 +7,7 @@ import DateRangeFilter, {
   rangeToSinceMs,
   type RangePreset,
 } from '@/components/admin/DateRangeFilter';
+import TopPlayersPanel from '@/components/admin/TopPlayersPanel';
 import {
   getCrapsAllTimeStats,
   getCrapsBetTypeFrequency,
@@ -47,6 +48,11 @@ const EMPTY_STATS: CrapsAllTimeStats = {
   netPlayerChips: 0,
   actualRtp: null,
   biggestRollWin: 0,
+  // Phase 15 #14.5 PR B — additive KPI defaults.
+  avgRollsPerSession: 0,
+  sevenOutRate: null,
+  pointMadeRate: null,
+  betTypeVariety: 0,
 };
 const EMPTY_FREQ: readonly CrapsBetTypeWagered[] = [];
 const EMPTY_BIGGEST: readonly CrapsBiggestSession[] = [];
@@ -227,6 +233,39 @@ export default function AdminCrapsPage(): JSX.Element {
           </table>
         )}
       </section>
+
+      {/* Phase 15 #14.5 PR B — NEW additive sections (KPI grid + per-user
+          drill-down). Spec §4.3.4 skips a new chart for Craps because
+          CrapsBetTypeFrequencyBar (above) already covers the slot. None of
+          the existing StatCards / hero bet-type chart / biggest-sessions
+          panel / recent-sessions table is modified or moved. */}
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-5" data-admin-kpi-grid>
+        <StatCard
+          label="Avg rolls / session"
+          value={stats.avgRollsPerSession === 0 ? '—' : stats.avgRollsPerSession.toLocaleString()}
+        />
+        <StatCard
+          label="Seven-out rate"
+          value={stats.sevenOutRate === null ? '—' : `${(stats.sevenOutRate * 100).toFixed(1)}%`}
+          sub="not tracked yet"
+        />
+        <StatCard
+          label="Point-made rate"
+          value={stats.pointMadeRate === null ? '—' : `${(stats.pointMadeRate * 100).toFixed(1)}%`}
+          sub="not tracked yet"
+        />
+        <StatCard
+          label="Bet-type variety"
+          value={stats.betTypeVariety.toLocaleString()}
+          sub="distinct bet types"
+        />
+        <StatCard
+          label="Biggest single roll"
+          value={stats.biggestRollWin === 0 ? '—' : `+${stats.biggestRollWin.toLocaleString()}`}
+        />
+      </div>
+
+      <TopPlayersPanel game="craps" {...(sinceMs !== undefined ? { sinceMs } : {})} />
     </div>
   );
 }
