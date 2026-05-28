@@ -1280,6 +1280,11 @@ describe('queries.getRouletteAllTimeStats', () => {
       highCount: 0,
       dozenCounts: [0, 0, 0],
       columnCounts: [0, 0, 0],
+      // Phase 15 #14.5 PR B — additive KPI fields with empty defaults.
+      avgSpinPayout: 0,
+      biggestSingleWin: 0,
+      coldNumber: null,
+      hotNumber: null,
     });
   });
 
@@ -1653,6 +1658,11 @@ describe('queries.getSlotsAllTimeStats', () => {
       targetRtp: 0.86,
       tierCounts: { none: 0, small: 0, medium: 0, jackpot: 0 },
       jackpotsHit: 0,
+      // Phase 15 #14.5 PR B — additive KPI fields with empty defaults.
+      avgPayout: 0,
+      avgSpinCost: 0,
+      avgSessionLength: 0,
+      biggestSingleWin: 0,
     });
   });
 
@@ -2424,6 +2434,12 @@ describe('queries.getBaccaratAllTimeStats', () => {
       smallCount: 0,
       playerDragons: 0,
       bankerDragons: 0,
+      // Phase 15 #14.5 PR B — additive KPI fields with empty defaults.
+      playerWinRate: null,
+      bankerWinRate: null,
+      tieRate: null,
+      avgShoeLength: null,
+      biggestSingleWin: 0,
     });
   });
 
@@ -3059,6 +3075,9 @@ describe('queries.getBingoAllTimeStats', () => {
       doubleLineWins: 0,
       totalBonusesPaid: 0,
       totalPotsWonByPlayer: 0,
+      // Phase 15 #14.5 PR B — additive KPI fields with empty defaults.
+      avgCallCount: null,
+      biggestSingleWin: 0,
     });
   });
 
@@ -5136,5 +5155,415 @@ describe('queries.getLeaderboardLongestStreaks', () => {
     ]);
     const out = await getLeaderboardLongestStreaks(10);
     expect(out).toEqual([]);
+  });
+});
+
+// ── Blackjack + Coin-flip aggregations (Phase 15 #14.5 PR B) ──────────────
+
+import {
+  getBlackjackAllTimeStats,
+  getBlackjackHandOutcomeDistribution,
+  getCoinFlipAllTimeStats,
+  getCoinFlipFaceDistribution,
+} from './stats';
+
+type BJOutcome = 'player-blackjack' | 'player-win' | 'push' | 'player-loss' | 'player-bust';
+
+async function seedBjRound(opts: {
+  id: string;
+  hands: Array<{
+    bet: number;
+    payout: number;
+    outcome: BJOutcome;
+    fromSplit?: boolean;
+  }>;
+  playedAt: number;
+}): Promise<void> {
+  const totalBet = opts.hands.reduce((s, h) => s + h.bet, 0);
+  const totalPayout = opts.hands.reduce((s, h) => s + h.payout, 0);
+  const netChange = totalPayout - totalBet;
+  const outcome: 'win' | 'loss' | 'push' = netChange > 0 ? 'win' : netChange < 0 ? 'loss' : 'push';
+  await db.rounds.add({
+    id: opts.id,
+    userId: 'u-1',
+    game: 'blackjack',
+    betAmount: totalBet,
+    payout: totalPayout,
+    netChange,
+    outcome,
+    details: {
+      hands: opts.hands.map((h) => ({
+        cards: [],
+        bet: h.bet,
+        doubled: false,
+        fromSplit: h.fromSplit ?? false,
+        fromSplitAces: false,
+        outcome: h.outcome,
+        payout: h.payout,
+        fiveCardCharlie: false,
+      })),
+      insurance: { status: 'not-offered', bet: 0, payout: 0 },
+      betHandleIds: [],
+      config: { h17: false, maxHands: 4, das: true },
+    },
+    balanceAfter: 1000,
+    playedAt: opts.playedAt,
+  });
+}
+
+describe('queries.getBlackjackAllTimeStats', () => {
+  beforeEach(async () => {
+    await resetDb();
+  });
+
+  it('returns zeros + nulls when no rounds', async () => {
+    const out = await getBlackjackAllTimeStats();
+    expect(out).toEqual({
+      hands: 0,
+      totalWagered: 0,
+      totalPaid: 0,
+      netHouseChips: 0,
+      netPlayerChips: 0,
+      actualRtp: null,
+      winRate: null,
+      bustRate: null,
+      splitRate: null,
+      biggestHandWon: 0,
+      avgHandValue: 0,
+    });
+  });
+
+  it('aggregates rounds, hands, wins, busts, splits, and biggest win', async () => {
+    // Round 1: blackjack — +150 net, 1 hand
+    await seedBjRound({
+      id: 'bj-1',
+      hands: [{ bet: 100, payout: 250, outcome: 'player-blackjack' }],
+      playedAt: 1000,
+    });
+    // Round 2: split into 2 hands — win + bust = bet 100+100 paid 200+0 net 0
+    await seedBjRound({
+      id: 'bj-2',
+      hands: [
+        { bet: 100, payout: 200, outcome: 'player-win', fromSplit: true },
+        { bet: 100, payout: 0, outcome: 'player-bust', fromSplit: true },
+      ],
+      playedAt: 2000,
+    });
+    // Round 3: loss
+    await seedBjRound({
+      id: 'bj-3',
+      hands: [{ bet: 50, payout: 0, outcome: 'player-loss' }],
+      playedAt: 3000,
+    });
+    // Round 4: push
+    await seedBjRound({
+      id: 'bj-4',
+      hands: [{ bet: 50, payout: 50, outcome: 'push' }],
+      playedAt: 4000,
+    });
+    const out = await getBlackjackAllTimeStats();
+    expect(out.hands).toBe(4); // 4 rounds counted
+    expect(out.totalWagered).toBe(400);
+    expect(out.totalPaid).toBe(500);
+    expect(out.netHouseChips).toBe(-100);
+    expect(out.biggestHandWon).toBe(150);
+    // 5 hands total (round 2 has 2 hands)
+    // Wins (incl blackjack) = 2; decisive (non-push) hands = 4 → 50%
+    expect(out.winRate).toBeCloseTo(0.5);
+    // Busts = 1 / 5 hands total
+    expect(out.bustRate).toBeCloseTo(0.2);
+    // Split rounds = 1 / 4 rounds = 25%
+    expect(out.splitRate).toBeCloseTo(0.25);
+    // Avg hand value = (100+100+100+50+50)/5 = 80
+    expect(out.avgHandValue).toBe(80);
+  });
+
+  it('filters by sinceMs (strict >)', async () => {
+    await seedBjRound({
+      id: 'bj-1',
+      hands: [{ bet: 100, payout: 200, outcome: 'player-win' }],
+      playedAt: 1000,
+    });
+    await seedBjRound({
+      id: 'bj-2',
+      hands: [{ bet: 100, payout: 0, outcome: 'player-loss' }],
+      playedAt: 5000,
+    });
+    const out = await getBlackjackAllTimeStats(2000);
+    expect(out.hands).toBe(1);
+    expect(out.totalWagered).toBe(100);
+    expect(out.totalPaid).toBe(0);
+  });
+});
+
+describe('queries.getBlackjackHandOutcomeDistribution', () => {
+  beforeEach(async () => {
+    await resetDb();
+  });
+
+  it('returns five canonical buckets with zero counts when no rounds', async () => {
+    const out = await getBlackjackHandOutcomeDistribution();
+    expect(out.map((d) => d.outcome)).toEqual(['blackjack', 'win', 'push', 'lose', 'bust']);
+    expect(out.every((d) => d.count === 0)).toBe(true);
+  });
+
+  it('counts each persisted hand outcome', async () => {
+    await seedBjRound({
+      id: 'bj-1',
+      hands: [{ bet: 100, payout: 250, outcome: 'player-blackjack' }],
+      playedAt: 1000,
+    });
+    await seedBjRound({
+      id: 'bj-2',
+      hands: [
+        { bet: 100, payout: 200, outcome: 'player-win' },
+        { bet: 100, payout: 0, outcome: 'player-bust', fromSplit: true },
+      ],
+      playedAt: 2000,
+    });
+    await seedBjRound({
+      id: 'bj-3',
+      hands: [{ bet: 50, payout: 50, outcome: 'push' }],
+      playedAt: 3000,
+    });
+    const out = await getBlackjackHandOutcomeDistribution();
+    const get = (k: string) => out.find((d) => d.outcome === k)?.count ?? 0;
+    expect(get('blackjack')).toBe(1);
+    expect(get('win')).toBe(1);
+    expect(get('push')).toBe(1);
+    expect(get('lose')).toBe(0);
+    expect(get('bust')).toBe(1);
+  });
+});
+
+async function seedCoinFlipRound(opts: {
+  id: string;
+  call: 'heads' | 'tails';
+  landed: 'heads' | 'tails';
+  bet: number;
+  playedAt: number;
+}): Promise<void> {
+  const won = opts.call === opts.landed;
+  const payout = won ? opts.bet * 2 : 0;
+  const netChange = payout - opts.bet;
+  await db.rounds.add({
+    id: opts.id,
+    userId: 'u-1',
+    game: 'coin-flip',
+    betAmount: opts.bet,
+    payout,
+    netChange,
+    outcome: won ? 'win' : 'loss',
+    details: { call: opts.call, landed: opts.landed },
+    balanceAfter: 1000,
+    playedAt: opts.playedAt,
+  });
+}
+
+describe('queries.getCoinFlipAllTimeStats', () => {
+  beforeEach(async () => {
+    await resetDb();
+  });
+
+  it('returns zeros + nulls when no flips', async () => {
+    const out = await getCoinFlipAllTimeStats();
+    expect(out.flips).toBe(0);
+    expect(out.actualRtp).toBeNull();
+    expect(out.headsCallRate).toBeNull();
+    expect(out.tailsCallRate).toBeNull();
+    expect(out.longestStreak).toBe(0);
+    expect(out.avgBet).toBe(0);
+    expect(out.biggestSingleWin).toBe(0);
+  });
+
+  it('aggregates flips, call rates, streaks, and biggest win', async () => {
+    // Sequence: H/H, H/H, T/T, H/T, T/T  → landed H,H,T,T,T
+    await seedCoinFlipRound({
+      id: 'cf-1',
+      call: 'heads',
+      landed: 'heads',
+      bet: 100,
+      playedAt: 1000,
+    });
+    await seedCoinFlipRound({
+      id: 'cf-2',
+      call: 'heads',
+      landed: 'heads',
+      bet: 50,
+      playedAt: 2000,
+    });
+    await seedCoinFlipRound({
+      id: 'cf-3',
+      call: 'tails',
+      landed: 'tails',
+      bet: 200,
+      playedAt: 3000,
+    });
+    await seedCoinFlipRound({
+      id: 'cf-4',
+      call: 'heads',
+      landed: 'tails',
+      bet: 100,
+      playedAt: 4000,
+    });
+    await seedCoinFlipRound({
+      id: 'cf-5',
+      call: 'tails',
+      landed: 'tails',
+      bet: 50,
+      playedAt: 5000,
+    });
+    const out = await getCoinFlipAllTimeStats();
+    expect(out.flips).toBe(5);
+    expect(out.totalWagered).toBe(500);
+    // Wins: 4 of 5 (only cf-4 lost). Payouts = 200+100+400+0+100 = 800
+    expect(out.totalPaid).toBe(800);
+    expect(out.netHouseChips).toBe(-300);
+    expect(out.actualRtp).toBeCloseTo(1.6);
+    // Calls: heads 3, tails 2 → rates 0.6 / 0.4
+    expect(out.headsCallRate).toBeCloseTo(0.6);
+    expect(out.tailsCallRate).toBeCloseTo(0.4);
+    // Landed sequence: H,H,T,T,T → longest streak = 3
+    expect(out.longestStreak).toBe(3);
+    expect(out.avgBet).toBe(100); // 500/5
+    // Biggest single win = max netChange = 400-200 = 200
+    expect(out.biggestSingleWin).toBe(200);
+  });
+
+  it('filters by sinceMs', async () => {
+    await seedCoinFlipRound({
+      id: 'cf-1',
+      call: 'heads',
+      landed: 'heads',
+      bet: 100,
+      playedAt: 1000,
+    });
+    await seedCoinFlipRound({
+      id: 'cf-2',
+      call: 'tails',
+      landed: 'heads',
+      bet: 100,
+      playedAt: 5000,
+    });
+    const out = await getCoinFlipAllTimeStats(2000);
+    expect(out.flips).toBe(1);
+    expect(out.totalWagered).toBe(100);
+  });
+});
+
+describe('queries.getCoinFlipFaceDistribution', () => {
+  beforeEach(async () => {
+    await resetDb();
+  });
+
+  it('returns canonical heads/tails buckets with zero counts when no flips', async () => {
+    const out = await getCoinFlipFaceDistribution();
+    expect(out).toEqual([
+      { outcome: 'heads', count: 0 },
+      { outcome: 'tails', count: 0 },
+    ]);
+  });
+
+  it('counts landed faces', async () => {
+    await seedCoinFlipRound({
+      id: 'cf-1',
+      call: 'heads',
+      landed: 'heads',
+      bet: 50,
+      playedAt: 1000,
+    });
+    await seedCoinFlipRound({
+      id: 'cf-2',
+      call: 'tails',
+      landed: 'tails',
+      bet: 50,
+      playedAt: 2000,
+    });
+    await seedCoinFlipRound({
+      id: 'cf-3',
+      call: 'heads',
+      landed: 'tails',
+      bet: 50,
+      playedAt: 3000,
+    });
+    const out = await getCoinFlipFaceDistribution();
+    expect(out.find((d) => d.outcome === 'heads')?.count).toBe(1);
+    expect(out.find((d) => d.outcome === 'tails')?.count).toBe(2);
+  });
+});
+
+// ── Per-game top-players drill-down (Phase 15 #14.5 PR B) ──────────────────
+
+import { getTopPlayersForGame } from './stats';
+
+describe('queries.getTopPlayersForGame', () => {
+  beforeEach(async () => {
+    await resetDb();
+    localStorage.removeItem(SESSION_KEY);
+  });
+
+  it('returns empty array when no rounds for the game', async () => {
+    const out = await getTopPlayersForGame('blackjack', 10);
+    expect(out).toEqual([]);
+  });
+
+  it('returns empty array when limit <= 0', async () => {
+    await seedLeaderboardFixture();
+    expect(await getTopPlayersForGame('blackjack', 0)).toEqual([]);
+    expect(await getTopPlayersForGame('blackjack', -1)).toEqual([]);
+  });
+
+  it('aggregates rounds per user scoped to the requested game and sorts by netChips desc', async () => {
+    await seedLeaderboardFixture();
+    // Blackjack-only seed (per the fixture): alice +100, +50 ; carol +100, +80, +120, +200
+    const out = await getTopPlayersForGame('blackjack', 10);
+    expect(out).toHaveLength(2);
+    expect(out[0]).toMatchObject({
+      username: 'carol',
+      rounds: 4,
+      netChips: 500,
+      biggestWin: 200,
+    });
+    expect(out[1]).toMatchObject({
+      username: 'alice',
+      rounds: 2,
+      netChips: 150,
+      biggestWin: 100,
+    });
+  });
+
+  it('respects the limit parameter', async () => {
+    await seedLeaderboardFixture();
+    const out = await getTopPlayersForGame('blackjack', 1);
+    expect(out).toHaveLength(1);
+    expect(out[0]!.username).toBe('carol');
+  });
+
+  it('filters by sinceMs when provided (strict greater-than)', async () => {
+    await seedLeaderboardFixture();
+    // alice's blackjack rounds were seeded at playedAt 1000 and 2000.
+    // Drop everything <= 1500 so only the second alice round + carol rounds remain.
+    const out = await getTopPlayersForGame('blackjack', 10, 1500);
+    const alice = out.find((r) => r.username === 'alice');
+    expect(alice?.rounds).toBe(1);
+    expect(alice?.netChips).toBe(50);
+  });
+
+  it('resolves usernames and falls back to <deleted> for missing users', async () => {
+    await db.rounds.add({
+      id: 'ghost-1',
+      userId: 'no-such-user',
+      game: 'slots',
+      betAmount: 10,
+      payout: 0,
+      netChange: -10,
+      outcome: 'loss',
+      details: {},
+      balanceAfter: 0,
+      playedAt: 1000,
+    });
+    const out = await getTopPlayersForGame('slots', 10);
+    expect(out).toHaveLength(1);
+    expect(out[0]!.username).toBe('<deleted>');
   });
 });

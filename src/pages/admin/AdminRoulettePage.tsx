@@ -7,6 +7,8 @@ import DateRangeFilter, {
   rangeToSinceMs,
   type RangePreset,
 } from '@/components/admin/DateRangeFilter';
+import TopPlayersPanel from '@/components/admin/TopPlayersPanel';
+import RouletteColumnBiasBar from '@/components/charts/RouletteColumnBiasBar';
 import {
   getRouletteAllTimeStats,
   getRouletteNumberDistribution,
@@ -30,6 +32,11 @@ const EMPTY_STATS: RouletteAllTimeStats = {
   highCount: 0,
   dozenCounts: [0, 0, 0],
   columnCounts: [0, 0, 0],
+  // Phase 15 #14.5 PR B — additive KPI defaults.
+  avgSpinPayout: 0,
+  hotNumber: null,
+  coldNumber: null,
+  biggestSingleWin: 0,
 };
 const EMPTY_DIST: RouletteDistributionPoint[] = [];
 const EMPTY_ROUNDS: readonly Round[] = [];
@@ -328,6 +335,50 @@ export default function AdminRoulettePage(): JSX.Element {
           </table>
         )}
       </section>
+
+      {/* Phase 15 #14.5 PR B — NEW additive sections (KPI grid + column bias
+          chart + per-user drill-down). None of the existing StatCards / hero
+          chart / recent table is modified or moved. */}
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-5" data-admin-kpi-grid>
+        <StatCard
+          label="Avg spin payout"
+          value={stats.avgSpinPayout === 0 ? '—' : stats.avgSpinPayout.toLocaleString()}
+        />
+        <StatCard
+          label="Hot number"
+          value={stats.hotNumber === null ? '—' : String(stats.hotNumber)}
+        />
+        <StatCard
+          label="Cold number"
+          value={stats.coldNumber === null ? '—' : String(stats.coldNumber)}
+        />
+        <StatCard
+          label="Column bias"
+          value={
+            stats.ballsSpun === 0 ? '—' : `${Math.max(...stats.columnCounts)}/${stats.ballsSpun}`
+          }
+          sub="leading column hits"
+        />
+        <StatCard
+          label="Biggest single win"
+          value={stats.biggestSingleWin === 0 ? '—' : `+${stats.biggestSingleWin.toLocaleString()}`}
+        />
+      </div>
+
+      <section aria-label="Roulette column bias">
+        <h2 className="mb-2 font-display text-xs tracking-wider text-ivory/60">COLUMN BIAS</h2>
+        <div className="rounded-md border border-brass/60 bg-velvet-deep p-4">
+          <RouletteColumnBiasBar
+            data={[
+              { column: 1, count: stats.columnCounts[0] },
+              { column: 2, count: stats.columnCounts[1] },
+              { column: 3, count: stats.columnCounts[2] },
+            ]}
+          />
+        </div>
+      </section>
+
+      <TopPlayersPanel game="roulette" {...(sinceMs !== undefined ? { sinceMs } : {})} />
     </div>
   );
 }

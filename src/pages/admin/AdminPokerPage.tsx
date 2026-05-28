@@ -7,14 +7,18 @@ import DateRangeFilter, {
   rangeToSinceMs,
   type RangePreset,
 } from '@/components/admin/DateRangeFilter';
+import TopPlayersPanel from '@/components/admin/TopPlayersPanel';
+import PokerWinRateByPositionBar from '@/components/charts/PokerWinRateByPositionBar';
 import {
   getPokerAllTimeStats,
   getPokerBiggestPots,
   getPokerSessionsByVariant,
+  getPokerWinRateByTableSize,
   type PokerAllTimeStats,
   type PokerBiggestPot,
   type PokerSessionsByVariantDay,
   type PokerVariant,
+  type PokerWinRateByTableSize,
 } from '@/systems/stats';
 import { db } from '@/db';
 import type { Round } from '@/db';
@@ -60,10 +64,16 @@ const EMPTY_STATS: PokerAllTimeStats = {
   netPlayerChips: 0,
   actualRtp: null,
   biggestPotEver: 0,
+  // Phase 15 #14.5 PR B — additive KPI defaults.
+  avgHandsPerSession: 0,
+  winRate: null,
+  avgBuyIn: 0,
+  allInFrequency: null,
 };
 const EMPTY_DAYS: readonly PokerSessionsByVariantDay[] = [];
 const EMPTY_POTS: readonly PokerBiggestPot[] = [];
 const EMPTY_ROUNDS: readonly Round[] = [];
+const EMPTY_TABLE_WIN_RATE: readonly PokerWinRateByTableSize[] = [];
 
 function formatStakes(stakes: { sb: number; bb: number }): string {
   return `${stakes.sb}/${stakes.bb}`;
@@ -98,6 +108,13 @@ export default function AdminPokerPage(): JSX.Element {
   );
   // Hero chart always shows all 3 variants — independent of the active tab.
   const sessionsByVariant = useLiveQuery(() => getPokerSessionsByVariant(30), [], EMPTY_DAYS);
+  // Phase 15 #14.5 PR B — additive win-rate-by-table-size chart (degraded
+  // proxy for spec's "win rate by seat position"; per-seat data isn't persisted).
+  const winRateByTableSize = useLiveQuery(
+    () => getPokerWinRateByTableSize(sinceMs),
+    [sinceMs],
+    EMPTY_TABLE_WIN_RATE,
+  );
   const biggestPots = useLiveQuery(
     () => getPokerBiggestPots(10, variantArg),
     [variantArg],
@@ -311,6 +328,51 @@ export default function AdminPokerPage(): JSX.Element {
           </table>
         )}
       </section>
+
+      {/* Phase 15 #14.5 PR B — NEW additive sections rendered BELOW the
+          existing variant tabs / 4 top StatCards / sessions-by-variant chart /
+          biggest-pots panel / recent-sessions table. None of the above are
+          modified or removed. */}
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-5" data-admin-kpi-grid>
+        <StatCard
+          label="Avg hands / session"
+          value={stats.avgHandsPerSession === 0 ? '—' : stats.avgHandsPerSession.toLocaleString()}
+        />
+        <StatCard
+          label="Win rate"
+          value={stats.winRate === null ? '—' : `${(stats.winRate * 100).toFixed(1)}%`}
+        />
+        <StatCard
+          label="Biggest pot ever"
+          value={stats.biggestPotEver === 0 ? '—' : `+${stats.biggestPotEver.toLocaleString()}`}
+        />
+        <StatCard
+          label="Avg buy-in"
+          value={stats.avgBuyIn === 0 ? '—' : stats.avgBuyIn.toLocaleString()}
+        />
+        <StatCard
+          label="All-in frequency"
+          value={
+            stats.allInFrequency === null ? '—' : `${(stats.allInFrequency * 100).toFixed(1)}%`
+          }
+          sub="not tracked yet"
+        />
+      </div>
+
+      <section aria-label="Poker win-rate by table size">
+        <h2 className="mb-2 font-display text-xs tracking-wider text-ivory/60">
+          WIN RATE BY TABLE SIZE
+        </h2>
+        <div className="rounded-md border border-brass/60 bg-velvet-deep p-4">
+          {winRateByTableSize.length === 0 ? (
+            <p className="py-4 text-center text-xs text-ivory/40">No sessions yet.</p>
+          ) : (
+            <PokerWinRateByPositionBar data={winRateByTableSize} />
+          )}
+        </div>
+      </section>
+
+      <TopPlayersPanel game="poker" {...(sinceMs !== undefined ? { sinceMs } : {})} />
     </div>
   );
 }

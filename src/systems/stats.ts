@@ -603,6 +603,15 @@ export interface RouletteAllTimeStats {
   highCount: number;
   dozenCounts: [number, number, number];
   columnCounts: [number, number, number];
+  // Phase 15 #14.5 PR B — additive KPIs (see spec §4.3.3).
+  /** Average payout per spin (rounded). 0 when no spins. */
+  avgSpinPayout: number;
+  /** Most-hit pocket (0..36) across all spins, null when no spins. */
+  hotNumber: number | null;
+  /** Least-hit pocket (0..36) across spun rounds, null when no spins. */
+  coldNumber: number | null;
+  /** Biggest single-spin net win. 0 when no positive spins. */
+  biggestSingleWin: number;
 }
 
 /** Column membership of each number per BUILD_GUIDE §8.2.
@@ -639,14 +648,21 @@ export async function getRouletteAllTimeStats(sinceMs?: number): Promise<Roulett
   let highCount = 0;
   const dozenCounts: [number, number, number] = [0, 0, 0];
   const columnCounts: [number, number, number] = [0, 0, 0];
+  // Phase 15 #14.5 PR B — additive KPI accumulators.
+  let totalPayout = 0;
+  let biggestSingleWin = 0;
+  const numberCounts = new Array<number>(37).fill(0);
 
   for (const r of rows) {
     const d = r.details as RouletteRoundDetails | undefined;
     if (!d?.spin) continue;
     ballsSpun += 1;
     netHouseChips += r.betAmount - r.payout;
+    totalPayout += r.payout;
+    if (r.netChange > biggestSingleWin) biggestSingleWin = r.netChange;
     const n = d.spin.number;
     const c = d.spin.color;
+    numberCounts[n]! += 1;
     if (c === 'red') redCount += 1;
     else if (c === 'black') blackCount += 1;
     else greenCount += 1;
@@ -659,6 +675,27 @@ export async function getRouletteAllTimeStats(sinceMs?: number): Promise<Roulett
       if (dz > 0) dozenCounts[dz - 1]! += 1;
       const col = columnOf(n);
       if (col > 0) columnCounts[col - 1]! += 1;
+    }
+  }
+
+  // Hot/cold across all pockets (incl. 0) — picks the FIRST extremum to keep
+  // output deterministic when multiple pockets tie.
+  let hotNumber: number | null = null;
+  let coldNumber: number | null = null;
+  if (ballsSpun > 0) {
+    let maxCount = -1;
+    let minCount = Number.POSITIVE_INFINITY;
+    for (let i = 0; i < 37; i += 1) {
+      const c = numberCounts[i]!;
+      if (c > maxCount) {
+        maxCount = c;
+        hotNumber = i;
+      }
+      // For cold, only consider pockets that actually got spun OR all zeros.
+      if (c < minCount) {
+        minCount = c;
+        coldNumber = i;
+      }
     }
   }
 
@@ -676,6 +713,10 @@ export async function getRouletteAllTimeStats(sinceMs?: number): Promise<Roulett
     highCount,
     dozenCounts,
     columnCounts,
+    avgSpinPayout: ballsSpun > 0 ? Math.round(totalPayout / ballsSpun) : 0,
+    hotNumber,
+    coldNumber,
+    biggestSingleWin,
   };
 }
 
@@ -731,6 +772,16 @@ export interface SlotsAllTimeStats {
   };
   /** Alias for tierCounts.jackpot — used by the headline stat card. */
   jackpotsHit: number;
+  // Phase 15 #14.5 PR B — additive KPIs (see spec §4.3.3).
+  /** Average payout per spin (rounded). 0 when no spins. */
+  avgPayout: number;
+  /** Average spin cost / betAmount (rounded). 0 when no spins. */
+  avgSpinCost: number;
+  /** Biggest single-spin net win. 0 when no positive spins. */
+  biggestSingleWin: number;
+  /** Average spins per session — degraded proxy as session-id isn't
+   *  derivable from slots rounds; reports total spinsRun as a stand-in. */
+  avgSessionLength: number;
 }
 
 export async function getSlotsAllTimeStats(sinceMs?: number): Promise<SlotsAllTimeStats> {
@@ -740,12 +791,14 @@ export async function getSlotsAllTimeStats(sinceMs?: number): Promise<SlotsAllTi
   let totalWagered = 0;
   let totalPaid = 0;
   const tierCounts = { none: 0, small: 0, medium: 0, jackpot: 0 };
+  let biggestSingleWin = 0;
   for (const r of rows) {
     const d = r.details as SlotsRoundDetails | undefined;
     if (!d?.spin) continue;
     spinsRun += 1;
     totalWagered += r.betAmount;
     totalPaid += r.payout;
+    if (r.netChange > biggestSingleWin) biggestSingleWin = r.netChange;
     const tier = d.winTier ?? 'none';
     if (tier in tierCounts) tierCounts[tier] += 1;
   }
@@ -761,6 +814,11 @@ export async function getSlotsAllTimeStats(sinceMs?: number): Promise<SlotsAllTi
     targetRtp: 0.86,
     tierCounts,
     jackpotsHit: tierCounts.jackpot,
+    // Phase 15 #14.5 PR B — additive KPIs.
+    avgPayout: spinsRun > 0 ? Math.round(totalPaid / spinsRun) : 0,
+    avgSpinCost: spinsRun > 0 ? Math.round(totalWagered / spinsRun) : 0,
+    biggestSingleWin,
+    avgSessionLength: spinsRun,
   };
 }
 
@@ -892,6 +950,17 @@ export interface BaccaratAllTimeStats {
   /** Dragon = winner won by ≥ 4 with a non-natural. */
   playerDragons: number;
   bankerDragons: number;
+  // Phase 15 #14.5 PR B — additive KPIs (see spec §4.3.3).
+  /** playerWins / roundsPlayed. null when no rounds. */
+  playerWinRate: number | null;
+  /** bankerWins / roundsPlayed. null when no rounds. */
+  bankerWinRate: number | null;
+  /** ties / roundsPlayed. null when no rounds. */
+  tieRate: number | null;
+  /** Mean `totalCards` across all rounds (proxy for shoe-length). null when no rounds. */
+  avgShoeLength: number | null;
+  /** Biggest single round net win. 0 when no positive rounds. */
+  biggestSingleWin: number;
 }
 
 export async function getBaccaratAllTimeStats(sinceMs?: number): Promise<BaccaratAllTimeStats> {
@@ -911,12 +980,15 @@ export async function getBaccaratAllTimeStats(sinceMs?: number): Promise<Baccara
   let smallCount = 0;
   let playerDragons = 0;
   let bankerDragons = 0;
+  let totalCardsSum = 0;
+  let biggestSingleWin = 0;
   for (const r of rows) {
     const d = r.details as PersistedBaccaratDetails | undefined;
     if (!d?.winner) continue;
     roundsPlayed += 1;
     totalWagered += r.betAmount;
     totalPaid += r.payout;
+    if (r.netChange > biggestSingleWin) biggestSingleWin = r.netChange;
     if (d.winner === 'player') playerWins += 1;
     else if (d.winner === 'banker') bankerWins += 1;
     else ties += 1;
@@ -927,6 +999,7 @@ export async function getBaccaratAllTimeStats(sinceMs?: number): Promise<Baccara
     // Big = 5–6 cards (one side took a third); Small = 4 cards (both stood).
     if (d.totalCards === 4) smallCount += 1;
     else if (d.totalCards >= 5) bigCount += 1;
+    totalCardsSum += d.totalCards;
     // Dragon = winning side wins by ≥ 4 with a non-natural.
     if (d.margin >= 4 && !d.winnerNatural) {
       if (d.winner === 'player') playerDragons += 1;
@@ -953,6 +1026,12 @@ export async function getBaccaratAllTimeStats(sinceMs?: number): Promise<Baccara
     smallCount,
     playerDragons,
     bankerDragons,
+    // Phase 15 #14.5 PR B — additive KPIs (see spec §4.3.3).
+    playerWinRate: roundsPlayed > 0 ? playerWins / roundsPlayed : null,
+    bankerWinRate: roundsPlayed > 0 ? bankerWins / roundsPlayed : null,
+    tieRate: roundsPlayed > 0 ? ties / roundsPlayed : null,
+    avgShoeLength: roundsPlayed > 0 ? Math.round((totalCardsSum / roundsPlayed) * 10) / 10 : null,
+    biggestSingleWin,
   };
 }
 
@@ -1087,6 +1166,11 @@ export interface BingoAllTimeStats {
   totalBonusesPaid: number;
   /** Sum of `pot` across games the player won (tier-3 take). */
   totalPotsWonByPlayer: number;
+  // Phase 15 #14.5 PR B — additive KPIs (see spec §4.3.3).
+  /** Mean `finalCallCount` across all settled games. null when no games. */
+  avgCallCount: number | null;
+  /** Biggest single net win across games. 0 when no positive wins. */
+  biggestSingleWin: number;
 }
 
 export async function getBingoAllTimeStats(sinceMs?: number): Promise<BingoAllTimeStats> {
@@ -1102,6 +1186,8 @@ export async function getBingoAllTimeStats(sinceMs?: number): Promise<BingoAllTi
   let doubleLineWins = 0;
   let totalBonusesPaid = 0;
   let totalPotsWonByPlayer = 0;
+  let callCountSum = 0;
+  let biggestSingleWin = 0;
 
   for (const r of rows) {
     if (!isBingoDetails(r.details)) continue;
@@ -1109,6 +1195,8 @@ export async function getBingoAllTimeStats(sinceMs?: number): Promise<BingoAllTi
     gamesPlayed += 1;
     totalWagered += r.betAmount;
     totalPaid += r.payout;
+    if (r.netChange > biggestSingleWin) biggestSingleWin = r.netChange;
+    callCountSum += d.finalCallCount;
     if (d.userTier3) {
       playerTier3Wins += 1;
       totalPotsWonByPlayer += d.pot;
@@ -1139,6 +1227,9 @@ export async function getBingoAllTimeStats(sinceMs?: number): Promise<BingoAllTi
     doubleLineWins,
     totalBonusesPaid,
     totalPotsWonByPlayer,
+    // Phase 15 #14.5 PR B — additive KPIs (see spec §4.3.3).
+    avgCallCount: gamesPlayed > 0 ? Math.round(callCountSum / gamesPlayed) : null,
+    biggestSingleWin,
   };
 }
 
@@ -1211,6 +1302,41 @@ export async function getBingoBallsToBingo(): Promise<BingoBallsToBingo[]> {
       averageCalls: count > 0 ? total / count : null,
     };
   });
+}
+
+// Phase 15 #14.5 PR B — additive call-count histogram. Buckets every
+// settled bingo game's `finalCallCount` into 10-call-wide bins (0-9,
+// 10-19, …, 80+). Each bin is always returned so the histogram has a
+// fixed x-axis.
+export interface BingoCallCountBin {
+  /** Inclusive lower bound (multiples of 10). */
+  binMin: number;
+  /** Inclusive upper bound (binMin + 9, or `Infinity` for the catch-all). */
+  binMax: number;
+  count: number;
+}
+
+export async function getBingoCallCountHistogram(sinceMs?: number): Promise<BingoCallCountBin[]> {
+  let rows = await db.rounds.where('game').equals('bingo').toArray();
+  if (sinceMs !== undefined) rows = rows.filter((r) => r.playedAt > sinceMs);
+  const BINS: BingoCallCountBin[] = [
+    { binMin: 0, binMax: 9, count: 0 },
+    { binMin: 10, binMax: 19, count: 0 },
+    { binMin: 20, binMax: 29, count: 0 },
+    { binMin: 30, binMax: 39, count: 0 },
+    { binMin: 40, binMax: 49, count: 0 },
+    { binMin: 50, binMax: 59, count: 0 },
+    { binMin: 60, binMax: 69, count: 0 },
+    { binMin: 70, binMax: 79, count: 0 },
+    { binMin: 80, binMax: Number.POSITIVE_INFINITY, count: 0 },
+  ];
+  for (const r of rows) {
+    if (!isBingoDetails(r.details)) continue;
+    const calls = r.details.finalCallCount;
+    const idx = Math.min(Math.floor(calls / 10), BINS.length - 1);
+    BINS[idx]!.count += 1;
+  }
+  return BINS;
 }
 
 // ─── Phase 15 #11 — Plinko all-time admin stats ───────────────────────
@@ -1293,6 +1419,13 @@ export interface PlinkoAllTimeStats {
   edgeBinHits: number;
   /** Landed in the centre bin (worst payout). */
   centreBinHits: number;
+  // Phase 15 #14.5 PR B — additive KPIs (see spec §4.3.3).
+  /** Average bet per ball (rounded). 0 when no drops. */
+  avgBallDrop: number;
+  /** edgeBinHits / ballsDropped (null when no drops). */
+  edgeBinHitRate: number | null;
+  /** Biggest single-ball net win. 0 when no positive drops. */
+  biggestSingleBall: number;
 }
 
 export interface PlinkoBinDistribution {
@@ -1316,6 +1449,7 @@ export async function getPlinkoAllTimeStats(sinceMs?: number): Promise<PlinkoAll
   let jackpotHits = 0;
   let edgeBinHits = 0;
   let centreBinHits = 0;
+  let biggestSingleBall = 0;
   const perRisk: Record<PlinkoRisk, { drops: number; wagered: number; paid: number }> = {
     safe: { drops: 0, wagered: 0, paid: 0 },
     low: { drops: 0, wagered: 0, paid: 0 },
@@ -1328,6 +1462,7 @@ export async function getPlinkoAllTimeStats(sinceMs?: number): Promise<PlinkoAll
     ballsDropped += 1;
     totalWagered += r.betAmount;
     totalPaid += r.payout;
+    if (r.netChange > biggestSingleBall) biggestSingleBall = r.netChange;
     const bucket = perRisk[d.risk];
     bucket.drops += 1;
     bucket.wagered += r.betAmount;
@@ -1378,6 +1513,9 @@ export async function getPlinkoAllTimeStats(sinceMs?: number): Promise<PlinkoAll
     jackpotHits,
     edgeBinHits,
     centreBinHits,
+    avgBallDrop: ballsDropped > 0 ? Math.round(totalWagered / ballsDropped) : 0,
+    edgeBinHitRate: ballsDropped > 0 ? edgeBinHits / ballsDropped : null,
+    biggestSingleBall,
   };
 }
 
@@ -1463,6 +1601,15 @@ export interface PokerAllTimeStats {
   actualRtp: number | null;
   /** Maximum `biggestPotWon` value across all sessions. */
   biggestPotEver: number;
+  // Phase 15 #14.5 PR B — additive KPIs (see spec §4.3.3).
+  /** hands / sessions (rounded). 0 when no sessions. */
+  avgHandsPerSession: number;
+  /** Fraction of sessions where netChange > 0. null when no sessions. */
+  winRate: number | null;
+  /** totalWagered / sessions (rounded). 0 when no sessions. */
+  avgBuyIn: number;
+  /** All-in frequency — not tracked in persisted details, exposed as null. */
+  allInFrequency: number | null;
 }
 
 export interface PokerSessionsByVariantDay {
@@ -1494,6 +1641,7 @@ export async function getPokerAllTimeStats(
   let totalWagered = 0;
   let totalPaid = 0;
   let biggestPotEver = 0;
+  let winningSessions = 0;
   for (const r of rows) {
     if (!isPokerDetails(r.details)) continue;
     if (variant !== undefined && r.details.variant !== variant) continue;
@@ -1501,6 +1649,7 @@ export async function getPokerAllTimeStats(
     hands += r.details.handsPlayed;
     totalWagered += r.betAmount;
     totalPaid += r.payout;
+    if (r.netChange > 0) winningSessions += 1;
     if (r.details.biggestPotWon > biggestPotEver) {
       biggestPotEver = r.details.biggestPotWon;
     }
@@ -1516,7 +1665,44 @@ export async function getPokerAllTimeStats(
     netPlayerChips: -netHouseChips + 0,
     actualRtp: totalWagered > 0 ? totalPaid / totalWagered : null,
     biggestPotEver,
+    avgHandsPerSession: sessions > 0 ? Math.round(hands / sessions) : 0,
+    winRate: sessions > 0 ? winningSessions / sessions : null,
+    avgBuyIn: sessions > 0 ? Math.round(totalWagered / sessions) : 0,
+    // Not derivable from current persisted details — spec §4.3.3 lists it
+    // as a target KPI; surface as null + render '—' until details extends.
+    allInFrequency: null,
   };
+}
+
+// Phase 15 #14.5 PR B — table-size win-rate (degraded proxy for the spec's
+// "win rate by seat position"; per-seat data isn't persisted). One row per
+// observed tableSize value, sorted ascending.
+export interface PokerWinRateByTableSize {
+  tableSize: number;
+  sessions: number;
+  winRate: number;
+}
+
+export async function getPokerWinRateByTableSize(
+  sinceMs?: number,
+): Promise<PokerWinRateByTableSize[]> {
+  let rows = await db.rounds.where('game').equals('poker').toArray();
+  if (sinceMs !== undefined) rows = rows.filter((r) => r.playedAt > sinceMs);
+  const byTable = new Map<number, { sessions: number; wins: number }>();
+  for (const r of rows) {
+    if (!isPokerDetails(r.details)) continue;
+    const cur = byTable.get(r.details.tableSize) ?? { sessions: 0, wins: 0 };
+    cur.sessions += 1;
+    if (r.netChange > 0) cur.wins += 1;
+    byTable.set(r.details.tableSize, cur);
+  }
+  return [...byTable.entries()]
+    .map(([tableSize, v]) => ({
+      tableSize,
+      sessions: v.sessions,
+      winRate: v.sessions > 0 ? v.wins / v.sessions : 0,
+    }))
+    .sort((a, b) => a.tableSize - b.tableSize);
 }
 
 /** YYYY-MM-DD in UTC for an epoch-ms timestamp. */
@@ -1667,6 +1853,15 @@ export interface CrapsAllTimeStats {
   actualRtp: number | null;
   /** Maximum `biggestRollWin` value across all sessions. */
   biggestRollWin: number;
+  // Phase 15 #14.5 PR B — additive KPIs (see spec §4.3.3).
+  /** totalRolls / sessions (rounded). 0 when no sessions. */
+  avgRollsPerSession: number;
+  /** Seven-out rate — not derivable from current persisted details, null. */
+  sevenOutRate: number | null;
+  /** Point-made rate — not derivable from current persisted details, null. */
+  pointMadeRate: number | null;
+  /** Distinct bet types observed in `betTypeWagered` across all sessions. */
+  betTypeVariety: number;
 }
 
 export interface CrapsBetTypeWagered {
@@ -1691,6 +1886,7 @@ export async function getCrapsAllTimeStats(sinceMs?: number): Promise<CrapsAllTi
   let totalWagered = 0;
   let totalPaid = 0;
   let biggestRollWin = 0;
+  const betTypesObserved = new Set<string>();
   for (const r of rows) {
     if (!isCrapsDetails(r.details)) continue;
     sessions += 1;
@@ -1699,6 +1895,10 @@ export async function getCrapsAllTimeStats(sinceMs?: number): Promise<CrapsAllTi
     totalPaid += r.payout;
     if (r.details.biggestRollWin > biggestRollWin) {
       biggestRollWin = r.details.biggestRollWin;
+    }
+    const wagered = readCrapsBetTypeWagered(r.details);
+    if (wagered !== null) {
+      for (const k of Object.keys(wagered)) betTypesObserved.add(k);
     }
   }
   const netHouseChips = totalWagered - totalPaid;
@@ -1712,6 +1912,11 @@ export async function getCrapsAllTimeStats(sinceMs?: number): Promise<CrapsAllTi
     netPlayerChips: -netHouseChips + 0,
     actualRtp: totalWagered > 0 ? totalPaid / totalWagered : null,
     biggestRollWin,
+    // Phase 15 #14.5 PR B — additive KPIs.
+    avgRollsPerSession: sessions > 0 ? Math.round(totalRolls / sessions) : 0,
+    sevenOutRate: null,
+    pointMadeRate: null,
+    betTypeVariety: betTypesObserved.size,
   };
 }
 
@@ -2048,4 +2253,318 @@ export async function getLeaderboardLongestStreaks(
     }
   }
   return streaks.sort((a, b) => b.streakLength - a.streakLength).slice(0, limit);
+}
+
+// ─── Phase 15 #14.5 PR B — Blackjack admin stats ──────────────────────────
+//
+// New admin page for Blackjack (the game shipped pre-Phase 15 so it never
+// got an admin page on the original /admin sidebar). Aggregations read the
+// `BlackjackRoundDetails` shape persisted by BlackjackPage.tsx's
+// `wallet.settleRound` calls; outcomes are derived from each hand's
+// `outcome` field (`player-blackjack` / `player-win` / `push` /
+// `player-loss` / `player-bust`).
+//
+// Multi-hand rounds (splits) — a single round can contain N hands. We
+// expand each hand into its own outcome tally so the chart bar counts
+// hands, not rounds. Win-rate / bust-rate / split-rate KPIs are computed
+// from the same expansion.
+
+export type BlackjackOutcomeKey = 'blackjack' | 'win' | 'lose' | 'push' | 'bust';
+
+interface PersistedBlackjackHand {
+  readonly bet: number;
+  readonly doubled: boolean;
+  readonly fromSplit: boolean;
+  readonly outcome: 'player-blackjack' | 'player-win' | 'push' | 'player-loss' | 'player-bust';
+  readonly payout: number;
+}
+
+interface PersistedBlackjackDetails {
+  readonly hands: readonly PersistedBlackjackHand[];
+}
+
+function isBlackjackDetails(d: unknown): d is PersistedBlackjackDetails {
+  if (typeof d !== 'object' || d === null) return false;
+  const obj = d as Record<string, unknown>;
+  return Array.isArray(obj.hands);
+}
+
+function mapBlackjackOutcome(outcome: PersistedBlackjackHand['outcome']): BlackjackOutcomeKey {
+  switch (outcome) {
+    case 'player-blackjack':
+      return 'blackjack';
+    case 'player-win':
+      return 'win';
+    case 'push':
+      return 'push';
+    case 'player-bust':
+      return 'bust';
+    case 'player-loss':
+      return 'lose';
+  }
+}
+
+export interface BlackjackAllTimeStats {
+  /** Settled blackjack rounds (multi-hand rounds count as one round). */
+  hands: number;
+  totalWagered: number;
+  totalPaid: number;
+  /** `totalWagered - totalPaid` (positive = house won). */
+  netHouseChips: number;
+  netPlayerChips: number;
+  actualRtp: number | null;
+  /** Win rate over decisive (non-push) hands. null when no decisive hands. */
+  winRate: number | null;
+  /** Player-bust rate over all hands. null when no hands. */
+  bustRate: number | null;
+  /** Fraction of rounds that involved a split (one round contributes >= 2
+   *  hands when at least one of them has `fromSplit === true`). */
+  splitRate: number | null;
+  /** Biggest net win on a single round (sum across that round's hands). */
+  biggestHandWon: number;
+  /** Average bet across all hands (rounded). 0 when no hands. */
+  avgHandValue: number;
+}
+
+export interface BlackjackHandOutcome {
+  outcome: BlackjackOutcomeKey;
+  count: number;
+}
+
+const BLACKJACK_OUTCOME_ORDER: readonly BlackjackOutcomeKey[] = [
+  'blackjack',
+  'win',
+  'push',
+  'lose',
+  'bust',
+];
+
+export async function getBlackjackAllTimeStats(sinceMs?: number): Promise<BlackjackAllTimeStats> {
+  let rows = await db.rounds.where('game').equals('blackjack').toArray();
+  if (sinceMs !== undefined) rows = rows.filter((r) => r.playedAt > sinceMs);
+  let roundsCounted = 0;
+  let totalWagered = 0;
+  let totalPaid = 0;
+  let handCount = 0;
+  let handBetSum = 0;
+  let wins = 0;
+  let busts = 0;
+  let decisiveHands = 0;
+  let splitRounds = 0;
+  let biggestHandWon = 0;
+
+  for (const r of rows) {
+    roundsCounted += 1;
+    totalWagered += r.betAmount;
+    totalPaid += r.payout;
+    if (r.netChange > biggestHandWon) biggestHandWon = r.netChange;
+    if (!isBlackjackDetails(r.details)) continue;
+    let roundHadSplit = false;
+    for (const h of r.details.hands) {
+      handCount += 1;
+      handBetSum += h.bet;
+      const key = mapBlackjackOutcome(h.outcome);
+      if (key === 'bust') busts += 1;
+      if (key !== 'push') decisiveHands += 1;
+      if (key === 'win' || key === 'blackjack') wins += 1;
+      if (h.fromSplit) roundHadSplit = true;
+    }
+    if (roundHadSplit) splitRounds += 1;
+  }
+
+  const netHouseChips = totalWagered - totalPaid;
+  return {
+    hands: roundsCounted,
+    totalWagered,
+    totalPaid,
+    netHouseChips,
+    // Add zero to normalise `-0` to `+0` for strict assertions.
+    netPlayerChips: -netHouseChips + 0,
+    actualRtp: totalWagered > 0 ? totalPaid / totalWagered : null,
+    winRate: decisiveHands > 0 ? wins / decisiveHands : null,
+    bustRate: handCount > 0 ? busts / handCount : null,
+    splitRate: roundsCounted > 0 ? splitRounds / roundsCounted : null,
+    biggestHandWon,
+    avgHandValue: handCount > 0 ? Math.round(handBetSum / handCount) : 0,
+  };
+}
+
+export async function getBlackjackHandOutcomeDistribution(
+  sinceMs?: number,
+): Promise<BlackjackHandOutcome[]> {
+  let rows = await db.rounds.where('game').equals('blackjack').toArray();
+  if (sinceMs !== undefined) rows = rows.filter((r) => r.playedAt > sinceMs);
+  const counts: Record<BlackjackOutcomeKey, number> = {
+    blackjack: 0,
+    win: 0,
+    push: 0,
+    lose: 0,
+    bust: 0,
+  };
+  for (const r of rows) {
+    if (!isBlackjackDetails(r.details)) {
+      // Fallback for legacy rows: classify by netChange / payout ratio.
+      if (r.netChange === 0) counts.push += 1;
+      else if (r.netChange > 0) {
+        if (r.payout >= r.betAmount * 2.4) counts.blackjack += 1;
+        else counts.win += 1;
+      } else counts.lose += 1;
+      continue;
+    }
+    for (const h of r.details.hands) {
+      counts[mapBlackjackOutcome(h.outcome)] += 1;
+    }
+  }
+  return BLACKJACK_OUTCOME_ORDER.map((outcome) => ({ outcome, count: counts[outcome] }));
+}
+
+// ─── Phase 15 #14.5 PR B — Coin-flip admin stats ──────────────────────────
+
+export type CoinSide = 'heads' | 'tails';
+
+interface PersistedCoinFlipDetails {
+  readonly call: CoinSide;
+  readonly landed: CoinSide;
+}
+
+function isCoinFlipDetails(d: unknown): d is PersistedCoinFlipDetails {
+  if (typeof d !== 'object' || d === null) return false;
+  const obj = d as Record<string, unknown>;
+  return (
+    (obj.call === 'heads' || obj.call === 'tails') &&
+    (obj.landed === 'heads' || obj.landed === 'tails')
+  );
+}
+
+export interface CoinFlipAllTimeStats {
+  flips: number;
+  totalWagered: number;
+  totalPaid: number;
+  netHouseChips: number;
+  netPlayerChips: number;
+  actualRtp: number | null;
+  /** Longest consecutive run of any single landed face. */
+  longestStreak: number;
+  /** Fraction of all flips where the call was heads. null when no flips. */
+  headsCallRate: number | null;
+  /** Fraction of all flips where the call was tails. null when no flips. */
+  tailsCallRate: number | null;
+  /** Average bet across all flips (rounded). 0 when no flips. */
+  avgBet: number;
+  /** Biggest net single-flip win. 0 when no positive flips. */
+  biggestSingleWin: number;
+}
+
+export interface CoinFlipFaceCount {
+  outcome: CoinSide;
+  count: number;
+}
+
+const COIN_FLIP_FACES: readonly CoinSide[] = ['heads', 'tails'];
+
+export async function getCoinFlipAllTimeStats(sinceMs?: number): Promise<CoinFlipAllTimeStats> {
+  let rows = await db.rounds.where('game').equals('coin-flip').toArray();
+  if (sinceMs !== undefined) rows = rows.filter((r) => r.playedAt > sinceMs);
+  rows.sort((a, b) => a.playedAt - b.playedAt);
+  let flips = 0;
+  let totalWagered = 0;
+  let totalPaid = 0;
+  let betSum = 0;
+  let headsCalls = 0;
+  let tailsCalls = 0;
+  let biggestSingleWin = 0;
+  let curStreak = 0;
+  let curFace: CoinSide | null = null;
+  let longestStreak = 0;
+
+  for (const r of rows) {
+    flips += 1;
+    totalWagered += r.betAmount;
+    totalPaid += r.payout;
+    betSum += r.betAmount;
+    if (r.netChange > biggestSingleWin) biggestSingleWin = r.netChange;
+    if (!isCoinFlipDetails(r.details)) continue;
+    if (r.details.call === 'heads') headsCalls += 1;
+    else tailsCalls += 1;
+    if (r.details.landed === curFace) {
+      curStreak += 1;
+    } else {
+      curFace = r.details.landed;
+      curStreak = 1;
+    }
+    if (curStreak > longestStreak) longestStreak = curStreak;
+  }
+  const netHouseChips = totalWagered - totalPaid;
+  return {
+    flips,
+    totalWagered,
+    totalPaid,
+    netHouseChips,
+    netPlayerChips: -netHouseChips + 0,
+    actualRtp: totalWagered > 0 ? totalPaid / totalWagered : null,
+    longestStreak,
+    headsCallRate: flips > 0 ? headsCalls / flips : null,
+    tailsCallRate: flips > 0 ? tailsCalls / flips : null,
+    avgBet: flips > 0 ? Math.round(betSum / flips) : 0,
+    biggestSingleWin,
+  };
+}
+
+export async function getCoinFlipFaceDistribution(sinceMs?: number): Promise<CoinFlipFaceCount[]> {
+  let rows = await db.rounds.where('game').equals('coin-flip').toArray();
+  if (sinceMs !== undefined) rows = rows.filter((r) => r.playedAt > sinceMs);
+  const counts: Record<CoinSide, number> = { heads: 0, tails: 0 };
+  for (const r of rows) {
+    if (!isCoinFlipDetails(r.details)) continue;
+    counts[r.details.landed] += 1;
+  }
+  return COIN_FLIP_FACES.map((outcome) => ({ outcome, count: counts[outcome] }));
+}
+
+// ─── Phase 15 #14.5 PR B — Per-game top-players drill-down ────────────────
+//
+// Shared aggregation powering the new `TopPlayersPanel` rendered on every
+// game admin page. Returns the top-N net-chip earners scoped to a single
+// game, optionally filtered by `sinceMs` (UTC-epoch exclusive lower bound).
+// Mirrors the leaderboard aggregations' username-resolution pattern.
+
+export interface TopPlayerRow {
+  userId: string;
+  username: string;
+  rounds: number;
+  netChips: number;
+  biggestWin: number;
+}
+
+export async function getTopPlayersForGame(
+  game: Round['game'],
+  limit: number,
+  sinceMs?: number,
+): Promise<TopPlayerRow[]> {
+  if (limit <= 0) return [];
+  let rows = await db.rounds.where('game').equals(game).toArray();
+  if (sinceMs !== undefined) rows = rows.filter((r) => r.playedAt > sinceMs);
+  const byUser = new Map<string, { rounds: number; netChips: number; biggestWin: number }>();
+  for (const r of rows) {
+    const cur = byUser.get(r.userId) ?? { rounds: 0, netChips: 0, biggestWin: 0 };
+    cur.rounds += 1;
+    cur.netChips += r.netChange;
+    if (r.netChange > cur.biggestWin) cur.biggestWin = r.netChange;
+    byUser.set(r.userId, cur);
+  }
+  const usernames = await resolveUsernamesForLeaderboard([...byUser.keys()]);
+  return [...byUser.entries()]
+    .map(([userId, v]) => ({
+      userId,
+      username: usernames.get(userId) ?? '<deleted>',
+      rounds: v.rounds,
+      netChips: v.netChips,
+      biggestWin: v.biggestWin,
+    }))
+    .sort((a, b) => {
+      if (b.netChips !== a.netChips) return b.netChips - a.netChips;
+      // Stable tie-break by username for deterministic test output.
+      return a.username.localeCompare(b.username);
+    })
+    .slice(0, limit);
 }

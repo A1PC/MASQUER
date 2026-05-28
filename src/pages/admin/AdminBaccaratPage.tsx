@@ -7,6 +7,8 @@ import DateRangeFilter, {
   rangeToSinceMs,
   type RangePreset,
 } from '@/components/admin/DateRangeFilter';
+import TopPlayersPanel from '@/components/admin/TopPlayersPanel';
+import BaccaratWinnerDonut from '@/components/charts/BaccaratWinnerDonut';
 import {
   getBaccaratAllTimeStats,
   getBaccaratStreakStats,
@@ -55,6 +57,12 @@ const EMPTY_STATS: BaccaratAllTimeStats = {
   smallCount: 0,
   playerDragons: 0,
   bankerDragons: 0,
+  // Phase 15 #14.5 PR B — additive KPI defaults.
+  playerWinRate: null,
+  bankerWinRate: null,
+  tieRate: null,
+  avgShoeLength: null,
+  biggestSingleWin: 0,
 };
 const EMPTY_DIST: readonly BaccaratWinnerCount[] = [];
 const EMPTY_STREAKS: BaccaratStreakStats = {
@@ -446,6 +454,44 @@ export default function AdminBaccaratPage(): JSX.Element {
           </table>
         )}
       </section>
+
+      {/* Phase 15 #14.5 PR B — NEW additive sections (KPI grid + donut chart +
+          per-user drill-down). None of the existing StatCards / hero bar /
+          MiniBars / recent table is modified or moved. */}
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-5" data-admin-kpi-grid>
+        <StatCard
+          label="Banker win %"
+          value={stats.bankerWinRate === null ? '—' : `${(stats.bankerWinRate * 100).toFixed(1)}%`}
+        />
+        <StatCard
+          label="Player win %"
+          value={stats.playerWinRate === null ? '—' : `${(stats.playerWinRate * 100).toFixed(1)}%`}
+        />
+        <StatCard
+          label="Tie %"
+          value={stats.tieRate === null ? '—' : `${(stats.tieRate * 100).toFixed(1)}%`}
+        />
+        <StatCard
+          label="Avg shoe length"
+          value={stats.avgShoeLength === null ? '—' : stats.avgShoeLength.toFixed(1)}
+          sub="cards per round"
+        />
+        <StatCard
+          label="Biggest single win"
+          value={stats.biggestSingleWin === 0 ? '—' : `+${stats.biggestSingleWin.toLocaleString()}`}
+        />
+      </div>
+
+      <section aria-label="Baccarat winner distribution donut">
+        <h2 className="mb-2 font-display text-xs tracking-wider text-ivory/60">
+          WINNER DISTRIBUTION (DONUT)
+        </h2>
+        <div className="rounded-md border border-brass/60 bg-velvet-deep p-4">
+          <BaccaratWinnerDonut data={distribution} />
+        </div>
+      </section>
+
+      <TopPlayersPanel game="baccarat" {...(sinceMs !== undefined ? { sinceMs } : {})} />
     </div>
   );
 }

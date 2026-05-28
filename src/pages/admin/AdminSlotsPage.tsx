@@ -4,6 +4,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import StatCard from '@/pages/admin/StatCard';
 import SlotsCombinationBar from '@/components/charts/SlotsCombinationBar';
 import SlotsSymbolReelHeatmap from '@/components/charts/SlotsSymbolReelHeatmap';
+import TopPlayersPanel from '@/components/admin/TopPlayersPanel';
 import DateRangeFilter, {
   rangeToSinceMs,
   type RangePreset,
@@ -30,6 +31,11 @@ const EMPTY_STATS: SlotsAllTimeStats = {
   targetRtp: 0.86,
   tierCounts: { none: 0, small: 0, medium: 0, jackpot: 0 },
   jackpotsHit: 0,
+  // Phase 15 #14.5 PR B — additive KPI defaults.
+  avgPayout: 0,
+  avgSpinCost: 0,
+  biggestSingleWin: 0,
+  avgSessionLength: 0,
 };
 const EMPTY_COMBOS: readonly SlotsCombinationCount[] = [];
 const EMPTY_SYMBOLS: readonly SlotsSymbolDistribution[] = [];
@@ -279,6 +285,36 @@ export default function AdminSlotsPage(): JSX.Element {
           </table>
         )}
       </section>
+
+      {/* Phase 15 #14.5 PR B — NEW additive sections (KPI grid + per-user
+          drill-down). Spec §4.3.4 names "SlotsSymbolHeatmap" as the new
+          chart but `SlotsSymbolReelHeatmap` (rendered above) already covers
+          that visualisation, so no new chart is added; KPIs + TopPlayersPanel
+          are the additive payload here. None of the existing top StatCards /
+          hero combination chart / symbol-reel heatmap / recent table is
+          modified or moved. */}
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-5" data-admin-kpi-grid>
+        <StatCard
+          label="Avg payout"
+          value={stats.avgPayout === 0 ? '—' : stats.avgPayout.toLocaleString()}
+        />
+        <StatCard label="Symbol jackpot count" value={stats.jackpotsHit.toLocaleString()} />
+        <StatCard
+          label="Avg spin cost"
+          value={stats.avgSpinCost === 0 ? '—' : stats.avgSpinCost.toLocaleString()}
+        />
+        <StatCard
+          label="Biggest single win"
+          value={stats.biggestSingleWin === 0 ? '—' : `+${stats.biggestSingleWin.toLocaleString()}`}
+        />
+        <StatCard
+          label="Avg session length"
+          value={stats.avgSessionLength === 0 ? '—' : stats.avgSessionLength.toLocaleString()}
+          sub="spins (all-time proxy)"
+        />
+      </div>
+
+      <TopPlayersPanel game="slots" {...(sinceMs !== undefined ? { sinceMs } : {})} />
     </div>
   );
 }

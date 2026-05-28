@@ -50,6 +50,8 @@ const AdminBaccaratPage = lazy(() => import('@/pages/admin/AdminBaccaratPage'));
 const AdminPlinkoPage = lazy(() => import('@/pages/admin/AdminPlinkoPage'));
 const AdminPokerPage = lazy(() => import('@/pages/admin/AdminPokerPage'));
 const AdminCrapsPage = lazy(() => import('@/pages/admin/AdminCrapsPage'));
+const AdminBlackjackPage = lazy(() => import('@/pages/admin/AdminBlackjackPage'));
+const AdminCoinFlipPage = lazy(() => import('@/pages/admin/AdminCoinFlipPage'));
 
 const adminFallback = (
   <div className="flex min-h-screen items-center justify-center bg-felt-deep text-xs text-white/40">
@@ -98,6 +100,8 @@ export const router = createBrowserRouter([
       { path: 'plinko', element: <AdminPlinkoPage /> },
       { path: 'poker', element: <AdminPokerPage /> },
       { path: 'craps', element: <AdminCrapsPage /> },
+      { path: 'blackjack', element: <AdminBlackjackPage /> },
+      { path: 'coin-flip', element: <AdminCoinFlipPage /> },
     ],
   },
   {

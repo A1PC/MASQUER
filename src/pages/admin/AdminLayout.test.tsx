@@ -26,6 +26,10 @@ function renderLayoutAt(initial: string) {
           { path: 'plinko', element: <div>plinko content</div> },
           { path: 'baccarat', element: <div>baccarat content</div> },
           { path: 'craps', element: <div>craps content</div> },
+          { path: 'blackjack', element: <div>blackjack content</div> },
+          { path: 'coin-flip', element: <div>coin-flip content</div> },
+          { path: 'lottery', element: <div>lottery content</div> },
+          { path: 'bingo', element: <div>bingo content</div> },
         ],
       },
       { path: '/admin/login', element: <div>admin login</div> },
@@ -213,5 +217,37 @@ describe('AdminLayout', () => {
     expect(sidebar?.className).toContain('border-brass/60');
     expect(topbar?.className).toContain('bg-velvet-deep');
     expect(topbar?.className).toContain('border-brass/60');
+  });
+
+  // Phase 15 #14.5 PR B — NEW Blackjack nav entry.
+
+  it('renders the Blackjack nav link pointing to /admin/blackjack', () => {
+    renderLayoutAt('/admin');
+    expect(screen.getByRole('link', { name: /^blackjack$/i })).toHaveAttribute(
+      'href',
+      '/admin/blackjack',
+    );
+  });
+
+  it('marks the Blackjack nav link active on /admin/blackjack', () => {
+    renderLayoutAt('/admin/blackjack');
+    const link = screen.getByRole('link', { name: /^blackjack$/i });
+    expect(link).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByText('blackjack content')).toBeInTheDocument();
+  });
+
+  it('renders the Coin-flip nav link pointing to /admin/coin-flip', () => {
+    renderLayoutAt('/admin');
+    expect(screen.getByRole('link', { name: /^coin-flip$/i })).toHaveAttribute(
+      'href',
+      '/admin/coin-flip',
+    );
+  });
+
+  it('marks the Coin-flip nav link active on /admin/coin-flip', () => {
+    renderLayoutAt('/admin/coin-flip');
+    const link = screen.getByRole('link', { name: /^coin-flip$/i });
+    expect(link).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByText('coin-flip content')).toBeInTheDocument();
   });
 });

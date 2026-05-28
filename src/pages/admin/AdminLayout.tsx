@@ -12,10 +12,12 @@ const NAV_ITEMS = [
   { to: '/admin/bingo', label: 'Bingo', end: false },
   { to: '/admin/roulette', label: 'Roulette', end: false },
   { to: '/admin/slots', label: 'Slots', end: false },
+  { to: '/admin/blackjack', label: 'Blackjack', end: false },
   { to: '/admin/poker', label: 'Poker', end: false },
   { to: '/admin/craps', label: 'Craps', end: false },
   { to: '/admin/plinko', label: 'Plinko', end: false },
   { to: '/admin/baccarat', label: 'Baccarat', end: false },
+  { to: '/admin/coin-flip', label: 'Coin-flip', end: false },
 ] as const;
 
 export default function AdminLayout(): JSX.Element {

@@ -17,12 +17,16 @@ import DateRangeFilter, {
   rangeToSinceMs,
   type RangePreset,
 } from '@/components/admin/DateRangeFilter';
+import TopPlayersPanel from '@/components/admin/TopPlayersPanel';
+import PlinkoRiskTierBar from '@/components/charts/PlinkoRiskTierBar';
 import {
   getPlinkoAllTimeStats,
   getPlinkoBinDistribution,
+  getPlinkoRiskDistribution,
   type PlinkoAllTimeStats,
   type PlinkoBinDistribution,
   type PlinkoRisk,
+  type PlinkoRiskDistribution,
 } from '@/systems/stats';
 import { MULTIPLIER_CURVES } from '@/games/plinko/logic';
 import { db } from '@/db';
@@ -57,8 +61,13 @@ const EMPTY_STATS: PlinkoAllTimeStats = {
   jackpotHits: 0,
   edgeBinHits: 0,
   centreBinHits: 0,
+  // Phase 15 #14.5 PR B — additive KPI defaults (mirrors stats.ts return shape).
+  avgBallDrop: 0,
+  edgeBinHitRate: null,
+  biggestSingleBall: 0,
 };
 const EMPTY_DIST: readonly PlinkoBinDistribution[] = [];
+const EMPTY_RISK_DIST: readonly PlinkoRiskDistribution[] = [];
 const EMPTY_ROUNDS: readonly Round[] = [];
 
 /** Canonical per-risk display order + label / accent classes. The accent
@@ -186,6 +195,8 @@ export default function AdminPlinkoPage(): JSX.Element {
   // pages.)
   const stats = useLiveQuery(() => getPlinkoAllTimeStats(sinceMs), [sinceMs], EMPTY_STATS);
   const distribution = useLiveQuery(() => getPlinkoBinDistribution(), [], EMPTY_DIST);
+  // Phase 15 #14.5 PR B — additive risk-tier distribution for the new chart.
+  const riskDist = useLiveQuery(() => getPlinkoRiskDistribution(), [], EMPTY_RISK_DIST);
   // `.where(...).reverse()` ties-break by primary key (lexicographic on
   // betId strings), not by `playedAt` — so it did not give "newest first".
   // Sort in memory; admin pages tolerate the full scan (#250 pattern).
@@ -380,6 +391,53 @@ export default function AdminPlinkoPage(): JSX.Element {
           </table>
         )}
       </section>
+
+      {/* Phase 15 #14.5 PR B — NEW additive sections rendered BELOW the
+          pre-existing top StatCards / hero chart / per-risk panels / recent
+          drops table. Order is: secondary KPI grid → risk-tier bar →
+          per-user drill-down. None of the above existing sections are
+          modified or moved. */}
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-5" data-admin-kpi-grid>
+        <StatCard
+          label="Avg ball drop"
+          value={stats.avgBallDrop === 0 ? '—' : stats.avgBallDrop.toLocaleString()}
+        />
+        <StatCard
+          label="Risk variety"
+          value={(['safe', 'low', 'medium', 'high'] as const)
+            .filter((r) => stats.perRisk[r].drops > 0)
+            .length.toLocaleString()}
+          sub="risk tiers used"
+        />
+        <StatCard
+          label="Edge-bin hit rate"
+          value={
+            stats.edgeBinHitRate === null ? '—' : `${(stats.edgeBinHitRate * 100).toFixed(1)}%`
+          }
+        />
+        <StatCard
+          label="Auto-session avg balls"
+          value={stats.ballsDropped === 0 ? '—' : stats.ballsDropped.toLocaleString()}
+          sub="balls per session"
+        />
+        <StatCard
+          label="Biggest single ball"
+          value={
+            stats.biggestSingleBall === 0 ? '—' : `+${stats.biggestSingleBall.toLocaleString()}`
+          }
+        />
+      </div>
+
+      <section aria-label="Plinko risk-tier distribution">
+        <h2 className="mb-2 font-display text-xs tracking-wider text-ivory/60">
+          RISK-TIER DISTRIBUTION
+        </h2>
+        <div className="rounded-md border border-brass/60 bg-velvet-deep p-4">
+          <PlinkoRiskTierBar data={riskDist} />
+        </div>
+      </section>
+
+      <TopPlayersPanel game="plinko" {...(sinceMs !== undefined ? { sinceMs } : {})} />
     </div>
   );
 }
