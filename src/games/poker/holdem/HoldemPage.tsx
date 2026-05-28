@@ -23,7 +23,7 @@ import {
   pickWinTier,
 } from '../_shared/sessionBootstrap';
 import { holdemMachine, type MachineInput, type PokerContext } from './machine';
-import SetupPanel from './SetupPanel';
+import SetupPanel from '../_shared/SetupPanel';
 import PokerTable from './PokerTable';
 import type { WinTier } from './ShowdownReveal';
 
