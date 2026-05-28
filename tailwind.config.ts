@@ -103,6 +103,26 @@ export default {
           '20%': { opacity: '1' },
           '100%': { transform: 'translateY(320px)', opacity: '0' },
         },
+        // Baccarat win-celebration FX (Phase 15 #15 G5 — promoted from a
+        // per-mount `<style dangerouslySetInnerHTML>` block in BaccaratPage so
+        // the keyframes register exactly once at build time instead of on
+        // every page mount. Mirrors the Slots G4 promotion; spec §10 owns
+        // the per-tier visual mapping.
+        baccaratJackpot: {
+          '0%': { opacity: '0' },
+          '20%': { opacity: '1' },
+          '100%': { opacity: '0' },
+        },
+        baccaratMediumBurst: {
+          '0%': { opacity: '0', transform: 'scale(0.6)' },
+          '40%': { opacity: '1', transform: 'scale(1.1)' },
+          '100%': { opacity: '0', transform: 'scale(1.3)' },
+        },
+        baccaratCoinFall: {
+          '0%': { transform: 'translateY(-30px)', opacity: '0' },
+          '20%': { opacity: '1' },
+          '100%': { transform: 'translateY(320px)', opacity: '0' },
+        },
       },
       animation: {
         fadeIn: 'fadeIn 150ms ease-out',
@@ -119,6 +139,13 @@ export default {
         slotsJackpotTint: 'slotsJackpotTint 1500ms ease-out',
         slotsMediumBurst: 'slotsMediumBurst 800ms ease-out',
         slotsCoinFall: 'slotsCoinFall 1500ms ease-out forwards',
+        // Baccarat celebrations. Mirrors Slots' wiring — `baccaratCoinFall`
+        // is per-particle so WinCelebration applies a per-instance delay via
+        // inline `animationDelay`; the animation utility supplies duration +
+        // easing + fill-mode.
+        baccaratJackpot: 'baccaratJackpot 1500ms ease-out',
+        baccaratMediumBurst: 'baccaratMediumBurst 800ms ease-out',
+        baccaratCoinFall: 'baccaratCoinFall 1500ms ease-out forwards',
       },
       boxShadow: {
         // existing neon/gold/roulette shadows kept for current screens

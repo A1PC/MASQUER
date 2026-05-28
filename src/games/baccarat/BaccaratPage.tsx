@@ -47,20 +47,6 @@ import BaccaratRules from './rules';
  *     reshuffle. All gated on `useEffectiveReducedMotion`.
  */
 
-const ANIMATIONS = `
-  @keyframes baccaratJackpot { 0% { opacity: 0; } 20% { opacity: 1; } 100% { opacity: 0; } }
-  @keyframes baccaratMediumBurst {
-    0% { opacity: 0; transform: scale(0.6); }
-    40% { opacity: 1; transform: scale(1.1); }
-    100% { opacity: 0; transform: scale(1.3); }
-  }
-  @keyframes baccaratCoinFall {
-    0% { transform: translateY(-30px); opacity: 0; }
-    20% { opacity: 1; }
-    100% { transform: translateY(320px); opacity: 0; }
-  }
-`;
-
 interface AggregatedSettlement {
   betAmount: number;
   payout: number;
@@ -340,21 +326,15 @@ export default function BaccaratPage(): JSX.Element | null {
 
   const totalBet = Object.values(state.context.bets).reduce((s, n) => s + n, 0);
 
+  // Phase 15 #15 G5: the brand CSS vars referenced below
+  // (`--brand-scoreboard-{banker,player,tie}`, `--brand-ivory`) are declared
+  // globally on `:root` in src/index.css. The baccarat-specific keyframes
+  // (`baccaratJackpot`, `baccaratMediumBurst`, `baccaratCoinFall`) live in
+  // tailwind.config.ts as `animate-*` utilities so the celebration FX
+  // register once at build time instead of on every page mount (mirrors the
+  // Slots G4 promotion).
   return (
     <>
-      <style
-        dangerouslySetInnerHTML={{
-          __html: `
-      :root {
-        --brand-scoreboard-banker: #a3122a;
-        --brand-scoreboard-player: #1e3a8a;
-        --brand-scoreboard-tie: #3dd17a;
-        --brand-ivory: #f2e7cc;
-      }
-      ${ANIMATIONS}
-    `,
-        }}
-      />
       <GameShell
         title="MASQUER · Baccarat"
         game="baccarat"
@@ -375,12 +355,23 @@ export default function BaccaratPage(): JSX.Element | null {
                 freshShoeBanner={state.context.freshShoeBanner}
               />
               <div className="text-xs text-ivory/70">
-                Bet: <span className="font-display text-gold-bright">{totalBet}</span> · Balance:{' '}
-                <span className="font-mono text-ivory/90">{balance.toLocaleString()}</span>
+                Bet: <span className="font-numeral tabular-nums text-gold-bright">{totalBet}</span>{' '}
+                · Balance:{' '}
+                <span className="font-numeral tabular-nums text-ivory/90">
+                  {balance.toLocaleString()}
+                </span>
               </div>
             </div>
             <div className="flex items-center justify-between gap-3">
               <ChipSelector value={selectedChip} onChange={setSelectedChip} disabled={!inBetting} />
+              {/*
+               * TODO(#15-followup): extract into a shared <GameActionButton>
+               * primitive alongside Slots' SPIN and Roulette's SPIN NOW —
+               * see audit §2.3 / §2.4 / §2.5 (P2). All three rebuild the
+               * same min-h-[44px] rounded-md border border-brass bg-velvet …
+               * focus ring + glow surface. Out of scope here per the
+               * per-game additive constraint (PR B territory).
+               */}
               <button
                 type="button"
                 onClick={handleDeal}
@@ -452,7 +443,13 @@ async function persistRound(
     max: 99_999,
   });
   if (!placed.ok) {
-    console.warn('Baccarat persistRound: placeBet failed', placed.error);
+    // Phase 15 #15 G5: gate behind import.meta.env.DEV so the warn never
+    // ships to production logs (mirrors the Roulette G3 / Slots G4
+    // treatment of their own placeBet-failure path). The settle flow
+    // already noops on !placed.ok; this log is for local debugging only.
+    if (import.meta.env.DEV) {
+      console.warn('Baccarat persistRound: placeBet failed', placed.error);
+    }
     return;
   }
   // Build the per-zone snapshot for details.

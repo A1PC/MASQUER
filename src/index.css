@@ -23,6 +23,15 @@
     /* Slots coin-shower particle colours (Phase 15 #15 G4). */
     --brand-coin-gold-bright: #ffd23f;
     --brand-coin-gold-deep: #d4af37;
+    /*
+     * Baccarat scoreboard semantic colours (Phase 15 #15 G5). Banker red,
+     * Player blue, Tie green — mirrors `scoreboard-{banker,player,tie}` in
+     * tokens.ts so BaccaratPage's recent-results badges can reference the
+     * brand vars without re-injecting a per-mount `<style>` block.
+     */
+    --brand-scoreboard-banker: #a3122a;
+    --brand-scoreboard-player: #1e3a8a;
+    --brand-scoreboard-tie: #3dd17a;
   }
   html,
   body,
