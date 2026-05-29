@@ -57,11 +57,11 @@ importers:
         specifier: ^2.1.1
         version: 2.1.1
       dexie:
-        specifier: ^4.0.10
-        version: 4.4.2
+        specifier: ^4.4.3
+        version: 4.4.3
       dexie-react-hooks:
         specifier: ^4.4.0
-        version: 4.4.0(dexie@4.4.2)(react@18.3.1)
+        version: 4.4.0(dexie@4.4.3)(react@18.3.1)
       framer-motion:
         specifier: ^12.40.0
         version: 12.40.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -1999,8 +1999,8 @@ packages:
       dexie: '>=4.2.0-alpha.1 <5.0.0'
       react: '>=16'
 
-  dexie@4.4.2:
-    resolution: {integrity: sha512-zMtV8q79EFE5U8FKZvt0Y/77PCU/Hr/RDxv1EDeo228L+m/HTbeN2AjoQm674rhQCX8n3ljK87lajt7UQuZfvw==}
+  dexie@4.4.3:
+    resolution: {integrity: sha512-N+3IGQ3HPlyO2YAkntGAwitm42BpBGV86MttzUMiRzWLa4NGh0pltVRcUVF4ybL/OnXjCrr9k7SDPIKkFYP2Lg==}
 
   didyoumean@1.2.2:
     resolution: {integrity: sha512-gxtyfqMg7GKyhQmb056K7M3xszy/myH8w+B4RT+QXBQsvAOdc3XymqDDPHx1BgPgsdAA5SIifona89YtRATDzw==}
@@ -5545,12 +5545,12 @@ snapshots:
 
   detect-node-es@1.1.0: {}
 
-  dexie-react-hooks@4.4.0(dexie@4.4.2)(react@18.3.1):
+  dexie-react-hooks@4.4.0(dexie@4.4.3)(react@18.3.1):
     dependencies:
-      dexie: 4.4.2
+      dexie: 4.4.3
       react: 18.3.1
 
-  dexie@4.4.2: {}
+  dexie@4.4.3: {}
 
   didyoumean@1.2.2: {}
 

@@ -40,7 +40,7 @@
     "@xstate/react": "^6.1.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "dexie": "^4.0.10",
+    "dexie": "^4.4.3",
     "dexie-react-hooks": "^4.4.0",
     "framer-motion": "^12.40.0",
     "lucide-react": "^1.16.0",
