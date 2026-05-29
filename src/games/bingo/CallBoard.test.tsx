@@ -49,42 +49,31 @@ describe('CallBoard', () => {
     expect(board.className).toContain('border-brass/60');
   });
 
-  it('American hero ball is prefixed with its column letter (B-7, G-52, O-72)', () => {
-    // Spread the called list so each test ball lands as the hero (current) one.
-    const cases: Array<[number, string]> = [
-      [7, 'B-7'],
-      [22, 'I-22'],
-      [38, 'N-38'],
-      [52, 'G-52'],
-      [72, 'O-72'],
-    ];
-    for (const [value, expected] of cases) {
+  it('hero ball renders a bare number across both variants (no column letter prefix)', () => {
+    for (const [variant, value, expected] of [
+      ['british', 77, '77'],
+      ['american', 7, '7'],
+      ['american', 52, '52'],
+      ['american', 72, '72'],
+    ] as const) {
       const { container, unmount } = render(
-        <CallBoard calledSoFar={[value]} callCount={1} variant="american" />,
+        <CallBoard calledSoFar={[value]} callCount={1} variant={variant} />,
       );
       const hero = container.querySelector('[data-current-ball] [data-bingo-ball]') as HTMLElement;
       expect(hero).not.toBeNull();
       expect(hero.textContent).toBe(expected);
+      expect(hero.getAttribute('data-ball-letter')).toBeNull();
       unmount();
     }
   });
 
-  it('British hero ball stays a bare number (no column letter prefix)', () => {
-    const { container } = render(<CallBoard calledSoFar={[77]} callCount={1} variant="british" />);
-    const hero = container.querySelector('[data-current-ball] [data-bingo-ball]') as HTMLElement;
-    expect(hero.textContent).toBe('77');
-    expect(hero.getAttribute('data-ball-letter')).toBeNull();
-  });
-
-  it('American recent-ball chips stay bare numbers (letter prefix only on hero)', () => {
-    // values 5 (B) + 22 (I); only the hero (22) gets the prefix.
+  it('recent-strip chips also render as bare numbers', () => {
     const { container } = render(
       <CallBoard calledSoFar={[5, 22]} callCount={2} variant="american" />,
     );
     const recent = container.querySelectorAll(
       '[data-bingo-ball]:not([data-current-ball] [data-bingo-ball])',
     );
-    // The recent strip should hold the prior call as a bare number.
     const prior = Array.from(recent).find(
       (el) => (el as HTMLElement).getAttribute('data-ball-value') === '5',
     ) as HTMLElement | undefined;
