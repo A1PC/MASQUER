@@ -130,6 +130,25 @@ and [`docs/conventions.md`](./docs/conventions.md) for code conventions.
 
 ## Running it
 
+### Just want to play? One-double-click launcher for every platform
+
+Run the platform installer once and you get a real desktop shortcut
+(`MASQUER.app` on macOS, `MASQUER.lnk` on Windows, an XDG `.desktop` entry
+in your Linux app menu). Double-click it any time you want to play — first
+run installs deps and builds, subsequent runs reuse the build.
+
+| Platform | One-time install                            |
+| -------- | ------------------------------------------- |
+| macOS    | `bash scripts/macos/install-shortcut.sh`    |
+| Windows  | `pwsh scripts/windows/install-shortcut.ps1` |
+| Linux    | `bash scripts/linux/install-shortcut.sh`    |
+
+See [`scripts/README.md`](./scripts/README.md) for the cross-platform
+overview, requirements, and per-platform docs (custom port, uninstall,
+troubleshooting, icon rendering).
+
+### Dev workflow (manual)
+
 Requirements: **Node 20 LTS** (see `.nvmrc`) and **pnpm 9+** (via Corepack).
 
 ```bash
